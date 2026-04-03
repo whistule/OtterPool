@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Create Event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.15);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-a:        #00c8b4;
+    --sea-b:        #0098a0;
+    --sea-c:        #005a6e;
+    --riv-lo:       #58d048;
+    --riv-mid:      #28a030;
+    --riv-hi:       #0a5018;
+    --p1:           #d4703a;
+    --p2:           #b85530;
+    --p3:           #8a2e10;
+    --loch:         #5a7080;
+    --skills:       #e08800;
+    --red:          #8a2828;
+    --red-pale:     #fde0e0;
+
+    /* OS map colours */
+    --os-water:     #b0d4e8;
+    --os-land:      #f0ebe0;
+    --os-woodland:  #c8d8b0;
+    --os-road:      #f0c860;
+    --os-contour:   #d0b898;
+    --os-text:      #3a3028;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    font-size: 17px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .topbar-back {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.2rem;
+  }
+
+  .topbar-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.02em;
+  }
+
+  .draft-badge {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.12);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+  }
+
+  /* ── PROGRESS STEPS ── */
+  .progress-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: sticky;
+    top: 52px;
+    z-index: 190;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .step-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone-lt);
+    position: relative;
+    z-index: 1;
+    transition: all 0.2s;
+  }
+
+  .step.done .step-circle {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: white;
+  }
+
+  .step.active .step-circle {
+    background: var(--white);
+    border-color: var(--forest);
+    color: var(--forest);
+    font-weight: 600;
+    box-shadow: 0 0 0 3px var(--forest-pale);
+  }
+
+  .step-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.52rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    white-space: nowrap;
+  }
+
+  .step.active .step-label { color: var(--forest); }
+  .step.done .step-label { color: var(--forest-mid); }
+
+  /* Connecting line between steps */
+  .step-line {
+    height: 2px;
+    background: var(--border);
+    flex: 0.5;
+    margin-bottom: 1rem;
+    transition: background 0.3s;
+  }
+  .step-line.done { background: var(--forest); }
+
+  /* ── STEP PANELS ── */
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+
+  /* ── FORM SECTIONS ── */
+  .form-section {
+    background: var(--white);
+    margin: 0.75rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-section-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    padding: 0.75rem 1rem 0.35rem;
+  }
+
+  .form-field {
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 52px;
+  }
+  .form-field:first-of-type { border-top: none; }
+
+  .field-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--stone);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  .field-input {
+    flex: 1;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    color: var(--peat);
+    border: none;
+    outline: none;
+    background: transparent;
+    min-width: 0;
+  }
+
+  .field-input::placeholder {
+    color: var(--stone-lt);
+    font-style: italic;
+  }
+
+  .field-input-large {
+    flex: 1;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    color: var(--peat);
+    border: none;
+    outline: none;
+    background: transparent;
+    resize: none;
+    min-height: 80px;
+    line-height: 1.6;
+    padding: 0;
+    width: 100%;
+  }
+
+  .field-input-large::placeholder {
+    color: var(--stone-lt);
+    font-style: italic;
+  }
+
+  .field-value {
+    flex: 1;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    color: var(--peat);
+  }
+
+  .field-value.placeholder {
+    color: var(--stone-lt);
+    font-style: italic;
+  }
+
+  .field-chevron {
+    color: var(--stone-lt);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  /* ── CATEGORY GRID ── */
+  .category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .cat-chip {
+    padding: 0.65rem 0.75rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cat-chip:active { transform: scale(0.97); }
+
+  .cat-chip.selected {
+    border-color: var(--forest);
+    background: var(--forest-pale);
+  }
+
+  .cat-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cat-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    line-height: 1.2;
+  }
+
+  .cat-chip.selected .cat-label {
+    color: var(--forest);
+    font-weight: 600;
+  }
+
+  /* ── GRADE PICKER ── */
+  .grade-picker {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .grade-picker::-webkit-scrollbar { display: none; }
+
+  .grade-option {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.12s;
+  }
+
+  .grade-option.selected {
+    border-color: currentColor;
+    background: var(--snow);
+  }
+
+  .grade-pip {
+    width: 18px; height: 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .grade-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    white-space: nowrap;
+  }
+
+  .grade-option.selected .grade-label {
+    font-weight: 600;
+    color: var(--peat);
+  }
+
+  /* ── TOGGLE SWITCH ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    min-height: 52px;
+  }
+
+  .toggle-info { flex: 1; padding-right: 1rem; }
+
+  .toggle-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.2;
+  }
+
+  .toggle-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+    margin-top: 0.15rem;
+  }
+
+  .toggle-switch {
+    width: 44px; height: 26px;
+    border-radius: 13px;
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on { background: var(--forest); }
+
+  .toggle-knob {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(18px);
+  }
+
+  /* ── DATE TIME PICKER ── */
+  .date-row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .date-box {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.65rem;
+    cursor: pointer;
+  }
+
+  .date-box-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.2rem;
+  }
+
+  .date-box-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  .date-box-value.placeholder {
+    color: var(--stone-lt);
+    font-style: italic;
+    font-size: 0.85rem;
+    font-family: 'Source Serif 4', serif;
+    font-weight: 400;
+  }
+
+  /* ── MEETING POINT MAP ── */
+  .map-container {
+    margin: 0;
+    position: relative;
+  }
+
+  /* OS-style map SVG */
+  .map-canvas {
+    width: 100%;
+    height: 260px;
+    background: var(--os-land);
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  .map-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Map controls */
+  .map-controls {
+    position: absolute;
+    right: 0.75rem;
+    top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .map-btn {
+    width: 32px; height: 32px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--peat);
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .map-tap-hint {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20,26,20,0.72);
+    backdrop-filter: blur(4px);
+    border-radius: 20px;
+    padding: 0.3rem 0.875rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: white;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Saved locations list */
+  .saved-locations {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+  }
+
+  .saved-header {
+    padding: 0.6rem 1rem 0.3rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .saved-location {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .saved-location:active { background: var(--snow); }
+
+  .saved-location.selected {
+    background: var(--forest-pale);
+  }
+
+  .saved-pin {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    border: 2px solid var(--forest-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .saved-location.selected .saved-pin {
+    background: var(--forest);
+    border-color: var(--forest);
+  }
+
+  .saved-info { flex: 1; min-width: 0; }
+
+  .saved-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--peat);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .saved-w3w {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  .saved-count {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .add-new-location {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--forest);
+  }
+
+  .add-new-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--forest);
+  }
+
+  /* ── DESCRIPTION / TEXT AREA ── */
+  .textarea-field {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .char-count {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: var(--stone-lt);
+    text-align: right;
+    margin-top: 0.4rem;
+  }
+
+  /* ── OPTIONAL BLOCKS ── */
+  .optional-block {
+    border-top: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .optional-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    cursor: pointer;
+  }
+
+  .optional-icon { font-size: 1.05rem; }
+
+  .optional-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    flex: 1;
+  }
+
+  .optional-tag {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    background: var(--snow);
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+  }
+
+  .optional-body {
+    display: none;
+    padding: 0 1rem 0.75rem;
+  }
+
+  .optional-block.open .optional-body { display: block; }
+
+  /* ── REVIEW PANEL ── */
+  .review-card {
+    background: var(--white);
+    margin: 0.75rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .review-hero {
+    height: 120px;
+    background: linear-gradient(135deg, #1a3a4a, #1e5e56);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 0.75rem;
+  }
+
+  .review-hero-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: white;
+    line-height: 1.2;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .review-grade-badge {
+    position: absolute;
+    top: 0.6rem; right: 0.6rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 3px;
+    background: var(--sea-c);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  .review-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .review-icon { font-size: 0.95rem; flex-shrink: 0; }
+
+  .review-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .review-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* ── BOTTOM NAV BAR ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 0.65rem 1rem 1.1rem;
+    display: flex;
+    gap: 0.65rem;
+    z-index: 200;
+  }
+
+  .btn-back {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--stone);
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    flex-shrink: 0;
+  }
+
+  .btn-next {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--forest);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .btn-publish {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--topbar);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  /* spacer for fixed bottom bar */
+  .bottom-spacer { height: 5rem; }
+
+  /* Number input */
+  .number-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .num-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    color: var(--forest);
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .num-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--peat);
+    min-width: 2rem;
+    text-align: center;
+  }
+
+  /* Cost input */
+  .cost-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .cost-symbol {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    color: var(--stone);
+  }
+
+  .cost-input {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--peat);
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 80px;
+  }
+
+  /* Featured star */
+  .feat-star {
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .feat-star:active { transform: scale(1.3); }
+
+  /* Step intro */
+  .step-intro {
+    padding: 1rem 1rem 0;
+  }
+
+  .step-heading {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.2rem;
+  }
+
+  .step-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* ── PROMINENT SEARCH ── */
+  .location-search-wrap {
+    padding: 0.875rem 1rem 0.75rem;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .location-search-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.5rem;
+  }
+
+  .location-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: var(--snow);
+    border: 2px solid var(--forest-lt);
+    border-radius: 8px;
+    box-shadow: 0 0 0 4px var(--forest-pale);
+  }
+
+  .location-search-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+    color: var(--forest);
+  }
+
+  .location-search-input {
+    flex: 1;
+    font-family: 'Source Serif 4', serif;
+    font-size: 1rem;
+    color: var(--peat);
+    border: none;
+    outline: none;
+    background: transparent;
+  }
+
+  .location-search-input::placeholder {
+    color: var(--stone-lt);
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  .location-search-clear {
+    font-size: 1rem;
+    color: var(--stone-lt);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0.1rem 0.2rem;
+  }
+  .image-section-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    padding: 0.75rem 1rem 0.4rem;
+  }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0 1rem 0.75rem;
+  }
+
+  .image-option {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 4/3;
+    border: 2.5px solid transparent;
+    transition: border-color 0.15s;
+  }
+
+  .image-option.selected {
+    border-color: var(--forest);
+  }
+
+  .image-option img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.88);
+  }
+
+  .image-option-check {
+    position: absolute;
+    top: 0.4rem; right: 0.4rem;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--forest);
+    display: none;
+    align-items: center; justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+  }
+
+  .image-option.selected .image-option-check {
+    display: flex;
+  }
+
+  .image-option-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 0.35rem 0.5rem;
+    background: linear-gradient(transparent, rgba(20,26,20,0.7));
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    color: white;
+    letter-spacing: 0.04em;
+  }
+
+  .upload-btn {
+    margin: 0 1rem 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1.5px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    background: var(--snow);
+  }
+
+  .upload-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--stone);
+  }
+
+  /* ── KIT LIST ── */
+  .kit-template-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--forest-pale);
+    border: 1px solid rgba(61,102,64,0.2);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .kit-template-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .kit-template-icon { font-size: 1rem; flex-shrink: 0; }
+
+  .kit-template-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--forest);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .kit-template-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--forest-lt);
+    font-style: italic;
+  }
+
+  .kit-template-switch {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--forest);
+    text-decoration: underline;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-underline-offset: 2px;
+  }
+
+  .kit-template-picker {
+    background: var(--snow);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+
+  .kit-template-option {
+    padding: 0.6rem 0.75rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--peat);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .kit-template-option:last-child { border-bottom: none; }
+  .kit-template-option:active { background: var(--forest-pale); }
+
+  .kit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .kit-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .kit-item:last-child { border-bottom: none; }
+
+  .kit-checkbox {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1.5px solid var(--forest-lt);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .kit-checkbox.checked {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: white;
+    font-size: 0.7rem;
+  }
+
+  .kit-item-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .kit-item-text.checked-text {
+    color: var(--stone-lt);
+    text-decoration: line-through;
+  }
+
+  .kit-item-del {
+    font-size: 0.85rem;
+    color: var(--stone-lt);
+    cursor: pointer;
+    padding: 0.1rem 0.2rem;
+    flex-shrink: 0;
+  }
+  .kit-item-del:active { color: var(--red); }
+
+  .kit-add-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+  }
+
+  .kit-add-input {
+    flex: 1;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    outline: none;
+    background: var(--snow);
+  }
+  .kit-add-input::placeholder { color: var(--stone-lt); font-style: italic; }
+  .kit-add-input:focus { border-color: var(--forest-lt); }
+
+  .kit-add-btn {
+    padding: 0.4rem 0.75rem;
+    background: var(--forest);
+    border-radius: 4px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-back">←</div>
+    <div class="topbar-title">New Event</div>
+  </div>
+  <div class="draft-badge">Draft</div>
+</div>
+
+<!-- PROGRESS STEPS -->
+<div class="progress-bar">
+  <div class="step done" onclick="goStep(1)">
+    <div class="step-circle">✓</div>
+    <div class="step-label">Basics</div>
+  </div>
+  <div class="step-line done"></div>
+  <div class="step done" onclick="goStep(2)">
+    <div class="step-circle">✓</div>
+    <div class="step-label">When</div>
+  </div>
+  <div class="step-line done"></div>
+  <div class="step active" onclick="goStep(3)">
+    <div class="step-circle">3</div>
+    <div class="step-label">Where</div>
+  </div>
+  <div class="step-line"></div>
+  <div class="step" onclick="goStep(4)">
+    <div class="step-circle">4</div>
+    <div class="step-label">Details</div>
+  </div>
+  <div class="step-line"></div>
+  <div class="step" onclick="goStep(5)">
+    <div class="step-circle">5</div>
+    <div class="step-label">Image</div>
+  </div>
+  <div class="step-line"></div>
+  <div class="step" onclick="goStep(6)">
+    <div class="step-circle">6</div>
+    <div class="step-label">Review</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 1: BASICS -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel" id="step-1">
+  <div class="step-intro">
+    <div class="step-heading">What is this event?</div>
+    <div class="step-sub">Give it a title and choose a category and grade.</div>
+  </div>
+
+  <div class="form-section" style="margin-top:0.75rem;">
+    <div class="form-section-label">Title</div>
+    <div class="form-field">
+      <input class="field-input" type="text" placeholder="e.g. Kentallen — Castle Stalker & Shuna" value="Kentallen — Castle Stalker &amp; Shuna">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-label">Category</div>
+    <div class="category-grid">
+      <div class="cat-chip" onclick="selectCat(this,'sea')">
+        <div class="cat-dot" style="background:var(--sea-b)"></div>
+        <div class="cat-label">Sea Kayak A</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'sea')">
+        <div class="cat-dot" style="background:var(--sea-b)"></div>
+        <div class="cat-label">Sea Kayak B</div>
+      </div>
+      <div class="cat-chip selected" onclick="selectCat(this,'sea')">
+        <div class="cat-dot" style="background:var(--sea-c)"></div>
+        <div class="cat-label">Sea Kayak C</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'river')">
+        <div class="cat-dot" style="background:var(--riv-mid)"></div>
+        <div class="cat-label">River Trip</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'pool')">
+        <div class="cat-dot" style="background:var(--p2)"></div>
+        <div class="cat-label">Pinkston</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'loch')">
+        <div class="cat-dot" style="background:var(--loch)"></div>
+        <div class="cat-label">Tue Evening</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'loch')">
+        <div class="cat-dot" style="background:var(--loch)"></div>
+        <div class="cat-label">All Away Tue</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'skills')">
+        <div class="cat-dot" style="background:var(--skills)"></div>
+        <div class="cat-label">Skills Session</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'skills')">
+        <div class="cat-dot" style="background:var(--skills)"></div>
+        <div class="cat-label">2nd Saturday</div>
+      </div>
+      <div class="cat-chip" onclick="selectCat(this,'skills')">
+        <div class="cat-dot" style="background:var(--skills)"></div>
+        <div class="cat-label">Training / Quals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade — shown because Sea C selected -->
+  <div class="form-section" id="grade-section">
+    <div class="form-section-label">Grade</div>
+    <div class="grade-picker">
+      <div class="grade-option" style="color:var(--sea-a)" onclick="selectGrade(this)">
+        <div class="grade-pip" style="background:var(--sea-a)"></div>
+        <div class="grade-label">Sea A</div>
+      </div>
+      <div class="grade-option" style="color:var(--sea-b)" onclick="selectGrade(this)">
+        <div class="grade-pip" style="background:var(--sea-b)"></div>
+        <div class="grade-label">Sea B</div>
+      </div>
+      <div class="grade-option selected" style="color:var(--sea-c)" onclick="selectGrade(this)">
+        <div class="grade-pip" style="background:var(--sea-c)"></div>
+        <div class="grade-label">Sea C</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 2: WHEN -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel" id="step-2">
+  <div class="step-intro">
+    <div class="step-heading">When is it?</div>
+    <div class="step-sub">Set the dates, times, group size and cost.</div>
+  </div>
+
+  <div class="form-section" style="margin-top:0.75rem;">
+    <div class="form-section-label">Dates</div>
+    <div class="date-row">
+      <div class="date-box">
+        <div class="date-box-label">Start</div>
+        <div class="date-box-value">Sat 19 Apr</div>
+      </div>
+      <div class="date-box">
+        <div class="date-box-label">End</div>
+        <div class="date-box-value">Mon 21 Apr</div>
+      </div>
+    </div>
+    <div class="date-row">
+      <div class="date-box">
+        <div class="date-box-label">Depart</div>
+        <div class="date-box-value">8:00 am</div>
+      </div>
+      <div class="date-box">
+        <div class="date-box-label">Return (approx)</div>
+        <div class="date-box-value">4:00 pm</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-label">Group size & cost</div>
+    <div class="form-field">
+      <div class="field-label">Max places</div>
+      <div class="number-row">
+        <div class="num-btn" onclick="adjustNum('places',-1)">−</div>
+        <div class="num-value" id="places-val">10</div>
+        <div class="num-btn" onclick="adjustNum('places',1)">+</div>
+      </div>
+    </div>
+    <div class="form-field">
+      <div class="field-label">Cost per person</div>
+      <div class="cost-row">
+        <div class="cost-symbol">£</div>
+        <input class="cost-input" type="number" value="12" min="0" max="500">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-label">Settings</div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Approval required</div>
+        <div class="toggle-sub">Leader reviews each sign-up request</div>
+      </div>
+      <div class="toggle-switch on" onclick="toggleSwitch(this)">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Featured event</div>
+        <div class="toggle-sub">Show with full image in the calendar</div>
+      </div>
+      <div class="toggle-switch on" onclick="toggleSwitch(this)">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 3: WHERE (active) -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel active" id="step-3">
+  <div class="step-intro">
+    <div class="step-heading">Where are you meeting?</div>
+    <div class="step-sub">Choose from saved club locations or add a new one by tapping the map.</div>
+  </div>
+
+  <!-- Prominent search -->
+  <div class="location-search-wrap" style="margin-top:0.75rem;">
+    <div class="location-search-label">Search or tap the map to set a meeting point</div>
+    <div class="location-search-bar">
+      <div class="location-search-icon">🔍</div>
+      <input class="location-search-input" type="text" id="locationSearch" placeholder="Type a location name…" autofocus>
+      <div class="location-search-clear">✕</div>
+    </div>
+  </div>
+
+  <!-- OS-style map -->
+  <div class="map-canvas" id="mapCanvas">
+    <svg class="map-svg" viewBox="0 0 430 260" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Land base -->
+      <rect width="430" height="260" fill="#f0ebe0"/>
+
+      <!-- Contour lines -->
+      <path d="M0,180 Q80,160 160,175 Q240,190 320,170 Q380,155 430,165" fill="none" stroke="#d0b898" stroke-width="0.8" opacity="0.6"/>
+      <path d="M0,200 Q60,185 140,195 Q220,205 300,190 Q370,178 430,185" fill="none" stroke="#d0b898" stroke-width="0.8" opacity="0.6"/>
+      <path d="M0,220 Q70,210 150,215 Q230,220 310,210 Q390,200 430,205" fill="none" stroke="#d0b898" stroke-width="0.8" opacity="0.5"/>
+      <path d="M30,140 Q100,125 180,138 Q260,150 340,135 Q400,123 430,130" fill="none" stroke="#d0b898" stroke-width="0.8" opacity="0.5"/>
+      <path d="M0,100 Q50,85 120,95 Q200,108 280,92 Q350,78 430,88" fill="none" stroke="#d0b898" stroke-width="0.7" opacity="0.4"/>
+
+      <!-- Loch / sea water -->
+      <path d="M0,0 L430,0 L430,80 Q380,95 320,85 Q260,75 200,90 Q150,100 100,88 Q50,78 0,85 Z" fill="#b0d4e8" opacity="0.85"/>
+      <!-- Water texture ripples -->
+      <path d="M20,30 Q80,25 140,32 Q200,38 260,28 Q320,20 380,28" fill="none" stroke="white" stroke-width="1" opacity="0.4"/>
+      <path d="M10,50 Q70,44 130,52 Q190,58 250,48 Q310,40 380,47" fill="none" stroke="white" stroke-width="0.8" opacity="0.3"/>
+      <path d="M30,65 Q100,60 170,67 Q240,73 310,63 Q370,55 420,62" fill="none" stroke="white" stroke-width="0.8" opacity="0.25"/>
+
+      <!-- Woodland patches -->
+      <ellipse cx="60" cy="150" rx="45" ry="30" fill="#c8d8b0" opacity="0.7"/>
+      <ellipse cx="160" cy="200" rx="35" ry="22" fill="#c8d8b0" opacity="0.65"/>
+      <ellipse cx="340" cy="180" rx="50" ry="28" fill="#c8d8b0" opacity="0.7"/>
+      <ellipse cx="390" cy="230" rx="30" ry="18" fill="#c8d8b0" opacity="0.6"/>
+
+      <!-- Roads -->
+      <path d="M0,155 Q100,148 180,152 Q260,156 330,145 Q390,136 430,140" fill="none" stroke="#f0c860" stroke-width="3" opacity="0.8"/>
+      <path d="M180,152 L180,260" fill="none" stroke="#f0c860" stroke-width="2.5" opacity="0.7"/>
+      <path d="M330,145 Q340,180 345,260" fill="none" stroke="#f0c860" stroke-width="2" opacity="0.6"/>
+
+      <!-- OS grid lines -->
+      <line x1="0" y1="86" x2="430" y2="86" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+      <line x1="0" y1="172" x2="430" y2="172" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+      <line x1="86" y1="0" x2="86" y2="260" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+      <line x1="172" y1="0" x2="172" y2="260" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+      <line x1="258" y1="0" x2="258" y2="260" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+      <line x1="344" y1="0" x2="344" y2="260" stroke="#b0a890" stroke-width="0.4" opacity="0.4" stroke-dasharray="4,4"/>
+
+      <!-- Place labels -->
+      <text x="215" y="45" font-family="serif" font-size="10" fill="#3a6080" opacity="0.8" text-anchor="middle" font-style="italic">Loch Lomond</text>
+      <text x="185" y="160" font-family="serif" font-size="8" fill="#3a3028" opacity="0.7" text-anchor="middle">Balloch</text>
+      <text x="340" y="155" font-family="serif" font-size="8" fill="#3a3028" opacity="0.7" text-anchor="middle">Luss</text>
+
+      <!-- Saved location pins -->
+      <!-- Balloch Pier - selected -->
+      <g transform="translate(178,138)" style="cursor:pointer" onclick="selectLocation('Balloch Pier Car Park')">
+        <circle cx="0" cy="0" r="10" fill="#2c4a2e" stroke="white" stroke-width="2"/>
+        <text x="0" y="4" text-anchor="middle" font-size="10" fill="white">📍</text>
+        <rect x="-38" y="-28" width="76" height="18" rx="3" fill="white" opacity="0.9"/>
+        <text x="0" y="-16" text-anchor="middle" font-family="serif" font-size="8" fill="#2c4a2e" font-weight="bold">Balloch Pier</text>
+      </g>
+
+      <!-- Luss -->
+      <g transform="translate(338,132)" style="cursor:pointer" onclick="selectLocation('Luss Village Car Park')">
+        <circle cx="0" cy="0" r="8" fill="#5a7080" stroke="white" stroke-width="1.5"/>
+        <text x="0" y="3" text-anchor="middle" font-size="8" fill="white">📍</text>
+      </g>
+
+      <!-- Rowardennan -->
+      <g transform="translate(270,105)" style="cursor:pointer" onclick="selectLocation('Rowardennan Car Park')">
+        <circle cx="0" cy="0" r="8" fill="#5a7080" stroke="white" stroke-width="1.5"/>
+        <text x="0" y="3" text-anchor="middle" font-size="8" fill="white">📍</text>
+      </g>
+
+      <!-- New location tap target indicator -->
+      <circle cx="80" cy="200" r="6" fill="none" stroke="#2c4a2e" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+
+    </svg>
+
+    <!-- Map controls -->
+    <div class="map-controls">
+      <div class="map-btn">+</div>
+      <div class="map-btn">−</div>
+    </div>
+
+    <!-- Tap hint -->
+    <div class="map-tap-hint">Tap map to add new location</div>
+  </div>
+
+  <!-- Saved locations list -->
+  <div class="saved-locations">
+    <div class="saved-header">Club locations — 12 saved</div>
+
+    <div class="saved-location selected" onclick="selectLocation('Balloch Pier Car Park')">
+      <div class="saved-pin">📍</div>
+      <div class="saved-info">
+        <div class="saved-name">Balloch Pier Car Park</div>
+        <div class="saved-w3w">/// paddle.loch.morning</div>
+      </div>
+      <div class="saved-count">Used 28×</div>
+    </div>
+
+    <div class="saved-location" onclick="selectLocation('Luss Village Car Park')">
+      <div class="saved-pin">📍</div>
+      <div class="saved-info">
+        <div class="saved-name">Luss Village Car Park</div>
+        <div class="saved-w3w">/// stone.water.hills</div>
+      </div>
+      <div class="saved-count">Used 14×</div>
+    </div>
+
+    <div class="saved-location" onclick="selectLocation('Rowardennan Car Park')">
+      <div class="saved-pin">📍</div>
+      <div class="saved-info">
+        <div class="saved-name">Rowardennan Car Park</div>
+        <div class="saved-w3w">/// forest.shore.calm</div>
+      </div>
+      <div class="saved-count">Used 9×</div>
+    </div>
+
+    <div class="saved-location" onclick="selectLocation('Pinkston Watersports Centre')">
+      <div class="saved-pin">📍</div>
+      <div class="saved-info">
+        <div class="saved-name">Pinkston Watersports Centre</div>
+        <div class="saved-w3w">/// canal.rapid.splash</div>
+      </div>
+      <div class="saved-count">Used 42×</div>
+    </div>
+
+    <div class="add-new-location" onclick="addNewLocation()">
+      <span style="font-size:1.2rem;">＋</span>
+      <div class="add-new-label">Add new location from map</div>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 4: DETAILS -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel" id="step-4">
+  <div class="step-intro">
+    <div class="step-heading">Tell them about it</div>
+    <div class="step-sub">Description is shown to everyone. The optional blocks below appear as dropdowns on the event page.</div>
+  </div>
+
+  <div class="form-section" style="margin-top:0.75rem;">
+    <div class="form-section-label">Description</div>
+    <div class="textarea-field">
+      <textarea class="field-input-large" placeholder="Describe the trip — route, conditions, what to expect…">A classic two-night sea kayaking expedition taking in some of the most dramatic scenery on the west coast. We'll paddle from Kentallen south through the Lynn of Lorn, making our first camp on Shuna before rounding past Castle Stalker on Sunday.</textarea>
+      <div class="char-count">312 / 1000</div>
+    </div>
+  </div>
+
+  <!-- Optional blocks -->
+  <div class="form-section">
+    <div class="form-section-label">Optional sections</div>
+
+    <!-- Equipment checklist - intelligently pre-populated -->
+    <div class="optional-block open" id="opt-kit">
+      <div class="optional-header" onclick="toggleOptional('opt-kit')">
+        <div class="optional-icon">🎒</div>
+        <div class="optional-title">Equipment & what to bring</div>
+        <div class="optional-tag">Auto-filled</div>
+      </div>
+      <div class="optional-body">
+
+        <!-- Template banner -->
+        <div class="kit-template-banner">
+          <div class="kit-template-info">
+            <div class="kit-template-icon">✨</div>
+            <div>
+              <div class="kit-template-name">Sea Expedition template</div>
+              <div class="kit-template-sub">Based on: Sea C · 2 nights · April</div>
+            </div>
+          </div>
+          <div class="kit-template-switch" onclick="showTemplatePicker()">Switch</div>
+        </div>
+
+        <!-- Template picker (hidden by default) -->
+        <div class="kit-template-picker" id="templatePicker" style="display:none;">
+          <div class="kit-template-option" onclick="selectTemplate('sea-expedition')">🌊 Sea Expedition (2+ nights)</div>
+          <div class="kit-template-option" onclick="selectTemplate('sea-overnight')">🌊 Sea Overnight (1 night)</div>
+          <div class="kit-template-option" onclick="selectTemplate('sea-day-summer')">☀️ Sea Day Trip — Summer</div>
+          <div class="kit-template-option" onclick="selectTemplate('sea-day-winter')">❄️ Sea Day Trip — Winter</div>
+          <div class="kit-template-option" onclick="selectTemplate('river')">🟢 River Day Trip</div>
+          <div class="kit-template-option" onclick="selectTemplate('pinkston')">🟠 Pinkston Session</div>
+          <div class="kit-template-option" onclick="selectTemplate('loch')">⚫ Tuesday Evening / Loch</div>
+          <div class="kit-template-option" onclick="selectTemplate('all-away')">⚫ All Away Day</div>
+          <div class="kit-template-option" onclick="selectTemplate('skills')">🟡 Skills / Pool Session</div>
+          <div class="kit-template-option" onclick="selectTemplate('second-saturday')">⚫ Second Saturday</div>
+        </div>
+
+        <!-- Checklist -->
+        <div class="kit-list" id="kitList"></div>
+
+        <!-- Add item -->
+        <div class="kit-add-row">
+          <input class="kit-add-input" type="text" id="kitAddInput" placeholder="Add an item…">
+          <div class="kit-add-btn" onclick="addKitItem()">Add</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="optional-block" id="opt-car">
+      <div class="optional-header" onclick="toggleOptional('opt-car')">
+        <div class="optional-icon">🚗</div>
+        <div class="optional-title">Car sharing notes</div>
+        <div class="optional-tag">Optional</div>
+      </div>
+      <div class="optional-body">
+        <textarea class="field-input-large" placeholder="Shuttle details, parking info, lift coordination…" style="border:1px solid var(--border); border-radius:4px; padding:0.5rem 0.6rem;">Lengthy shuttle involved — we'll leave one car at Kentallen and drive together to Port Appin for the put-in. Please confirm in the group thread if you can help with driving.</textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 5: IMAGE -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel" id="step-5">
+  <div class="step-intro">
+    <div class="step-heading">Choose an image</div>
+    <div class="step-sub">We've suggested photos from the club archive and from our Grade C sea kayaking library. Pick one or upload your own.</div>
+  </div>
+
+  <!-- Location matched -->
+  <div class="form-section" style="margin-top:0.75rem; padding-bottom:0.25rem;">
+    <div class="image-section-label">📍 From Kentallen trips</div>
+    <div class="image-grid">
+      <div class="image-option" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=75" alt="Kentallen coastline">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Kentallen · Sep 2023</div>
+      </div>
+      <div class="image-option selected" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=75" alt="West coast sea kayaking">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Castle Stalker · Aug 2022</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade C suggested -->
+  <div class="form-section" style="padding-bottom:0.25rem;">
+    <div class="image-section-label">🌊 Suggested — Grade C Sea</div>
+    <div class="image-grid">
+      <div class="image-option" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=400&q=75" alt="Exposed Atlantic coast">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Exposed coastline</div>
+      </div>
+      <div class="image-option" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400&q=75" alt="Wild camp island">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Island wild camp</div>
+      </div>
+      <div class="image-option" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=75" alt="Sea kayak on open water">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Open water crossing</div>
+      </div>
+      <div class="image-option" onclick="selectImage(this)">
+        <img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&q=75" alt="Scottish sea cliffs">
+        <div class="image-option-check">✓</div>
+        <div class="image-option-label">Sea cliffs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload own -->
+  <div class="upload-btn">
+    <span style="font-size:1.1rem;">📷</span>
+    <div class="upload-label">Upload your own photo</div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- STEP 6: REVIEW -->
+<!-- ════════════════════════════════════════ -->
+<div class="step-panel" id="step-6">
+  <div class="step-intro">
+    <div class="step-heading">Looks good?</div>
+    <div class="step-sub">Review before publishing. You can edit any time after.</div>
+  </div>
+
+  <div class="review-card" style="margin-top:0.75rem;">
+    <div class="review-hero">
+      <div class="review-grade-badge">Sea C</div>
+      <div class="review-hero-title">Kentallen — Castle Stalker & Shuna</div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">📅</div>
+      <div>
+        <div class="review-text">Sat 19 April — Mon 21 April</div>
+        <div class="review-sub">Depart 8:00am · Return approx 4:00pm</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">📍</div>
+      <div>
+        <div class="review-text">Balloch Pier Car Park</div>
+        <div class="review-sub">/// paddle.loch.morning</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">📸</div>
+      <div>
+        <div class="review-text">Image selected</div>
+        <div class="review-sub">Castle Stalker · Aug 2022 — from club archive</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">👥</div>
+      <div>
+        <div class="review-text">10 places · £12 per person</div>
+        <div class="review-sub">Approval required · Payment held until confirmed</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">⭐</div>
+      <div>
+        <div class="review-text">Featured event</div>
+        <div class="review-sub">Will appear with full image in calendar</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">🎒</div>
+      <div>
+        <div class="review-text" style="color:var(--stone-lt); font-style:italic; font-size:0.8rem;">Equipment list — not added yet</div>
+      </div>
+    </div>
+
+    <div class="review-row">
+      <div class="review-icon">🚗</div>
+      <div>
+        <div class="review-text">Car sharing notes added</div>
+        <div class="review-sub">Shuttle details included</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 1rem; margin-bottom:0.5rem;">
+    <div style="font-family:'Lora',serif; font-size:0.72rem; color:var(--stone); font-style:italic; line-height:1.6;">
+      Once published the event will appear in the calendar immediately. You can edit details or cancel at any time.
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- BOTTOM NAV BAR -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="btn-back" onclick="prevStep()">← Back</div>
+  <div class="btn-next" id="nextBtn" onclick="nextStep()">Next →</div>
+</div>
+
+<script>
+let currentStep = 3;
+const totalSteps = 6;
+
+function selectImage(el) {
+  document.querySelectorAll('.image-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  currentStep = n;
+  updateProgress();
+  updateNav();
+  window.scrollTo(0, 0);
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) goStep(currentStep + 1);
+}
+
+function prevStep() {
+  if (currentStep > 1) goStep(currentStep - 1);
+}
+
+function updateProgress() {
+  document.querySelectorAll('.step').forEach((s, i) => {
+    const n = i < 2 ? Math.floor(i/1)+1 : null;
+    s.classList.remove('active','done');
+  });
+
+  // Re-index steps (skipping step-lines)
+  const steps = document.querySelectorAll('.step');
+  const lines = document.querySelectorAll('.step-line');
+
+  steps.forEach((s, i) => {
+    const stepNum = i + 1;
+    s.classList.remove('active','done');
+    const circle = s.querySelector('.step-circle');
+    if (stepNum < currentStep) {
+      s.classList.add('done');
+      circle.textContent = '✓';
+    } else if (stepNum === currentStep) {
+      s.classList.add('active');
+      circle.textContent = stepNum;
+    } else {
+      circle.textContent = stepNum;
+    }
+  });
+
+  lines.forEach((l, i) => {
+    l.classList.toggle('done', i + 1 < currentStep);
+  });
+}
+
+function updateNav() {
+  const nextBtn = document.getElementById('nextBtn');
+  if (currentStep === totalSteps) {
+    nextBtn.textContent = 'Publish Event';
+    nextBtn.className = 'btn-publish';
+    nextBtn.onclick = publishEvent;
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.className = 'btn-next';
+    nextBtn.onclick = nextStep;
+  }
+}
+
+function publishEvent() {
+  alert('Event published! 🎉');
+}
+
+function selectCat(el, type) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Show/hide grade section
+  const gradeSection = document.getElementById('grade-section');
+  const graded = ['sea','river','pool'];
+  gradeSection.style.display = graded.includes(type) ? '' : 'none';
+
+  // Update grade options based on type
+  const picker = gradeSection.querySelector('.grade-picker');
+  picker.innerHTML = '';
+
+  const grades = {
+    sea: [
+      {label:'Sea A', color:'var(--sea-a)'},
+      {label:'Sea B', color:'var(--sea-b)'},
+      {label:'Sea C', color:'var(--sea-c)'}
+    ],
+    river: [
+      {label:'G1', color:'var(--riv-lo)'},
+      {label:'G1/2', color:'var(--riv-lo)'},
+      {label:'G2', color:'var(--riv-lo)'},
+      {label:'G2/3', color:'var(--riv-mid)'},
+      {label:'G3', color:'var(--riv-mid)'},
+      {label:'G3(4)', color:'var(--riv-mid)'},
+      {label:'G4', color:'var(--riv-hi)'},
+      {label:'G4/5', color:'var(--riv-hi)'},
+      {label:'G5', color:'var(--riv-hi)'}
+    ],
+    pool: [
+      {label:'P1', color:'var(--p1)'},
+      {label:'P2', color:'var(--p2)'},
+      {label:'P3', color:'var(--p3)'}
+    ]
+  };
+
+  (grades[type] || []).forEach(g => {
+    const el = document.createElement('div');
+    el.className = 'grade-option';
+    el.style.color = g.color;
+    el.onclick = function() { selectGrade(this); };
+    el.innerHTML = `<div class="grade-pip" style="background:${g.color}"></div><div class="grade-label">${g.label}</div>`;
+    picker.appendChild(el);
+  });
+}
+
+function selectGrade(el) {
+  document.querySelectorAll('.grade-option').forEach(g => g.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function toggleSwitch(el) {
+  el.classList.toggle('on');
+}
+
+function adjustNum(field, delta) {
+  const el = document.getElementById(field + '-val');
+  let val = parseInt(el.textContent) + delta;
+  if (val < 1) val = 1;
+  if (val > 30) val = 30;
+  el.textContent = val;
+}
+
+function selectLocation(name) {
+  document.querySelectorAll('.saved-location').forEach(l => l.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+function addNewLocation() {
+  alert('Tap on the map to place a new meeting point pin');
+}
+
+function toggleOptional(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── KIT LIST TEMPLATES ──
+const kitTemplates = {
+  'sea-expedition': [
+    'Sea kayak + paddle', 'Spare paddle', 'Buoyancy aid', 'Drysuit',
+    'Thermal underlayers', 'Neoprene gloves + boots', 'Helmet',
+    'VHF radio (waterproof, charged)', 'Flares (in date)', 'Compass + chart',
+    'Bivvy or tent', 'Sleeping bag (in dry bag)', 'Sleeping mat',
+    'Stove + fuel + lighter', '3 days food + emergency rations',
+    'Water + purification', 'First aid kit', 'Tow line', 'Pump + sponge',
+    'Navigation lights', 'Spare clothing (dry bags)', 'Sunscreen + lip balm',
+    'Head torch + spare batteries', 'Whistle', 'Personal locator beacon'
+  ],
+  'sea-overnight': [
+    'Sea kayak + paddle', 'Spare paddle', 'Buoyancy aid', 'Drysuit or wetsuit',
+    'Thermal underlayers', 'Helmet', 'VHF radio (waterproof)', 'Flares (in date)',
+    'Compass', 'Bivvy or tent', 'Sleeping bag (in dry bag)', 'Sleeping mat',
+    'Stove + fuel', '2 days food', 'Water', 'First aid kit',
+    'Tow line', 'Pump + sponge', 'Spare clothing (dry bags)', 'Head torch', 'Whistle'
+  ],
+  'sea-day-summer': [
+    'Sea kayak + paddle', 'Spare paddle', 'Buoyancy aid', 'Wetsuit or drysuit',
+    'Helmet', 'VHF radio (waterproof)', 'Compass', 'Lunch + snacks + water',
+    'First aid kit', 'Tow line', 'Pump + sponge', 'Spare warm layer',
+    'Waterproof jacket', 'Sunscreen', 'Whistle'
+  ],
+  'sea-day-winter': [
+    'Sea kayak + paddle', 'Spare paddle', 'Buoyancy aid', 'Drysuit (essential)',
+    'Thermal underlayers', 'Neoprene gloves + boots', 'Balaclava', 'Helmet',
+    'VHF radio (waterproof)', 'Compass', 'Hot flask + food + snacks',
+    'First aid kit', 'Tow line', 'Pump + sponge', 'Spare warm layers (dry bag)',
+    'Head torch (early dark)', 'Whistle', 'Emergency bivvy'
+  ],
+  'river': [
+    'Kayak + paddle', 'Buoyancy aid', 'Helmet (mandatory)', 'Wetsuit or drysuit',
+    'Neoprene boots', 'Throw line', 'First aid kit', 'Lunch + snacks + water',
+    'Spare warm layer (dry bag)', 'Change of clothes for after',
+    'Carabiner + sling', 'Whistle'
+  ],
+  'pinkston': [
+    'Kayak (hire available on site)', 'Paddle', 'Buoyancy aid',
+    'Helmet (mandatory on site)', 'Wetsuit or drysuit', 'Neoprene boots',
+    'Change of clothes + towel', 'Water bottle'
+  ],
+  'loch': [
+    'Kayak + paddle', 'Buoyancy aid', 'Warm layers', 'Waterproof jacket',
+    'Snacks + water', 'Change of clothes'
+  ],
+  'all-away': [
+    'Kayak + paddle', 'Buoyancy aid', 'Helmet (if paddling moving water)',
+    'Warm layers', 'Waterproof jacket', 'Lunch + snacks + water',
+    'Change of clothes', 'Sun cream (summer)'
+  ],
+  'skills': [
+    'Kayak + paddle', 'Buoyancy aid', 'Warm layers', 'Waterproof jacket',
+    'Water bottle', 'Change of clothes + towel'
+  ],
+  'second-saturday': [
+    'Sea kayak + paddle', 'Buoyancy aid', 'Warm layers', 'Waterproof jacket',
+    'Lunch + snacks + water', 'Compass', 'Change of clothes'
+  ]
+};
+
+let currentTemplate = 'sea-expedition';
+let kitItems = [];
+
+function renderKitList() {
+  const list = document.getElementById('kitList');
+  if (!list) return;
+  list.innerHTML = '';
+  kitItems.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'kit-item';
+    row.innerHTML = `
+      <div class="kit-checkbox ${item.checked ? 'checked' : ''}" onclick="toggleKitItem(${i})">${item.checked ? '✓' : ''}</div>
+      <div class="kit-item-text ${item.checked ? 'checked-text' : ''}">${item.text}</div>
+      <div class="kit-item-del" onclick="removeKitItem(${i})">✕</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function loadTemplate(templateKey) {
+  currentTemplate = templateKey;
+  kitItems = (kitTemplates[templateKey] || []).map(t => ({ text: t, checked: true }));
+  renderKitList();
+}
+
+function toggleKitItem(i) {
+  kitItems[i].checked = !kitItems[i].checked;
+  renderKitList();
+}
+
+function removeKitItem(i) {
+  kitItems.splice(i, 1);
+  renderKitList();
+}
+
+function addKitItem() {
+  const input = document.getElementById('kitAddInput');
+  const val = input.value.trim();
+  if (!val) return;
+  kitItems.push({ text: val, checked: true });
+  input.value = '';
+  renderKitList();
+}
+
+function showTemplatePicker() {
+  const picker = document.getElementById('templatePicker');
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectTemplate(key) {
+  loadTemplate(key);
+  document.getElementById('templatePicker').style.display = 'none';
+  // Update banner name
+  const names = {
+    'sea-expedition': 'Sea Expedition template',
+    'sea-overnight': 'Sea Overnight template',
+    'sea-day-summer': 'Sea Day Trip — Summer template',
+    'sea-day-winter': 'Sea Day Trip — Winter template',
+    'river': 'River Day Trip template',
+    'pinkston': 'Pinkston Session template',
+    'loch': 'Tuesday Evening / Loch template',
+    'all-away': 'All Away Day template',
+    'skills': 'Skills Session template',
+    'second-saturday': 'Second Saturday template'
+  };
+  document.querySelector('.kit-template-name').textContent = names[key] || key;
+  document.querySelector('.kit-template-sub').textContent = 'Manually selected';
+}
+
+// Initialise with sea expedition (matching the demo event)
+loadTemplate('sea-expedition');
+
+// Init steps
+updateProgress();
+updateNav();
+</script>
+
+</body>
+</html>

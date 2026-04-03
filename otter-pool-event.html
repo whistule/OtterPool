@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Event</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-c:        #005a6e;
+    --sea-c-pale:   #a8d8d0;
+    --red:          #8a2828;
+    --red-pale:     #f8e4e4;
+    --skills:       #e08800;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    font-size: 17px;
+  }
+
+  /* ── HERO IMAGE ── */
+  .hero {
+    position: relative;
+    height: 260px;
+    overflow: hidden;
+  }
+
+  .hero img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom,
+      rgba(20,26,20,0.15) 0%,
+      rgba(20,26,20,0.1) 40%,
+      rgba(20,26,20,0.75) 100%);
+  }
+
+  /* Back button */
+  .hero-back {
+    position: absolute;
+    top: 0.875rem; left: 0.875rem;
+    width: 36px; height: 36px;
+    background: rgba(20,26,20,0.45);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    color: white;
+    font-size: 1.1rem;
+  }
+
+  /* Grade badge */
+  .hero-grade {
+    position: absolute;
+    top: 0.875rem; right: 0.875rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 3px;
+    background: var(--sea-c);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  /* Title at bottom of hero */
+  .hero-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 0.875rem;
+  }
+
+  .hero-category {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 0.3rem;
+  }
+
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: white;
+    line-height: 1.15;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  }
+
+  /* ── MAIN CONTENT ── */
+  .content {
+    background: var(--white);
+    padding-bottom: 6rem;
+  }
+
+  /* ── KEY INFO STRIP ── */
+  .key-strip {
+    padding: 1rem 1rem 0.875rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* Leader row */
+  .leader-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .leader-avatars {
+    display: flex;
+    gap: -4px;
+  }
+
+  .lav {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    margin-left: -8px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .lav:first-child { margin-left: 0; }
+
+  .leader-info {
+    flex: 1;
+  }
+
+  .leader-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.15rem;
+  }
+
+  .leader-names {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  /* Date / time row */
+  .datetime-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .dt-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  .dt-main {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.3;
+  }
+
+  .dt-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    margin-top: 0.1rem;
+    font-style: italic;
+  }
+
+  /* Meeting point row */
+  .meeting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .meeting-body { flex: 1; }
+
+  .meeting-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.3;
+  }
+
+  .meeting-w3w {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    background: #e8f0f8;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .w3w-logo {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #e11f26;
+    letter-spacing: -0.05em;
+  }
+
+  .w3w-address {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: #1a4a8a;
+    letter-spacing: 0.02em;
+  }
+
+  .meeting-maps {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.3rem;
+    margin-left: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--forest-pale);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .maps-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--forest);
+  }
+
+  /* ── PARTICIPANTS ── */
+  .participants-strip {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .participant-avatars {
+    display: flex;
+    align-items: center;
+  }
+
+  .pav {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    margin-left: -8px;
+    flex-shrink: 0;
+  }
+  .pav:first-child { margin-left: 0; }
+
+  .pav-more {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    background: var(--stone-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: white;
+    margin-left: -8px;
+    flex-shrink: 0;
+  }
+
+  .participants-meta {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .spaces-count {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1;
+  }
+
+  .spaces-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 0.1rem;
+  }
+
+  /* ── SIGN UP BUTTON ── */
+  .signup-strip {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .signup-btn {
+    flex: 1;
+    padding: 0.8rem 1rem;
+    background: var(--forest);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .signup-price {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--peat);
+    flex-shrink: 0;
+  }
+
+  .signup-note {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    font-style: italic;
+    margin-top: 0.4rem;
+    text-align: center;
+  }
+
+  .signup-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  /* ── DESCRIPTION ── */
+  .description {
+    padding: 1.1rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.6rem;
+  }
+
+  .description-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    line-height: 1.75;
+    color: #3a3a38;
+  }
+
+  .description-text p + p {
+    margin-top: 0.75rem;
+  }
+
+  /* ── ACCORDION DROPDOWNS ── */
+  .accordion {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .accordion-item {
+    border-top: 1px solid var(--border);
+  }
+
+  .accordion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    gap: 0.75rem;
+  }
+
+  .accordion-header:active { background: var(--snow); }
+
+  .accordion-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .accordion-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  .accordion-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  .accordion-chevron {
+    font-size: 0.7rem;
+    color: var(--stone-lt);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .accordion-item.open .accordion-chevron {
+    transform: rotate(180deg);
+  }
+
+  .accordion-body {
+    display: none;
+    padding: 0 1rem 1rem;
+  }
+
+  .accordion-item.open .accordion-body {
+    display: block;
+  }
+
+  .accordion-body-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #3a3a38;
+  }
+
+  .accordion-body-text p + p { margin-top: 0.5rem; }
+
+  .accordion-body-text ul {
+    margin: 0.5rem 0 0 1rem;
+  }
+
+  .accordion-body-text li {
+    margin-bottom: 0.3rem;
+  }
+
+  /* Car sharing specific */
+  .carshare-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .carshare-row:last-child { border-bottom: none; }
+
+  .carshare-av {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+  }
+
+  .carshare-info { flex: 1; }
+
+  .carshare-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  .carshare-detail {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  .carshare-btn {
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--forest);
+    cursor: pointer;
+    background: var(--forest-pale);
+    flex-shrink: 0;
+  }
+
+  /* Previous trips */
+  .prev-trip-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .prev-trip-row:last-child { border-bottom: none; }
+
+  .prev-trip-av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .prev-trip-info { flex: 1; }
+
+  .prev-trip-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--peat);
+    font-weight: 500;
+  }
+
+  .prev-trip-detail {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  .prev-trip-emoji {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* ── GROUP THREAD ── */
+  .thread-section {
+    padding: 1rem;
+  }
+
+  .thread-locked {
+    background: var(--snow);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 1.25rem 1rem;
+    text-align: center;
+  }
+
+  .thread-locked-icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+
+  .thread-locked-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--stone);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .thread-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .thread-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+
+  .thread-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  .thread-count {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    letter-spacing: 0.06em;
+  }
+
+  .message {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+
+  .msg-av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .msg-body { flex: 1; }
+
+  .msg-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .msg-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--peat);
+  }
+
+  .msg-time {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: var(--stone-lt);
+  }
+
+  .msg-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #3a3a38;
+    background: var(--snow);
+    padding: 0.5rem 0.7rem;
+    border-radius: 0 8px 8px 8px;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  .msg-text.pinned {
+    background: #fff8e8;
+    border-left: 3px solid var(--amber);
+    border-radius: 0 8px 8px 8px;
+  }
+
+  .pinned-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.2rem;
+    display: block;
+  }
+
+  .thread-reply-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--snow);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .reply-placeholder {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--stone-lt);
+    font-style: italic;
+    flex: 1;
+  }
+
+  .reply-icon { font-size: 1rem; color: var(--stone-lt); }
+
+  /* ── BOTTOM SIGNUP BAR ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    z-index: 100;
+  }
+
+  .bottom-price {
+    flex-shrink: 0;
+  }
+
+  .bottom-price-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1;
+  }
+
+  .bottom-price-note {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    color: var(--stone);
+    letter-spacing: 0.05em;
+  }
+
+  .bottom-signup-btn {
+    flex: 1;
+    padding: 0.85rem 1rem;
+    background: var(--forest);
+    border-radius: 8px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .bottom-signup-btn.approval {
+    background: var(--topbar);
+  }
+
+  .bottom-signup-note {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    color: var(--stone);
+    text-align: center;
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+
+  .bottom-btn-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=85" alt="Kentallen sea kayaking">
+  <div class="hero-overlay"></div>
+  <div class="hero-back">←</div>
+  <div class="hero-grade">Sea C</div>
+  <div class="hero-bottom">
+    <div class="hero-category">Sea Kayak · 2 nights</div>
+    <div class="hero-title">Kentallen — Castle Stalker & Shuna</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <!-- KEY INFO -->
+  <div class="key-strip">
+
+    <!-- Leader -->
+    <div class="leader-row">
+      <div class="leader-avatars">
+        <div class="lav">🧑</div>
+        <div class="lav">👩</div>
+      </div>
+      <div class="leader-info">
+        <div class="leader-label">Leader · Assistant</div>
+        <div class="leader-names">Iain Mackintosh · Sarah Kerr</div>
+      </div>
+    </div>
+
+    <!-- Date & time -->
+    <div class="datetime-row">
+      <div class="dt-icon">📅</div>
+      <div>
+        <div class="dt-main">Sat 19 April — Mon 21 April</div>
+        <div class="dt-sub">Depart 8:00am Saturday · Return approx 4:00pm Monday</div>
+      </div>
+    </div>
+
+    <!-- Meeting point -->
+    <div class="meeting-row">
+      <div class="dt-icon">📍</div>
+      <div class="meeting-body">
+        <div class="meeting-name">Kentallen Pier Car Park, Appin</div>
+        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-top:0.35rem;">
+          <div class="meeting-w3w">
+            <div class="w3w-logo">///</div>
+            <div class="w3w-address">filled.loch.paddle</div>
+          </div>
+          <div class="meeting-maps">
+            <div class="maps-label">📲 Open in Maps</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PARTICIPANTS -->
+  <div class="participants-strip">
+    <div>
+      <div style="font-family:'Lora',serif; font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--stone-lt); margin-bottom:0.4rem;">Going</div>
+      <div class="participant-avatars">
+        <div class="pav">😊</div>
+        <div class="pav">👩</div>
+        <div class="pav">🧑</div>
+        <div class="pav">👴</div>
+        <div class="pav">😊</div>
+        <div class="pav-more">+2</div>
+      </div>
+    </div>
+    <div class="participants-meta">
+      <div class="spaces-count">4</div>
+      <div class="spaces-label">spaces left</div>
+    </div>
+  </div>
+
+  <!-- DESCRIPTION -->
+  <div class="description">
+    <div class="section-label">About this trip</div>
+    <div class="description-text">
+      <p>A classic two-night sea kayaking expedition taking in some of the most dramatic scenery on the west coast. We'll paddle from Kentallen south through the Lynn of Lorn, making our first camp on the island of Shuna before rounding the headland past Castle Stalker on Sunday.</p>
+      <p>Sunday night camp is at Macdonald's Burial Isle — a remote and beautiful spot accessible only by water. The return journey on Monday takes us through the narrows and back north to Kentallen.</p>
+      <p>This is a serious Grade C trip requiring solid open water experience and confidence in tidal conditions. A lengthy shuttle is involved — details in the car sharing section below.</p>
+    </div>
+  </div>
+
+  <!-- ACCORDION -->
+  <div class="accordion">
+
+    <!-- Equipment -->
+    <div class="accordion-item" id="acc-equipment">
+      <div class="accordion-header" onclick="toggleAccordion('acc-equipment')">
+        <div class="accordion-left">
+          <div class="accordion-icon">🎒</div>
+          <div class="accordion-title">Equipment & what to bring</div>
+        </div>
+        <div class="accordion-chevron">▼</div>
+      </div>
+      <div class="accordion-body">
+        <div class="accordion-body-text">
+          <p>Full kit list will be added by the leader closer to the trip. Check back here or watch the group thread.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Car sharing -->
+    <div class="accordion-item" id="acc-carshare">
+      <div class="accordion-header" onclick="toggleAccordion('acc-carshare')">
+        <div class="accordion-left">
+          <div class="accordion-icon">🚗</div>
+          <div class="accordion-title">Car sharing</div>
+        </div>
+        <div class="accordion-chevron">▼</div>
+      </div>
+      <div class="accordion-body">
+        <div class="carshare-row">
+          <div class="carshare-av">🧑</div>
+          <div class="carshare-info">
+            <div class="carshare-name">Iain Mackintosh</div>
+            <div class="carshare-detail">Leaving Glasgow 6:30am · 2 seats available</div>
+          </div>
+          <div class="carshare-btn">Request</div>
+        </div>
+        <div class="carshare-row">
+          <div class="carshare-av">👩</div>
+          <div class="carshare-info">
+            <div class="carshare-name">Sarah Kerr</div>
+            <div class="carshare-detail">Leaving Clydebank 6:45am · 1 seat available</div>
+          </div>
+          <div class="carshare-btn">Request</div>
+        </div>
+        <div class="carshare-row">
+          <div class="carshare-av">😊</div>
+          <div class="carshare-info">
+            <div class="carshare-name">Duncan Reid</div>
+            <div class="carshare-detail">Needs a lift from Glasgow</div>
+          </div>
+          <div class="carshare-btn">Offer</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previous trips -->
+    <div class="accordion-item" id="acc-previous">
+      <div class="accordion-header" onclick="toggleAccordion('acc-previous')">
+        <div class="accordion-left">
+          <div class="accordion-icon">🗺️</div>
+          <div class="accordion-title">Previous trips on this route</div>
+        </div>
+        <div class="accordion-chevron">▼</div>
+      </div>
+      <div class="accordion-body">
+        <div class="prev-trip-row">
+          <div class="prev-trip-av">🧑</div>
+          <div class="prev-trip-info">
+            <div class="prev-trip-name">Iain Mackintosh</div>
+            <div class="prev-trip-detail">Paddled this route · Sep 2023</div>
+          </div>
+          <div class="prev-trip-emoji">😁</div>
+        </div>
+        <div class="prev-trip-row">
+          <div class="prev-trip-av">👩</div>
+          <div class="prev-trip-info">
+            <div class="prev-trip-name">Sarah Kerr</div>
+            <div class="prev-trip-detail">Paddled this route · Aug 2022</div>
+          </div>
+          <div class="prev-trip-emoji">🙂</div>
+        </div>
+        <div class="prev-trip-row">
+          <div class="prev-trip-av">👴</div>
+          <div class="prev-trip-info">
+            <div class="prev-trip-name">Gordon MacPhail</div>
+            <div class="prev-trip-detail">Paddled this route · Jul 2021</div>
+          </div>
+          <div class="prev-trip-emoji">😁</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GROUP THREAD -->
+  <div class="thread-section">
+    <div class="thread-preview">
+      <div class="thread-header">
+        <div class="thread-title">Group thread</div>
+        <div class="thread-count">8 messages</div>
+      </div>
+
+      <!-- Pinned message -->
+      <div class="message">
+        <div class="msg-av">🧑</div>
+        <div class="msg-body">
+          <div class="msg-meta">
+            <div class="msg-name">Iain M.</div>
+            <div class="msg-time">2 days ago</div>
+          </div>
+          <div class="msg-text pinned">
+            <span class="pinned-label">📌 Pinned</span>
+            Shuttle details confirmed — please read before the trip. We'll leave one car at Kentallen and drive together to the put-in at Port Appin. More info in car sharing above.
+          </div>
+        </div>
+      </div>
+
+      <!-- Regular message -->
+      <div class="message">
+        <div class="msg-av">👩</div>
+        <div class="msg-body">
+          <div class="msg-meta">
+            <div class="msg-name">Sarah K.</div>
+            <div class="msg-time">yesterday</div>
+          </div>
+          <div class="msg-text">
+            Anyone need a tent? I have a spare two-man if needed.
+          </div>
+        </div>
+      </div>
+
+      <!-- Regular message -->
+      <div class="message">
+        <div class="msg-av">😊</div>
+        <div class="msg-body">
+          <div class="msg-meta">
+            <div class="msg-name">Duncan R.</div>
+            <div class="msg-time">3 hrs ago</div>
+          </div>
+          <div class="msg-text">
+            Yes please Sarah, that would be brilliant — thank you!
+          </div>
+        </div>
+      </div>
+
+      <!-- Reply bar -->
+      <div class="thread-reply-bar">
+        <div class="reply-placeholder">Add a message…</div>
+        <div class="reply-icon">📎</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM SIGNUP BAR -->
+<div class="bottom-bar">
+  <div class="bottom-price">
+    <div class="bottom-price-amount">£12</div>
+    <div class="bottom-price-note">per person</div>
+  </div>
+  <div class="bottom-btn-col">
+    <div class="bottom-signup-btn approval">Request to join</div>
+    <div class="bottom-signup-note">Approval required · card held until confirmed</div>
+  </div>
+</div>
+
+<script>
+function toggleAccordion(id) {
+  const item = document.getElementById(id);
+  item.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>

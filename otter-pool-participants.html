@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Participants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-c:        #005a6e;
+    --red:          #8a1a1a;
+    --red-mid:      #a82020;
+    --red-pale:     #fde8e8;
+    --green:        #1a5a1a;
+    --green-pale:   #e0f0e0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-back {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.3rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0.2rem 0.3rem;
+  }
+
+  .topbar-info { flex: 1; min-width: 0; }
+
+  .topbar-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.55);
+  }
+
+  /* ════════════════════════════════
+     SCREEN 1 — PARTICIPANT LIST
+  ════════════════════════════════ */
+
+  .event-strip {
+    background: var(--white);
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .event-grade-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    background: var(--sea-c);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+  }
+
+  .event-strip-info { flex: 1; min-width: 0; }
+
+  .event-strip-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--peat);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .event-strip-date {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* Leader note */
+  .leader-note {
+    margin: 0.75rem 0.875rem 0;
+    padding: 0.6rem 0.875rem;
+    background: var(--amber-pale);
+    border-radius: 6px;
+    border: 1px solid rgba(160,104,40,0.15);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--amber);
+    line-height: 1.5;
+  }
+
+  /* Section label */
+  .list-label {
+    padding: 0.75rem 0.875rem 0.3rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  /* Participant row */
+  .participant-row {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .participant-row:first-of-type { border-top: none; }
+  .participant-row:active { background: var(--forest-pale); }
+
+  .participant-section {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0 0.875rem;
+    overflow: hidden;
+  }
+
+  .p-av {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+  }
+
+  .p-info { flex: 1; min-width: 0; }
+
+  .p-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--peat);
+    margin-bottom: 0.15rem;
+  }
+
+  .p-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .p-level {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+  }
+
+  .p-trail {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.72rem;
+  }
+
+  .p-trail-arrow {
+    font-size: 0.5rem;
+    color: var(--stone-lt);
+  }
+
+  .p-approved {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--stone);
+    white-space: nowrap;
+  }
+
+  .p-approved.auto { color: var(--green); border-color: var(--green-pale); background: var(--green-pale); }
+  .p-approved.manual { color: var(--topbar); border-color: #d0dce8; background: #eef3f8; }
+
+  .p-chevron {
+    color: var(--stone-lt);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  /* ICE warning for missing card */
+  .ice-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.5rem 0.875rem 0;
+    padding: 0.5rem 0.75rem;
+    background: var(--red-pale);
+    border-radius: 5px;
+    border: 1px solid rgba(138,26,26,0.12);
+  }
+
+  .ice-warning-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--red);
+    line-height: 1.4;
+  }
+
+  /* ════════════════════════════════
+     SCREEN 2 — MEMBER PROFILE (LEADER VIEW)
+  ════════════════════════════════ */
+
+  .member-header {
+    background: var(--white);
+    padding: 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .member-av {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+  }
+
+  .member-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.45rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
+  }
+
+  .member-level {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .member-level-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.8rem;
+    color: var(--peat);
+    font-weight: 600;
+  }
+
+  .member-tenure {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* RED ICE BUTTON */
+  .ice-btn {
+    margin: 0.875rem 0.875rem 0;
+    padding: 0.95rem 1rem;
+    background: var(--red);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(138,26,26,0.25);
+    transition: background 0.12s;
+  }
+
+  .ice-btn:active { background: var(--red-mid); }
+
+  .ice-btn-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .ice-btn-icon { font-size: 1.4rem; }
+
+  .ice-btn-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: white;
+  }
+
+  .ice-btn-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 0.1rem;
+  }
+
+  .ice-btn-arrow {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  /* Experience snapshot */
+  .snapshot {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.75rem 0.875rem 0;
+    overflow: hidden;
+  }
+
+  .snapshot-header {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .snapshot-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .snapshot-full {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--topbar);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  .snapshot-grades {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sg-col {
+    flex: 1;
+    padding: 0.75rem 0.875rem;
+    border-right: 1px solid var(--border);
+  }
+  .sg-col:last-child { border-right: none; }
+
+  .sg-track {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.35rem;
+  }
+
+  .sg-vals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.5rem;
+  }
+
+  .sg-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.2rem;
+  }
+
+  .sg-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: var(--stone);
+  }
+
+  .sg-val {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  /* Emoji trail in snapshot */
+  .snapshot-trail {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .trail-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  .trail-ems {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .trail-em { font-size: 1rem; }
+  .trail-arr { font-size: 0.55rem; color: var(--stone-lt); }
+
+  /* Private notes section */
+  .private-notes {
+    padding: 0.75rem 1rem;
+    background: #fffbf0;
+  }
+
+  .notes-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.3rem;
+  }
+
+  .notes-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    line-height: 1.65;
+    font-style: italic;
+  }
+
+  /* ════════════════════════════════
+     ICE CARD SHEET
+  ════════════════════════════════ */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(80,10,10,0.5);
+    z-index: 300;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(3px);
+  }
+  .sheet-overlay.visible { display: flex; }
+
+  .ice-sheet {
+    background: var(--white);
+    border-radius: 14px 14px 0 0;
+    width: 100%; max-width: 430px;
+    margin: 0 auto;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.2);
+  }
+
+  .ice-sheet-handle {
+    width: 36px; height: 4px;
+    background: rgba(138,26,26,0.2);
+    border-radius: 2px;
+    margin: 0.75rem auto 0;
+  }
+
+  .ice-sheet-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem 0.625rem;
+    border-bottom: 1px solid rgba(138,26,26,0.1);
+    position: sticky;
+    top: 0;
+    background: var(--white);
+    z-index: 10;
+  }
+
+  .ice-sheet-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .ice-sheet-close {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    cursor: pointer;
+  }
+
+  .ice-sheet-name {
+    padding: 0.6rem 1.25rem;
+    background: var(--red-pale);
+    border-bottom: 1px solid rgba(138,26,26,0.1);
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    color: var(--red);
+    font-style: italic;
+  }
+
+  .ice-field-row {
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .ice-field-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    min-width: 100px;
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .ice-field-value {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.55;
+    flex: 1;
+  }
+
+  .ice-field-value.highlight {
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  .ice-section-divider {
+    padding: 0.5rem 1.25rem 0.2rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    background: var(--snow);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+  }
+
+  .ice-call-btn {
+    margin: 0.875rem 1.25rem;
+    padding: 0.8rem;
+    background: var(--red);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .ice-window-note {
+    padding: 0 1.25rem 1.25rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone-lt);
+    text-align: center;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 — PARTICIPANT LIST
+══════════════════════════════════════ -->
+<div class="screen active" id="screen-list">
+
+  <div class="topbar">
+    <div class="topbar-back">←</div>
+    <div class="topbar-info">
+      <div class="topbar-title">Kentallen — Castle Stalker</div>
+      <div class="topbar-sub">Participants · Sat 19 Apr</div>
+    </div>
+  </div>
+
+  <!-- Event strip -->
+  <div class="event-strip">
+    <div class="event-grade-badge">Sea C</div>
+    <div class="event-strip-info">
+      <div class="event-strip-title">Kentallen — Castle Stalker & Shuna Sound</div>
+      <div class="event-strip-date">Sat 19 Apr · Depart 09:00 · Return ~17:00</div>
+    </div>
+  </div>
+
+  <!-- Leader reminder -->
+  <div class="leader-note">
+    🧭 Collect physical ICE cards at the put-in. Digital records are a backup — the card in the BA pocket is the first line.
+  </div>
+
+  <!-- ICE warning - missing card -->
+  <div class="ice-warning" style="margin-top:0.75rem;">
+    <span style="font-size:1rem; flex-shrink:0;">⚠️</span>
+    <div class="ice-warning-text">Sarah Thornton has not completed her ICE card. Chase before departure.</div>
+  </div>
+
+  <!-- Confirmed participants -->
+  <div class="list-label">Confirmed · 6 attending</div>
+  <div class="participant-section">
+
+    <div class="participant-row" onclick="showProfile('Duncan Reid', '😊', '🦦', 'Otter', '3 years', true)">
+      <div class="p-av">😊</div>
+      <div class="p-info">
+        <div class="p-name">Duncan Reid</div>
+        <div class="p-meta">
+          <div class="p-level">🦦 Otter</div>
+          <div class="p-trail">
+            <span class="trail-em">😬</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">🤨</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+          </div>
+          <div class="p-approved auto">Auto-approved</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+    <div class="participant-row" onclick="showProfile('Iain Mackintosh', '🧑', '🦭', 'Selkie · SKL', '8 years', true)">
+      <div class="p-av">🧑</div>
+      <div class="p-info">
+        <div class="p-name">Iain Mackintosh</div>
+        <div class="p-meta">
+          <div class="p-level">🦭 Selkie · SKL</div>
+          <div class="p-trail">
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+          </div>
+          <div class="p-approved auto">Auto-approved</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+    <div class="participant-row" onclick="showProfile('Sarah Thornton', '👩', '🦆', 'Duck', '1 year', false)">
+      <div class="p-av">👩</div>
+      <div class="p-info">
+        <div class="p-name">Sarah Thornton <span style="font-size:0.75rem;">⚠️</span></div>
+        <div class="p-meta">
+          <div class="p-level">🦆 Duck</div>
+          <div class="p-trail">
+            <span class="trail-em">🤨</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😬</span>
+          </div>
+          <div class="p-approved manual">Manual approval</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+    <div class="participant-row" onclick="showProfile('Pete Mackay', '🧑', '🦦', 'Otter', '5 years', true)">
+      <div class="p-av">🧑</div>
+      <div class="p-info">
+        <div class="p-name">Pete Mackay</div>
+        <div class="p-meta">
+          <div class="p-level">🦦 Otter</div>
+          <div class="p-trail">
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+          </div>
+          <div class="p-approved auto">Auto-approved</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+    <div class="participant-row" onclick="showProfile('Fiona Campbell', '👩', '🦦', 'Otter', '4 years', true)">
+      <div class="p-av">👩</div>
+      <div class="p-info">
+        <div class="p-name">Fiona Campbell</div>
+        <div class="p-meta">
+          <div class="p-level">🦦 Otter</div>
+          <div class="p-trail">
+            <span class="trail-em">🤨</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+          </div>
+          <div class="p-approved auto">Auto-approved</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+    <div class="participant-row" onclick="showProfile('Gordon MacPhail', '👴', '🦭', 'Selkie · Advanced SKL', '12 years', true)">
+      <div class="p-av">👴</div>
+      <div class="p-info">
+        <div class="p-name">Gordon MacPhail</div>
+        <div class="p-meta">
+          <div class="p-level">🦭 Selkie · Adv. SKL</div>
+          <div class="p-trail">
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+            <span class="p-trail-arrow">›</span>
+            <span class="trail-em">😁</span>
+          </div>
+          <div class="p-approved auto">Auto-approved</div>
+        </div>
+      </div>
+      <div class="p-chevron">›</div>
+    </div>
+
+  </div>
+
+  <div style="height:1.5rem;"></div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2 — MEMBER PROFILE (LEADER VIEW)
+══════════════════════════════════════ -->
+<div class="screen" id="screen-profile">
+
+  <div class="topbar">
+    <div class="topbar-back" onclick="showList()">←</div>
+    <div class="topbar-info">
+      <div class="topbar-title" id="profileTopbarName">Duncan Reid</div>
+      <div class="topbar-sub">Member profile</div>
+    </div>
+  </div>
+
+  <!-- Member header -->
+  <div class="member-header">
+    <div class="member-av" id="profileAv">😊</div>
+    <div>
+      <div class="member-name" id="profileName">Duncan Reid</div>
+      <div class="member-level">
+        <span id="profileLevelIcon" style="font-size:1.1rem;">🦦</span>
+        <div class="member-level-text" id="profileLevelText">Otter</div>
+      </div>
+      <div class="member-tenure" id="profileTenure">Member for 3 years</div>
+    </div>
+  </div>
+
+  <!-- RED ICE BUTTON -->
+  <div class="ice-btn" onclick="openICE()" id="iceBtnWrap">
+    <div class="ice-btn-left">
+      <div class="ice-btn-icon">🆘</div>
+      <div>
+        <div class="ice-btn-title">ICE details</div>
+        <div class="ice-btn-sub">Emergency contacts &amp; medical</div>
+      </div>
+    </div>
+    <div class="ice-btn-arrow">›</div>
+  </div>
+
+  <!-- Missing ICE card warning -->
+  <div class="ice-warning" id="iceWarning" style="display:none;">
+    <span style="font-size:1rem;">⚠️</span>
+    <div class="ice-warning-text">ICE card not completed. Chase this member before the trip departs.</div>
+  </div>
+
+  <!-- Experience snapshot -->
+  <div class="snapshot">
+    <div class="snapshot-header">
+      <div class="snapshot-title">Experience snapshot</div>
+      <div class="snapshot-full">Full record →</div>
+    </div>
+
+    <div class="snapshot-grades">
+      <div class="sg-col">
+        <div class="sg-track">Sea</div>
+        <div class="sg-vals">
+          <div class="sg-item">
+            <div class="sg-label">A</div>
+            <div class="sg-val" style="color:#00c8b4">8</div>
+          </div>
+          <div class="sg-item">
+            <div class="sg-label">B</div>
+            <div class="sg-val" style="color:#0098a0">6</div>
+          </div>
+          <div class="sg-item">
+            <div class="sg-label">C</div>
+            <div class="sg-val" style="color:#005a6e">2</div>
+          </div>
+        </div>
+      </div>
+      <div class="sg-col">
+        <div class="sg-track">River</div>
+        <div class="sg-vals">
+          <div class="sg-item">
+            <div class="sg-label">G2</div>
+            <div class="sg-val" style="color:#58d048">6</div>
+          </div>
+          <div class="sg-item">
+            <div class="sg-label">G3</div>
+            <div class="sg-val" style="color:#28a030">9</div>
+          </div>
+        </div>
+      </div>
+      <div class="sg-col">
+        <div class="sg-track">Pinkston</div>
+        <div class="sg-vals">
+          <div class="sg-item">
+            <div class="sg-label">P1</div>
+            <div class="sg-val" style="color:#d4703a">4</div>
+          </div>
+          <div class="sg-item">
+            <div class="sg-label">P2</div>
+            <div class="sg-val" style="color:#b85530">2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emoji trails -->
+    <div class="snapshot-trail">
+      <div class="trail-label">Last 3 at C</div>
+      <div class="trail-ems">
+        <span class="trail-em">😬</span>
+        <span class="trail-arr">→</span>
+        <span class="trail-em">🤨</span>
+        <span class="trail-arr">→</span>
+        <span class="trail-em">😁</span>
+      </div>
+    </div>
+
+    <div class="snapshot-trail" style="border-top:1px solid var(--border);">
+      <div class="trail-label">Last 3 at G3</div>
+      <div class="trail-ems">
+        <span class="trail-em">🤨</span>
+        <span class="trail-arr">→</span>
+        <span class="trail-em">😁</span>
+        <span class="trail-arr">→</span>
+        <span class="trail-em">😁</span>
+      </div>
+    </div>
+
+    <!-- Private notes -->
+    <div class="private-notes">
+      <div class="notes-label">📌 Leader notes — private</div>
+      <div class="notes-text">Strong paddler, good group awareness. Slightly hesitant in tidal conditions last time out. Worth watching in the narrows.</div>
+    </div>
+
+  </div>
+
+  <div style="height:1.5rem;"></div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     ICE CARD SHEET
+══════════════════════════════════════ -->
+<div class="sheet-overlay" id="iceSheet" onclick="closeICE(event)">
+  <div class="ice-sheet">
+    <div class="ice-sheet-handle"></div>
+
+    <div class="ice-sheet-topbar">
+      <div class="ice-sheet-title">🆘 ICE details</div>
+      <div class="ice-sheet-close" onclick="closeICEDirect()">Close</div>
+    </div>
+
+    <div class="ice-sheet-name" id="iceSheetName">Duncan Reid</div>
+
+    <!-- Medical -->
+    <div class="ice-field-row" style="background:#fff8f8;">
+      <div class="ice-field-label">Medical &amp; allergies</div>
+      <div class="ice-field-value highlight">Mild asthma — reliever inhaler (blue) in BA pocket. No known allergies.</div>
+    </div>
+
+    <div class="ice-field-row" style="background:#fff8f8;">
+      <div class="ice-field-label">Medication &amp; location</div>
+      <div class="ice-field-value highlight">Salbutamol inhaler — left BA pocket at all times.</div>
+    </div>
+
+    <!-- Personal -->
+    <div class="ice-section-divider">Personal details</div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">Date of birth</div>
+      <div class="ice-field-value">14 March 1988</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">Mobile</div>
+      <div class="ice-field-value">07712 345678</div>
+    </div>
+
+    <!-- ICE contacts -->
+    <div class="ice-section-divider">Emergency contacts</div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">ICE name</div>
+      <div class="ice-field-value">Janet Reid</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">ICE telephone</div>
+      <div class="ice-field-value">07890 123456</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">ICE email</div>
+      <div class="ice-field-value">janet.reid@outlook.com</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">ICE address</div>
+      <div class="ice-field-value">14 Kirkton Road, Bearsden, Glasgow G61 2AR</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">Alt. ICE name</div>
+      <div class="ice-field-value">Michael Reid</div>
+    </div>
+
+    <div class="ice-field-row">
+      <div class="ice-field-label">Alt. ICE tel</div>
+      <div class="ice-field-value">07654 987321</div>
+    </div>
+
+    <!-- Call button -->
+    <div class="ice-call-btn" onclick="alert('Calling Janet Reid…')">
+      📞 Call Janet Reid — 07890 123456
+    </div>
+
+    <div class="ice-window-note">
+      Visible to trip leaders only · Event window active until midnight tonight
+    </div>
+
+  </div>
+</div>
+
+<script>
+const members = {
+  'Duncan Reid':     { av:'😊', levelIcon:'🦦', levelText:'Otter',             tenure:'Member for 3 years',  hasICE: true  },
+  'Iain Mackintosh': { av:'🧑', levelIcon:'🦭', levelText:'Selkie · SKL',      tenure:'Member for 8 years',  hasICE: true  },
+  'Sarah Thornton':  { av:'👩', levelIcon:'🦆', levelText:'Duck',              tenure:'Member for 1 year',   hasICE: false },
+  'Pete Mackay':     { av:'🧑', levelIcon:'🦦', levelText:'Otter',             tenure:'Member for 5 years',  hasICE: true  },
+  'Fiona Campbell':  { av:'👩', levelIcon:'🦦', levelText:'Otter',             tenure:'Member for 4 years',  hasICE: true  },
+  'Gordon MacPhail': { av:'👴', levelIcon:'🦭', levelText:'Selkie · Adv. SKL', tenure:'Member for 12 years', hasICE: true  },
+};
+
+function showProfile(name, av, levelIcon, levelText, tenure, hasICE) {
+  const m = members[name] || { av, levelIcon, levelText, tenure: 'Member for ' + tenure, hasICE };
+
+  document.getElementById('profileTopbarName').textContent = name;
+  document.getElementById('profileAv').textContent = m.av;
+  document.getElementById('profileName').textContent = name;
+  document.getElementById('profileLevelIcon').textContent = m.levelIcon;
+  document.getElementById('profileLevelText').textContent = m.levelText;
+  document.getElementById('profileTenure').textContent = m.tenure;
+  document.getElementById('iceSheetName').textContent = name;
+
+  // ICE card state
+  const iceBtn = document.getElementById('iceBtnWrap');
+  const iceWarn = document.getElementById('iceWarning');
+  if (m.hasICE) {
+    iceBtn.style.opacity = '1';
+    iceBtn.style.pointerEvents = 'auto';
+    iceWarn.style.display = 'none';
+  } else {
+    iceBtn.style.opacity = '0.4';
+    iceBtn.style.pointerEvents = 'none';
+    iceWarn.style.display = 'flex';
+  }
+
+  document.getElementById('screen-list').classList.remove('active');
+  document.getElementById('screen-profile').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showList() {
+  document.getElementById('screen-profile').classList.remove('active');
+  document.getElementById('screen-list').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function openICE() {
+  document.getElementById('iceSheet').classList.add('visible');
+}
+
+function closeICE(e) {
+  if (e.target === document.getElementById('iceSheet')) {
+    document.getElementById('iceSheet').classList.remove('visible');
+  }
+}
+
+function closeICEDirect() {
+  document.getElementById('iceSheet').classList.remove('visible');
+}
+</script>
+
+</body>
+</html>

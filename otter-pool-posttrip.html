@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Post-trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-c:        #005a6e;
+    --red:          #8a1a1a;
+    --red-pale:     #fde8e8;
+    --green:        #1a5a1a;
+    --green-pale:   #e0f0e0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .screen { display: none; min-height: 100vh; padding-bottom: 2rem; }
+  .screen.active { display: block; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-back {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.3rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .topbar-info { flex: 1; min-width: 0; }
+
+  .topbar-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.55);
+  }
+
+  /* View switcher pills - for demo */
+  .view-switch {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .vs-pill {
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .vs-pill.active {
+    background: var(--topbar);
+    border-color: var(--topbar);
+    color: white;
+  }
+
+  /* ════════════════════════════════
+     SCREEN 1 — MEMBER RESPONSE
+  ════════════════════════════════ */
+
+  .trip-hero {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 1rem 1rem;
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+  }
+
+  .trip-thumb {
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #2a4560, #005a6e);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+  }
+
+  .trip-info { flex: 1; min-width: 0; }
+
+  .trip-question {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+  }
+
+  .trip-meta {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* Emoji scale */
+  .emoji-scale-wrap {
+    background: var(--white);
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .scale-instruction {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .emoji-scale-row {
+    display: flex;
+    gap: 0;
+    justify-content: space-between;
+  }
+
+  .emoji-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.75rem 0.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+  }
+
+  .emoji-option:active { transform: scale(0.95); }
+
+  .emoji-option.selected {
+    background: var(--forest-pale);
+    border-color: var(--forest);
+  }
+
+  .emoji-option-em { font-size: 1.8rem; line-height: 1; }
+
+  .emoji-option-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.55rem;
+    color: var(--stone);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .emoji-option.selected .emoji-option-label { color: var(--forest); font-weight: 600; }
+
+  /* Comment field */
+  .comment-wrap {
+    padding: 0.875rem 0.875rem 0;
+  }
+
+  .comment-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.4rem;
+  }
+
+  .comment-input {
+    width: 100%;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 0.875rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.6;
+    resize: none;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .comment-input:focus { border-color: var(--forest-lt); }
+  .comment-input::placeholder { color: var(--stone-lt); font-style: italic; }
+
+  /* Submit button */
+  .submit-bar {
+    padding: 0.875rem 0.875rem 0;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--forest);
+    border-radius: 8px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .submit-btn.ready { opacity: 1; pointer-events: auto; }
+
+  .skip-link {
+    text-align: center;
+    padding: 0.75rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone-lt);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ════════════════════════════════
+     SCREEN 2 — LEADER FEEDBACK
+  ════════════════════════════════ */
+
+  .feedback-intro {
+    background: var(--white);
+    padding: 1rem 1rem 0.875rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .feedback-intro-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.25rem;
+  }
+
+  .feedback-intro-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .feedback-anon-note {
+    margin: 0.75rem 0.875rem 0;
+    padding: 0.5rem 0.75rem;
+    background: var(--forest-pale);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--forest);
+    line-height: 1.5;
+  }
+
+  /* Agreement question */
+  .feedback-q {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.75rem 0.875rem 0;
+    overflow: hidden;
+  }
+
+  .fq-text {
+    padding: 0.875rem 1rem 0.5rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.55;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fq-scale {
+    display: flex;
+  }
+
+  .fq-option {
+    flex: 1;
+    padding: 0.65rem 0;
+    text-align: center;
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  .fq-option:last-child { border-right: none; }
+  .fq-option:active { background: var(--snow); }
+
+  .fq-option.selected { background: var(--forest-pale); }
+
+  .fq-option-em { font-size: 1.1rem; }
+
+  .fq-option-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.5rem;
+    color: var(--stone-lt);
+    margin-top: 0.15rem;
+    line-height: 1.2;
+  }
+
+  .fq-option.selected .fq-option-label { color: var(--forest); }
+
+  /* ════════════════════════════════
+     SCREEN 3 — LEADER ATTENDANCE
+  ════════════════════════════════ */
+
+  .attendance-intro {
+    background: var(--white);
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .attendance-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+
+  .attendance-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* Grade adjust */
+  .grade-adjust {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.75rem 0.875rem 0;
+    padding: 0.875rem 1rem;
+  }
+
+  .ga-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.6rem;
+  }
+
+  .ga-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ga-chip {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    cursor: pointer;
+    background: var(--snow);
+    transition: all 0.12s;
+  }
+
+  .ga-chip.selected {
+    background: var(--sea-c);
+    border-color: var(--sea-c);
+    color: white;
+  }
+
+  .ga-note {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  /* Participant attendance row */
+  .attendance-list {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.75rem 0.875rem 0;
+    overflow: hidden;
+  }
+
+  .att-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .att-row:first-child { border-top: none; }
+
+  .att-av {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .att-info { flex: 1; min-width: 0; }
+
+  .att-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--peat);
+  }
+
+  .att-level {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* Attendance tick/cross */
+  .att-toggle {
+    display: flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .att-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--snow);
+    transition: all 0.12s;
+    flex-shrink: 0;
+  }
+
+  .att-btn.tick.active { background: var(--green-pale); border-color: var(--green); }
+  .att-btn.cross.active { background: var(--red-pale); border-color: var(--red); }
+
+  /* Leader emoji for member */
+  .att-emoji-row {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0.4rem 1rem 0.65rem 3.65rem;
+    border-top: 1px dashed var(--border);
+    background: var(--snow);
+    align-items: center;
+  }
+
+  .att-emoji-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-right: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .att-em-opt {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.12s;
+  }
+
+  .att-em-opt.selected {
+    background: var(--white);
+    border-color: var(--forest);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  /* Note field per participant */
+  .att-note-input {
+    margin: 0 1rem 0.65rem 3.65rem;
+    padding: 0.45rem 0.65rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--peat);
+    outline: none;
+    width: calc(100% - 4.65rem);
+  }
+
+  .att-note-input::placeholder { color: var(--stone-lt); font-style: italic; }
+
+  /* Submit done */
+  .done-bar {
+    padding: 0.875rem 0.875rem 0;
+  }
+
+  .done-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--forest);
+    border-radius: 8px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  /* ── THANK YOU ── */
+  .thankyou {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .ty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+  .ty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.5rem;
+  }
+
+  .ty-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--stone);
+    line-height: 1.65;
+    font-style: italic;
+    max-width: 280px;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     VIEW SWITCHER (demo only)
+══════════════════════════════════ -->
+<div class="view-switch">
+  <div class="vs-pill active" onclick="switchView('member')">Member view</div>
+  <div class="vs-pill" onclick="switchView('feedback')">Leader feedback</div>
+  <div class="vs-pill" onclick="switchView('leader')">Leader attendance</div>
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 1 — MEMBER RESPONSE
+══════════════════════════════════ -->
+<div class="screen active" id="screen-member">
+
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="topbar-title">How was your trip?</div>
+      <div class="topbar-sub">Kentallen — Castle Stalker · Sat 19 Apr</div>
+    </div>
+  </div>
+
+  <div class="trip-hero">
+    <div class="trip-thumb">🌊</div>
+    <div class="trip-info">
+      <div class="trip-question">How was Kentallen — Castle Stalker?</div>
+      <div class="trip-meta">Led by Iain Mackintosh · Sea C · Sat 19 Apr</div>
+    </div>
+  </div>
+
+  <div class="emoji-scale-wrap">
+    <div class="scale-instruction">How did you feel on the water today?</div>
+    <div class="emoji-scale-row">
+      <div class="emoji-option" onclick="selectMemberEmoji(this, 'Relaxed')">
+        <div class="emoji-option-em">😁</div>
+        <div class="emoji-option-label">Relaxed</div>
+      </div>
+      <div class="emoji-option" onclick="selectMemberEmoji(this, 'Focused')">
+        <div class="emoji-option-em">🤨</div>
+        <div class="emoji-option-label">Focused</div>
+      </div>
+      <div class="emoji-option" onclick="selectMemberEmoji(this, 'Stretched')">
+        <div class="emoji-option-em">😬</div>
+        <div class="emoji-option-label">Stretched</div>
+      </div>
+      <div class="emoji-option" onclick="selectMemberEmoji(this, 'Out of depth')">
+        <div class="emoji-option-em">😨</div>
+        <div class="emoji-option-label">Out of depth</div>
+      </div>
+      <div class="emoji-option" onclick="selectMemberEmoji(this, 'Struggling')">
+        <div class="emoji-option-em">😱</div>
+        <div class="emoji-option-label">Struggling</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="comment-wrap">
+    <div class="comment-label">Anything to add? <span style="color:var(--stone-lt); font-style:italic; text-transform:none; letter-spacing:0;">optional</span></div>
+    <textarea class="comment-input" placeholder="Conditions, highlights, anything worth noting…"></textarea>
+  </div>
+
+  <div class="submit-bar">
+    <div class="submit-btn" id="memberSubmitBtn" onclick="submitMember()">Submit</div>
+  </div>
+
+  <div class="skip-link" onclick="showThankyou('member')">Skip for now</div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 2 — ANONYMOUS LEADER FEEDBACK
+══════════════════════════════════ -->
+<div class="screen" id="screen-feedback">
+
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="topbar-title">Trip feedback</div>
+      <div class="topbar-sub">Kentallen — Castle Stalker · Sat 19 Apr</div>
+    </div>
+  </div>
+
+  <div class="feedback-intro">
+    <div class="feedback-intro-title">A few quick questions</div>
+    <div class="feedback-intro-sub">Your responses help leaders improve. Takes under a minute.</div>
+  </div>
+
+  <div class="feedback-anon-note">
+    🔒 Your answers are anonymous. Results are only shown to the leader once 3 or more people have responded.
+  </div>
+
+  <!-- Q1 -->
+  <div class="feedback-q">
+    <div class="fq-text">Was the plan for the trip clearly communicated before setting off?</div>
+    <div class="fq-scale">
+      <div class="fq-option" onclick="selectFQ(this, 1, 1)">
+        <div class="fq-option-em">👍</div>
+        <div class="fq-option-label">Strongly agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 1, 2)">
+        <div class="fq-option-em">🙂</div>
+        <div class="fq-option-label">Agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 1, 3)">
+        <div class="fq-option-em">😐</div>
+        <div class="fq-option-label">Neutral</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 1, 4)">
+        <div class="fq-option-em">🙁</div>
+        <div class="fq-option-label">Disagree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 1, 5)">
+        <div class="fq-option-em">👎</div>
+        <div class="fq-option-label">Strongly disagree</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="feedback-q">
+    <div class="fq-text">Did you feel the group was well matched to the conditions?</div>
+    <div class="fq-scale">
+      <div class="fq-option" onclick="selectFQ(this, 2, 1)">
+        <div class="fq-option-em">👍</div>
+        <div class="fq-option-label">Strongly agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 2, 2)">
+        <div class="fq-option-em">🙂</div>
+        <div class="fq-option-label">Agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 2, 3)">
+        <div class="fq-option-em">😐</div>
+        <div class="fq-option-label">Neutral</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 2, 4)">
+        <div class="fq-option-em">🙁</div>
+        <div class="fq-option-label">Disagree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 2, 5)">
+        <div class="fq-option-em">👎</div>
+        <div class="fq-option-label">Strongly disagree</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="feedback-q">
+    <div class="fq-text">Did you feel safe throughout the trip?</div>
+    <div class="fq-scale">
+      <div class="fq-option" onclick="selectFQ(this, 3, 1)">
+        <div class="fq-option-em">👍</div>
+        <div class="fq-option-label">Strongly agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 3, 2)">
+        <div class="fq-option-em">🙂</div>
+        <div class="fq-option-label">Agree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 3, 3)">
+        <div class="fq-option-em">😐</div>
+        <div class="fq-option-label">Neutral</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 3, 4)">
+        <div class="fq-option-em">🙁</div>
+        <div class="fq-option-label">Disagree</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 3, 5)">
+        <div class="fq-option-em">👎</div>
+        <div class="fq-option-label">Strongly disagree</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="feedback-q">
+    <div class="fq-text">Was there anything the leader could have handled differently?</div>
+    <div class="fq-scale">
+      <div class="fq-option" onclick="selectFQ(this, 4, 1)">
+        <div class="fq-option-em">👍</div>
+        <div class="fq-option-label">Nothing at all</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 4, 2)">
+        <div class="fq-option-em">🙂</div>
+        <div class="fq-option-label">Minor things</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 4, 3)">
+        <div class="fq-option-em">😐</div>
+        <div class="fq-option-label">Some things</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 4, 4)">
+        <div class="fq-option-em">🙁</div>
+        <div class="fq-option-label">Several things</div>
+      </div>
+      <div class="fq-option" onclick="selectFQ(this, 4, 5)">
+        <div class="fq-option-em">👎</div>
+        <div class="fq-option-label">Many things</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-bar">
+    <div class="submit-btn ready" onclick="showThankyou('feedback')">Submit feedback</div>
+  </div>
+
+  <div class="skip-link" onclick="showThankyou('feedback')">Skip</div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 3 — LEADER ATTENDANCE
+══════════════════════════════════ -->
+<div class="screen" id="screen-leader">
+
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="topbar-title">Record attendance</div>
+      <div class="topbar-sub">Kentallen — Castle Stalker · Sat 19 Apr</div>
+    </div>
+  </div>
+
+  <div class="attendance-intro">
+    <div>
+      <div class="attendance-title">Kentallen — Castle Stalker</div>
+      <div class="attendance-sub">6 confirmed · tick who attended</div>
+    </div>
+  </div>
+
+  <!-- Grade adjust -->
+  <div class="grade-adjust">
+    <div class="ga-label">Actual grade — did conditions differ from advertised?</div>
+    <div class="ga-row">
+      <div class="ga-chip selected" onclick="selectGrade(this)">Sea C</div>
+      <div class="ga-chip" onclick="selectGrade(this)">Sea B</div>
+      <div class="ga-chip" onclick="selectGrade(this)">Sea C+</div>
+    </div>
+    <div class="ga-note">Advertised as Sea C. Adjust if actual conditions were significantly different.</div>
+  </div>
+
+  <!-- Participant list -->
+  <div class="list-label" style="padding:0.75rem 0.875rem 0.3rem; font-family:'Lora',serif; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--stone-lt);">Participants</div>
+
+  <div class="attendance-list">
+
+    <!-- Duncan -->
+    <div>
+      <div class="att-row">
+        <div class="att-av">😊</div>
+        <div class="att-info">
+          <div class="att-name">Duncan Reid</div>
+          <div class="att-level">🦦 Otter · 3 years</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…">
+    </div>
+
+    <!-- Iain -->
+    <div style="border-top:1px solid var(--border);">
+      <div class="att-row">
+        <div class="att-av">🧑</div>
+        <div class="att-info">
+          <div class="att-name">Iain Mackintosh</div>
+          <div class="att-level">🦭 Selkie · SKL · 8 years</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…">
+    </div>
+
+    <!-- Sarah -->
+    <div style="border-top:1px solid var(--border);">
+      <div class="att-row">
+        <div class="att-av">👩</div>
+        <div class="att-info">
+          <div class="att-name">Sarah Thornton</div>
+          <div class="att-level">🦆 Duck · 1 year</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…" value="Tidal race at the headland was a stretch — managed well but needed encouragement.">
+    </div>
+
+    <!-- Pete -->
+    <div style="border-top:1px solid var(--border);">
+      <div class="att-row">
+        <div class="att-av">🧑</div>
+        <div class="att-info">
+          <div class="att-name">Pete Mackay</div>
+          <div class="att-level">🦦 Otter · 5 years</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…">
+    </div>
+
+    <!-- Fiona -->
+    <div style="border-top:1px solid var(--border);">
+      <div class="att-row">
+        <div class="att-av">👩</div>
+        <div class="att-info">
+          <div class="att-name">Fiona Campbell</div>
+          <div class="att-level">🦦 Otter · 4 years</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…">
+    </div>
+
+    <!-- Gordon -->
+    <div style="border-top:1px solid var(--border);">
+      <div class="att-row">
+        <div class="att-av">👴</div>
+        <div class="att-info">
+          <div class="att-name">Gordon MacPhail</div>
+          <div class="att-level">🦭 Selkie · Adv. SKL · 12 years</div>
+        </div>
+        <div class="att-toggle">
+          <div class="att-btn tick active" onclick="toggleAtt(this, 'tick')">✓</div>
+          <div class="att-btn cross" onclick="toggleAtt(this, 'cross')">✕</div>
+        </div>
+      </div>
+      <div class="att-emoji-row">
+        <div class="att-emoji-label">Composure</div>
+        <div class="att-em-opt selected" onclick="selectAttEmoji(this)">😁</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">🤨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😬</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😨</div>
+        <div class="att-em-opt" onclick="selectAttEmoji(this)">😱</div>
+      </div>
+      <input class="att-note-input" placeholder="Private note — visible to leaders only…">
+    </div>
+
+  </div>
+
+  <div class="done-bar">
+    <div class="done-btn" onclick="showThankyou('leader')">Save &amp; finish</div>
+  </div>
+
+  <div style="height:1rem;"></div>
+
+</div>
+
+<!-- ── THANK YOU ── -->
+<div class="screen" id="screen-thankyou">
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="topbar-title">All done</div>
+    </div>
+  </div>
+  <div class="thankyou">
+    <div class="ty-icon">🌊</div>
+    <div class="ty-title">Thanks for the record.</div>
+    <div class="ty-sub">Trip logged. Your notes will help the next leader who paddles with this group.</div>
+  </div>
+</div>
+
+<script>
+// View switcher
+function switchView(view) {
+  document.querySelectorAll('.vs-pill').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + view).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// Member emoji select
+function selectMemberEmoji(el, label) {
+  document.querySelectorAll('#screen-member .emoji-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('memberSubmitBtn').classList.add('ready');
+}
+
+// Feedback question
+const fqAnswers = {};
+function selectFQ(el, q, val) {
+  const parent = el.closest('.fq-scale');
+  parent.querySelectorAll('.fq-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  fqAnswers[q] = val;
+}
+
+// Attendance tick/cross
+function toggleAtt(el, type) {
+  const row = el.closest('.att-toggle');
+  row.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Per-participant emoji
+function selectAttEmoji(el) {
+  const row = el.closest('.att-emoji-row');
+  row.querySelectorAll('.att-em-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Grade select
+function selectGrade(el) {
+  document.querySelectorAll('.ga-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Submit member
+function submitMember() {
+  showThankyou('member');
+}
+
+function showThankyou(from) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-thankyou').classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+
+</body>
+</html>

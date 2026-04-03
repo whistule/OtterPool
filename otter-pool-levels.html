@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Levels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-a:        #00c8b4;
+    --sea-b:        #0098a0;
+    --sea-c:        #005a6e;
+    --riv-lo:       #58d048;
+    --riv-mid:      #28a030;
+    --riv-hi:       #0a5018;
+    --p1:           #d4703a;
+    --p2:           #b85530;
+    --p3:           #8a2e10;
+    --loch:         #5a7080;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .topbar-back {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+
+  .topbar-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── INTRO ── */
+  .intro {
+    padding: 1.25rem 1rem 0.875rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+  }
+
+  .intro-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.5rem;
+  }
+
+  .intro-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--stone);
+    line-height: 1.7;
+  }
+
+  /* ── ZONE LABEL ── */
+  .zone-header {
+    padding: 1rem 1rem 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .zone-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .zone-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── LEVEL CARD ── */
+  .level-card {
+    background: var(--white);
+    margin: 0 0.875rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    scroll-margin-top: 70px;
+  }
+
+  .level-card.current-user {
+    border-color: var(--peat);
+    box-shadow: 0 2px 12px rgba(20,26,20,0.1);
+  }
+
+  /* Card top strip */
+  .level-top {
+    padding: 1rem 1rem 0.875rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .level-number-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    flex-shrink: 0;
+  }
+
+  .level-num {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .level-animal {
+    font-size: 2.2rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .level-head { flex: 1; }
+
+  .level-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .level-subtitle {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .current-badge {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    background: var(--peat);
+    border-radius: 3px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  /* Description */
+  .level-description {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    line-height: 1.75;
+  }
+
+  .level-description p + p { margin-top: 0.6rem; }
+
+  /* Craft control */
+  .level-craft {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--snow);
+  }
+
+  .craft-row {
+    display: flex;
+    gap: 0;
+  }
+
+  .craft-channel {
+    flex: 1;
+    padding: 0 0.5rem;
+  }
+  .craft-channel:first-child { padding-left: 0; }
+  .craft-channel:last-child { padding-right: 0; }
+
+  .craft-divider {
+    width: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 0.5rem;
+  }
+
+  .craft-icon {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .craft-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    line-height: 1.6;
+  }
+
+  /* What you can do */
+  .level-access {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .access-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.5rem;
+  }
+
+  .access-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .access-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    line-height: 1.4;
+  }
+
+  .access-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--stone-lt);
+    flex-shrink: 0;
+    margin-top: 0.45rem;
+  }
+
+  .access-dot.sea   { background: var(--sea-b); }
+  .access-dot.river { background: var(--riv-mid); }
+  .access-dot.pool  { background: var(--p2); }
+  .access-dot.all   { background: var(--peat); }
+
+  /* How to advance */
+  .level-advance {
+    padding: 0.75rem 1rem;
+  }
+
+  .advance-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.5rem;
+  }
+
+  .advance-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    line-height: 1.65;
+    font-style: italic;
+  }
+
+  .advance-corr {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--snow);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+
+  .advance-corr-icon { font-size: 0.9rem; flex-shrink: 0; }
+
+  .advance-corr-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--peat);
+    line-height: 1.4;
+  }
+
+  /* BC qual card - different style */
+  .level-card.bc-level .level-top {
+    background: #f0f4f8;
+  }
+
+  .bc-label {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    background: var(--topbar);
+    border-radius: 3px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  /* Aspirant special card */
+  .aspirant-card {
+    background: var(--amber-pale);
+    border: 1px solid rgba(160,104,40,0.2);
+    border-radius: 10px;
+    margin: 0 0.875rem 0.75rem;
+    padding: 1rem;
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+  }
+
+  .aspirant-icon { font-size: 1.8rem; flex-shrink: 0; }
+
+  .aspirant-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--amber);
+    margin-bottom: 0.25rem;
+  }
+
+  .aspirant-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--amber);
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+
+  /* Sticky level nav */
+  .level-nav {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0.4rem 0.875rem;
+    gap: 0.4rem;
+    position: sticky;
+    top: 52px;
+    z-index: 90;
+  }
+  .level-nav::-webkit-scrollbar { display: none; }
+
+  .lnav-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.12s;
+  }
+
+  .lnav-chip:active { transform: scale(0.96); }
+
+  .lnav-chip.active {
+    background: var(--peat);
+    border-color: var(--peat);
+  }
+
+  .lnav-animal { font-size: 0.9rem; }
+
+  .lnav-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    white-space: nowrap;
+  }
+
+  .lnav-chip.active .lnav-label { color: white; }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-back">←</div>
+    <div class="topbar-title">Membership levels</div>
+  </div>
+</div>
+
+<!-- STICKY LEVEL NAV -->
+<div class="level-nav">
+  <div class="lnav-chip" onclick="scrollTo('frog')">
+    <div class="lnav-animal">🐸</div>
+    <div class="lnav-label">Frog</div>
+  </div>
+  <div class="lnav-chip" onclick="scrollTo('duck')">
+    <div class="lnav-animal">🦆</div>
+    <div class="lnav-label">Duck</div>
+  </div>
+  <div class="lnav-chip active" onclick="scrollTo('otter')">
+    <div class="lnav-animal">🦦</div>
+    <div class="lnav-label">Otter</div>
+  </div>
+  <div class="lnav-chip" onclick="scrollTo('dolphin')">
+    <div class="lnav-animal">🐬</div>
+    <div class="lnav-label">Dolphin</div>
+  </div>
+  <div class="lnav-chip" onclick="scrollTo('selkie')">
+    <div class="lnav-animal">🦭</div>
+    <div class="lnav-label">Selkie</div>
+  </div>
+</div>
+
+<!-- INTRO -->
+<div class="intro">
+  <div class="intro-title">The DCKC progression system</div>
+  <div class="intro-text">Levels reflect your experience and help leaders make good decisions about who is ready for which trips. They are not badges or rewards — they are a shared language for safety and trust within the club.</div>
+</div>
+
+<!-- ASPIRANT NOTE -->
+<div class="zone-header">
+  <div class="zone-title">Before membership</div>
+  <div class="zone-line"></div>
+</div>
+
+<div class="aspirant-card">
+  <div class="aspirant-icon">🌱</div>
+  <div>
+    <div class="aspirant-title">Aspirant</div>
+    <div class="aspirant-text">New to DCKC. You have three trial sessions to experience the club before committing to full membership. After your third session membership is required to continue paddling with us.</div>
+  </div>
+</div>
+
+<!-- ZONE 1 -->
+<div class="zone-header">
+  <div class="zone-title">Zone 1 — Club progression</div>
+  <div class="zone-line"></div>
+</div>
+
+<!-- FROG -->
+<div class="level-card" id="frog">
+  <div class="level-top">
+    <div class="level-number-wrap">
+      <div class="level-num">Level 1</div>
+      <div class="level-animal">🐸</div>
+    </div>
+    <div class="level-head">
+      <div class="level-name">Frog</div>
+      <div class="level-subtitle">New full member · finding your feet on the water</div>
+    </div>
+  </div>
+  <div class="level-description">
+    <p>Frogs have just taken the big leap of starting kayaking or canoeing for the first time, either on their own or with a friend, and may not have done a capsize drill before with a spray-deck on.</p>
+    <p>You can ask someone more experienced to show you a capsize at any Tuesday evening event — it's often something left to the end of the evening so you can get straight out to dry off. At which point you turn from a frog... into a duck!</p>
+  </div>
+
+  <div class="level-craft">
+    <div class="craft-row">
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--sea-b)">🌊 Sea</div>
+        <div class="craft-text">Flat calm, sheltered water only. Still finding stability in the boat.</div>
+      </div>
+      <div class="craft-divider"></div>
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--riv-mid)">🟢 River</div>
+        <div class="craft-text">Flat water and very gentle Grade 1 only.</div>
+      </div>
+    </div>
+  </div>
+  <div class="level-access">
+    <div class="access-label">What you can join</div>
+    <div class="access-list">
+      <div class="access-item"><div class="access-dot all"></div>Tuesday Evening sessions — Loch Lomond and All Away</div>
+      <div class="access-item"><div class="access-dot pool"></div>Pinkston 1 pump sessions</div>
+      <div class="access-item"><div class="access-dot all"></div>Pool and skills sessions</div>
+      <div class="access-item"><div class="access-dot sea"></div>Second Saturday paddles — Sea Grade A, with leader approval</div>
+    </div>
+  </div>
+  <div class="level-advance">
+    <div class="advance-label">Advancing to Duck</div>
+    <div class="advance-text">There are no fixed criteria — advancement is based on the judgement of experienced members who have paddled with you.</div>
+    <div class="advance-corr">
+      <div class="advance-corr-icon">👥</div>
+      <div class="advance-corr-text">One witness at Dolphin level or above corroborates your readiness. A Paddling Admin sets your approval ceiling accordingly.</div>
+    </div>
+  </div>
+</div>
+
+<!-- DUCK -->
+<div class="level-card" id="duck">
+  <div class="level-top">
+    <div class="level-number-wrap">
+      <div class="level-num">Level 2</div>
+      <div class="level-animal">🦆</div>
+    </div>
+    <div class="level-head">
+      <div class="level-name">Duck</div>
+      <div class="level-subtitle">Developing paddler · comfortable on sheltered water</div>
+    </div>
+  </div>
+  <div class="level-description">
+    <p>Ducks have carried out a capsize drill, with a spray-deck on, in a kayak — either in a swimming pool or outside. You can ask someone more experienced to show you this at any Tuesday evening meet.</p>
+    <p>Note: having done a capsize on a sit-on-top does not count unfortunately.</p>
+  </div>
+
+  <div class="level-craft">
+    <div class="craft-row">
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--sea-b)">🌊 Sea</div>
+        <div class="craft-text">Sheltered coastal water and light chop. Comfortable in Force 2–3. Beginning to read wind and conditions.</div>
+      </div>
+      <div class="craft-divider"></div>
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--riv-mid)">🟢 River</div>
+        <div class="craft-text">Grade 1–2. Straightforward moving water with simple currents.</div>
+      </div>
+    </div>
+  </div>
+  <div class="level-access">
+    <div class="access-label">What you can join</div>
+    <div class="access-list">
+      <div class="access-item"><div class="access-dot all"></div>Everything at Frog level</div>
+      <div class="access-item"><div class="access-dot sea"></div>Sea Grade A and B trips, with leader approval</div>
+      <div class="access-item"><div class="access-dot pool"></div>Pinkston 1 and 2 pump sessions</div>
+      <div class="access-item"><div class="access-dot river"></div>River trips up to Grade 2/3, with leader approval</div>
+      <div class="access-item"><div class="access-dot all"></div>Training and qualification courses</div>
+    </div>
+  </div>
+  <div class="level-advance">
+    <div class="advance-label">Advancing to Otter</div>
+    <div class="advance-text">Again, no fixed criteria. The question leaders ask is whether you paddle with good awareness and judgement, and whether you're ready for more committing water.</div>
+    <div class="advance-corr">
+      <div class="advance-corr-icon">👥</div>
+      <div class="advance-corr-text">Two witnesses at Paddlesport Leader level or above must corroborate your readiness. A Paddling Admin sets your new approval ceiling.</div>
+    </div>
+  </div>
+</div>
+
+<!-- OTTER -->
+<div class="level-card current-user" id="otter">
+  <div class="level-top">
+    <div class="level-number-wrap">
+      <div class="level-num">Level 3</div>
+      <div class="level-animal">🦦</div>
+    </div>
+    <div class="level-head">
+      <div class="level-name">Otter</div>
+      <div class="level-subtitle">Experienced paddler · ready for open water and moving water</div>
+      <div class="current-badge">Your level</div>
+    </div>
+  </div>
+  <div class="level-description">
+    <p>Otters can reliably perform a rescue successfully while on the water — using a heel hook and not swimming to the shore or bank — and have also been rescued successfully.</p>
+    <p>Note: if you have performed a rescue in a kayak this does not make you an Otter in other craft. It would not make you an Otter in a canoe or on a SUP.</p>
+  </div>
+
+  <div class="level-craft">
+    <div class="craft-row">
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--sea-b)">🌊 Sea</div>
+        <div class="craft-text">Comfortable in waves and Force 4 winds. Can maintain boat control and perform rescues in confused sea conditions.</div>
+      </div>
+      <div class="craft-divider"></div>
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--riv-mid)">🟢 River</div>
+        <div class="craft-text">Confident on Grade 3. Reads water well and can execute rescues on moving water.</div>
+      </div>
+    </div>
+  </div>
+  <div class="level-access">
+    <div class="access-label">What you can join</div>
+    <div class="access-list">
+      <div class="access-item"><div class="access-dot all"></div>Everything at Duck level</div>
+      <div class="access-item"><div class="access-dot sea"></div>Sea Grade B and C trips, with leader approval</div>
+      <div class="access-item"><div class="access-dot pool"></div>Pinkston 1, 2 and 3 pump sessions</div>
+      <div class="access-item"><div class="access-dot river"></div>River trips up to Grade 3/4, with leader approval</div>
+      <div class="access-item"><div class="access-dot all"></div>Multi-day expeditions and overnight trips</div>
+    </div>
+  </div>
+  <div class="level-advance">
+    <div class="advance-label">Advancing to Dolphin</div>
+    <div class="advance-text">Dolphin is a significant step — it recognises a paddler who is well-rounded, has broad experience, and is approaching the level where leadership becomes possible.</div>
+    <div class="advance-corr">
+      <div class="advance-corr-icon">👥</div>
+      <div class="advance-corr-text">Two witnesses at Sea Kayak Leader or Whitewater Kayak Leader level or above. A Paddling Admin sets your new approval ceiling.</div>
+    </div>
+  </div>
+</div>
+
+<!-- DOLPHIN -->
+<div class="level-card" id="dolphin">
+  <div class="level-top">
+    <div class="level-number-wrap">
+      <div class="level-num">Level 4</div>
+      <div class="level-animal">🐬</div>
+    </div>
+    <div class="level-head">
+      <div class="level-name">Dolphin</div>
+      <div class="level-subtitle">Advanced paddler · broad experience, emerging leader</div>
+    </div>
+  </div>
+  <div class="level-description">
+    <p>Dolphins are leaders. Amongst other things they can perform rescues on others, reliably do a self rescue, and are authorised by DCKC to run trips.</p>
+    <p>Dolphin is the highest level within the club's internal progression — an accomplished paddler with wide experience across disciplines and conditions, trusted to take responsibility for others on the water.</p>
+  </div>
+
+  <div class="level-craft">
+    <div class="craft-row">
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--sea-b)">🌊 Sea</div>
+        <div class="craft-text">Confident in Force 4+ and exposed conditions. Reliable roll. Can lead and perform rescues on others in demanding sea states.</div>
+      </div>
+      <div class="craft-divider"></div>
+      <div class="craft-channel">
+        <div class="craft-icon" style="color:var(--riv-mid)">🟢 River</div>
+        <div class="craft-text">Confident on Grade 4. Reliable roll. Reads complex water and supports others through technical sections.</div>
+      </div>
+    </div>
+  </div>
+  <div class="level-access">
+    <div class="access-label">What you can join</div>
+    <div class="access-list">
+      <div class="access-item"><div class="access-dot all"></div>All club trips — full access, subject to leader approval</div>
+      <div class="access-item"><div class="access-dot sea"></div>Grade C sea expeditions</div>
+      <div class="access-item"><div class="access-dot river"></div>Grade 4 and above river trips</div>
+      <div class="access-item"><div class="access-dot all"></div>Can act as assistant leader on appropriate trips</div>
+      <div class="access-item"><div class="access-dot all"></div>Can corroborate Frog → Duck advancement as a single witness</div>
+    </div>
+  </div>
+  <div class="level-advance">
+    <div class="advance-label">The next step</div>
+    <div class="advance-text">Advancement beyond Dolphin moves into British Canoeing's formal qualification pathway. This is externally assessed and recognised nationally.</div>
+    <div class="advance-corr">
+      <div class="advance-corr-icon">🏅</div>
+      <div class="advance-corr-text">Paddlesport Leader, Sea Kayak Leader, or Whitewater Kayak Leader — assessed externally through British Canoeing. Speak to a Paddling Admin about supported pathways.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE 2 -->
+<div class="zone-header">
+  <div class="zone-title">Zone 2 — British Canoeing qualifications</div>
+  <div class="zone-line"></div>
+</div>
+
+<!-- SELKIE -->
+<div class="level-card bc-level" id="selkie">
+  <div class="level-top">
+    <div class="level-number-wrap">
+      <div class="level-num">Level 5</div>
+      <div class="level-animal">🦭</div>
+    </div>
+    <div class="level-head">
+      <div class="level-name">Selkie</div>
+      <div class="level-subtitle">Qualified leader · nationally recognised</div>
+      <div class="bc-label">British Canoeing</div>
+    </div>
+  </div>
+  <div class="level-description">
+    <p>Selkie encompasses all British Canoeing leadership qualifications held by DCKC members. Within this level there is a spectrum — from Paddlesport Leader through to Advanced Sea Kayak Leader — and a Selkie's approval ceiling reflects their specific qualifications.</p>
+    <p>Selkie members are the leaders of the club. They create trips, approve member requests, mentor the progression of others, and carry responsibility for safety on the water.</p>
+  </div>
+  <div class="level-access">
+    <div class="access-label">Qualifications within Selkie</div>
+    <div class="access-list">
+      <div class="access-item"><div class="access-dot all"></div>Paddlesport Leader — general leadership on sheltered water</div>
+      <div class="access-item"><div class="access-dot sea"></div>Sea Kayak Leader (SKL) — leads sea trips to Grade B/C</div>
+      <div class="access-item"><div class="access-dot river"></div>Whitewater Kayak Leader (WWKL) — leads river trips to Grade 4+</div>
+      <div class="access-item"><div class="access-dot sea"></div>Advanced SKL — leads advanced sea expeditions</div>
+      <div class="access-item"><div class="access-dot river"></div>Advanced WWKL — leads advanced whitewater</div>
+    </div>
+  </div>
+  <div class="level-advance">
+    <div class="advance-label">Responsibilities</div>
+    <div class="advance-text">Selkie members can create and lead club events, approve or decline member join requests, corroborate progression for all lower levels, and act as witnesses for Duck → Otter and Otter → Dolphin advancement.</div>
+    <div class="advance-corr">
+      <div class="advance-corr-icon">📋</div>
+      <div class="advance-corr-text">BC qualifications are verified by a Paddling Admin and recorded against your profile. Speak to an admin to update your record after gaining a new qualification.</div>
+    </div>
+  </div>
+</div>
+
+<div style="padding: 1rem 0.875rem; text-align:center;">
+  <div style="font-family:'Lora',serif; font-size:0.75rem; color:var(--stone-lt); font-style:italic; line-height:1.6;">
+    Questions about your level or progression? Speak to a Paddling Admin or any Selkie member.
+  </div>
+</div>
+
+<script>
+function scrollTo(id) {
+  // Update active nav chip
+  document.querySelectorAll('.lnav-chip').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  // Scroll to level card
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// Highlight nav chip as user scrolls
+const cards = ['frog','duck','otter','dolphin','selkie'];
+const chips = document.querySelectorAll('.lnav-chip');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      const idx = cards.indexOf(id);
+      if (idx >= 0) {
+        chips.forEach(c => c.classList.remove('active'));
+        chips[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.3 });
+
+cards.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) observer.observe(el);
+});
+</script>
+
+</body>
+</html>

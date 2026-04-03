@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — My Trips</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-a:        #00c8b4;
+    --sea-b:        #0098a0;
+    --sea-c:        #005a6e;
+    --riv-lo:       #58d048;
+    --riv-mid:      #28a030;
+    --riv-hi:       #0a5018;
+    --p1:           #d4703a;
+    --p2:           #b85530;
+    --p3:           #8a2e10;
+    --loch:         #5a7080;
+    --loch-pale:    #dde4e8;
+    --skills:       #e08800;
+    --red:          #8a2828;
+    --red-pale:     #fde0e0;
+    --green:        #2a7a2a;
+    --green-pale:   #d8f0d8;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    font-size: 17px;
+    padding-bottom: 5.5rem;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--snow);
+    letter-spacing: 0.03em;
+  }
+  .wordmark span { color: var(--sea-a); }
+
+  .topbar-right { display: flex; align-items: center; gap: 0.65rem; }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--forest-mid);
+    border: 1.5px solid var(--forest-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    display: flex;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 52px;
+    z-index: 90;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+    user-select: none;
+  }
+
+  .tab:active { background: var(--snow); }
+
+  .tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 10%; right: 10%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--topbar);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .tab.active::after { opacity: 1; }
+
+  .tab-label {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--stone);
+    letter-spacing: 0.02em;
+  }
+
+  .tab.active .tab-label {
+    color: var(--peat);
+  }
+
+  .tab-count {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    background: var(--snow);
+    color: var(--stone);
+    padding: 0.12rem 0.45rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .tab.active .tab-count {
+    background: var(--topbar);
+    color: white;
+    border-color: var(--topbar);
+  }
+
+  /* ── TAB PANELS ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── UPCOMING TRIPS ── */
+  .section-pad { padding: 0.875rem; }
+
+  /* Rich upcoming trip card */
+  .trip-card {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(20,26,20,0.05);
+  }
+
+  /* Card image strip */
+  .trip-img {
+    height: 100px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trip-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.88);
+  }
+
+  .trip-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(20,26,20,0.05) 0%, rgba(20,26,20,0.6) 100%);
+  }
+
+  .trip-grade-badge {
+    position: absolute;
+    top: 0.5rem; left: 0.5rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  .trip-days-badge {
+    position: absolute;
+    top: 0.5rem; right: 0.5rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    background: rgba(20,26,20,0.5);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .trip-img-title {
+    position: absolute;
+    bottom: 0.5rem; left: 0.6rem; right: 0.6rem;
+  }
+
+  .trip-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.2;
+  }
+
+  .trip-date-line {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    margin-top: 0.15rem;
+  }
+
+  /* Card body */
+  .trip-body {
+    padding: 0.75rem 0.875rem;
+  }
+
+  /* Status row */
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 3px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .sp-confirmed  { background: #e0f0e0; color: #1a5a1a; }
+  .sp-pending    { background: var(--amber-pale); color: #7a4a10; }
+  .sp-waitlist   { background: var(--snow); color: var(--stone); border: 1px solid var(--border); }
+  .sp-paid       { background: #e0eef8; color: #1a3a5a; }
+  .sp-unpaid     { background: var(--red-pale); color: var(--red); }
+  .sp-held       { background: #fdf0d8; color: #7a4a10; }
+  .sp-thread     { background: #e8eef4; color: #2a4560; }
+  .sp-thread-new { background: var(--topbar); color: white; }
+
+  /* Meeting point */
+  .trip-meeting {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .trip-meeting-icon { font-size: 0.85rem; flex-shrink: 0; }
+
+  .trip-meeting-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    font-style: italic;
+  }
+
+  /* Who else row */
+  .trip-who {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .trip-avatars {
+    display: flex;
+  }
+
+  .tav {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    margin-left: -5px;
+    flex-shrink: 0;
+  }
+  .tav:first-child { margin-left: 0; }
+
+  .tav-more {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+    background: var(--stone);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.5rem;
+    color: white;
+    margin-left: -5px;
+  }
+
+  .trip-who-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--peat);
+    font-style: italic;
+  }
+
+  /* Countdown */
+  .trip-countdown {
+    font-family: 'Fraunces', serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .next-trip-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.875rem 0.4rem;
+  }
+
+  .ntb-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+  }
+
+  .ntb-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  .ntb-days {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--p2);
+    font-weight: 600;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* ── PAST TRIPS ── */
+
+  /* Tally summary card */
+  .tally-card {
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin: 0.875rem 0.875rem 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(20,26,20,0.05);
+  }
+
+  .tally-header {
+    background: var(--peat);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tally-header-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: var(--snow);
+    letter-spacing: 0.03em;
+  }
+
+  .tally-header-level {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .tally-animal {
+    font-size: 1.3rem;
+  }
+
+  .tally-level-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone-lt);
+    letter-spacing: 0.06em;
+  }
+
+  .tally-body {
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tally-track {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .tally-track-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone);
+  }
+
+  .tally-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .tally-grade {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .tg-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--peat);
+    white-space: nowrap;
+  }
+
+  .tg-marks {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .tg-marks.sea-a { color: var(--sea-a); }
+  .tg-marks.sea-b { color: var(--sea-b); }
+  .tg-marks.sea-c { color: var(--sea-c); }
+  .tg-marks.riv-lo  { color: var(--riv-lo); }
+  .tg-marks.riv-mid { color: var(--riv-mid); }
+  .tg-marks.riv-hi  { color: var(--riv-hi); }
+  .tg-marks.p1 { color: var(--p1); }
+  .tg-marks.p2 { color: var(--p2); }
+  .tg-marks.p3 { color: var(--p3); }
+  .tg-marks.loch { color: var(--loch); }
+  .tg-marks.none { color: var(--stone-lt); }
+
+  .tally-divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  .tally-stat-row {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .tally-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .tally-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1;
+  }
+
+  .tally-stat-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone);
+  }
+
+  /* Past trip list */
+  .past-section-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stone);
+    padding: 0.75rem 0.875rem 0.3rem;
+  }
+
+  .past-trip-card {
+    background: var(--white);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin: 0 0.875rem 0.4rem;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    cursor: pointer;
+    min-height: 64px;
+  }
+
+  .past-accent { width: 4px; flex-shrink: 0; }
+
+  .past-thumb {
+    width: 68px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .past-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.7) brightness(0.92);
+  }
+
+  .past-thumb-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+
+  .past-body {
+    flex: 1;
+    padding: 0.55rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .past-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--peat);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .past-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--peat);
+    font-style: italic;
+  }
+
+  .past-bottom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.1rem;
+  }
+
+  .past-grade-tag {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    padding: 0.08rem 0.3rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .past-emoji {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-right: 0.5rem;
+  }
+
+  /* ── CANCEL BUTTON & SHEET ── */
+  .trip-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 0.875rem 0.65rem;
+    border-top: 1px solid var(--border);
+    margin-top: 0.1rem;
+    padding-top: 0.55rem;
+  }
+
+  .cancel-btn {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    padding: 0.2rem 0;
+  }
+  .cancel-btn:active { color: var(--red); }
+
+  /* Confirmation bottom sheet */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,26,20,0.5);
+    z-index: 300;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(2px);
+  }
+  .sheet-overlay.visible { display: flex; }
+
+  .cancel-sheet {
+    background: var(--white);
+    border-radius: 12px 12px 0 0;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0.75rem auto 0;
+  }
+
+  .sheet-body {
+    padding: 1rem 1.25rem 0.75rem;
+  }
+
+  .sheet-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+  }
+
+  .sheet-refund {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--stone);
+    line-height: 1.6;
+    margin-bottom: 0.25rem;
+  }
+
+  .sheet-refund strong {
+    color: var(--peat);
+    font-weight: 600;
+  }
+
+  .sheet-waitlist {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone-lt);
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+
+  .sheet-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .sheet-btn-cancel {
+    padding: 0.85rem;
+    background: var(--red-pale);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--red);
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .sheet-btn-keep {
+    padding: 0.85rem;
+    background: var(--forest);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 0.45rem 0 0.85rem;
+    z-index: 100;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.18rem;
+    cursor: pointer;
+    padding: 0.3rem 0;
+  }
+
+  .nav-icon { font-size: 1.3rem; }
+
+  .nav-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .nav-item.active .nav-label { color: var(--forest-mid); }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="wordmark">Otter<span>Pool</span></div>
+  <div class="topbar-right">
+    <div class="avatar">🦦</div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('upcoming')">
+    <div class="tab-label">Upcoming</div>
+    <div class="tab-count">3</div>
+  </div>
+  <div class="tab" onclick="switchTab('past')">
+    <div class="tab-label">Past trips</div>
+    <div class="tab-count">24</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- UPCOMING TAB -->
+<!-- ══════════════════════════════════ -->
+<div class="tab-panel active" id="tab-upcoming">
+
+  <!-- Next trip countdown banner -->
+  <div class="next-trip-bar">
+    <div class="ntb-label">Next up</div>
+    <div class="ntb-title">Kentallen — Castle Stalker & Shuna</div>
+    <div class="ntb-days">16 days</div>
+  </div>
+
+  <div class="section-pad" style="padding-top:0.75rem;">
+
+    <!-- Trip 1: Confirmed, paid, active thread -->
+    <div class="trip-card">
+      <div class="trip-img">
+        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80" alt="Kentallen">
+      </div>
+      <div class="trip-body">
+        <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.35rem;">
+          <span style="background:var(--sea-c);color:white;font-family:'Lora',serif;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.18rem 0.5rem;border-radius:2px;">Sea C</span>
+          <span style="background:var(--snow);color:var(--stone);font-family:'Lora',serif;font-size:0.62rem;padding:0.18rem 0.5rem;border-radius:2px;border:1px solid var(--border);">2 nights</span>
+        </div>
+        <div class="trip-title">Kentallen — Castle Stalker & Shuna</div>
+        <div class="trip-date-line" style="color:var(--stone);margin-bottom:0.5rem;">Sat 19 Apr — Mon 21 Apr · Iain M.</div>
+        <div class="status-row">
+          <div class="status-pill sp-confirmed">✓ Confirmed</div>
+          <div class="status-pill sp-paid">£ Paid</div>
+          <div class="status-pill sp-thread-new">💬 3 new messages</div>
+        </div>
+        <div class="trip-meeting">
+          <div class="trip-meeting-icon">📍</div>
+          <div class="trip-meeting-text">Balloch Pier Car Park · 8:00am Saturday</div>
+        </div>
+        <div class="trip-who">
+          <div class="trip-avatars">
+            <div class="tav">😊</div><div class="tav">👩</div><div class="tav">🧑</div><div class="tav">👴</div><div class="tav-more">+3</div>
+          </div>
+          <div class="trip-who-text">7 people going</div>
+          <div class="trip-countdown">in 16 days</div>
+        </div>
+      </div>
+      <div class="trip-actions">
+        <div class="cancel-btn" onclick="showCancel('Kentallen — Castle Stalker & Shuna', '£6', '£12')">Cancel my place</div>
+      </div>
+    </div>
+
+    <!-- Trip 2: Pending approval, card held -->
+    <div class="trip-card">
+      <div class="trip-img">
+        <img src="https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=600&q=80" alt="River Tummel">
+      </div>
+      <div class="trip-body">
+        <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.35rem;">
+          <span style="background:var(--riv-mid);color:white;font-family:'Lora',serif;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.18rem 0.5rem;border-radius:2px;">G3</span>
+        </div>
+        <div class="trip-title">River Tummel — Pitlochry</div>
+        <div class="trip-date-line" style="color:var(--stone);margin-bottom:0.5rem;">Sat 26 Apr · David R.</div>
+        <div class="status-row">
+          <div class="status-pill sp-pending">⏳ Awaiting approval</div>
+          <div class="status-pill sp-held">£ Card held</div>
+        </div>
+        <div class="trip-meeting">
+          <div class="trip-meeting-icon">📍</div>
+          <div class="trip-meeting-text">Pitlochry car park · 9:00am</div>
+        </div>
+        <div class="trip-who">
+          <div class="trip-avatars">
+            <div class="tav">👩</div><div class="tav">🧑</div><div class="tav-more">+2</div>
+          </div>
+          <div class="trip-who-text">4 confirmed so far</div>
+          <div class="trip-countdown">in 23 days</div>
+        </div>
+      </div>
+      <div class="trip-actions">
+        <div class="cancel-btn" onclick="showCancel('River Tummel — Pitlochry', '£2.50', '£5')">Withdraw request</div>
+      </div>
+    </div>
+
+    <!-- Trip 3: Confirmed, free -->
+    <div class="trip-card">
+      <div class="trip-img">
+        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80" alt="Loch Lomond">
+      </div>
+      <div class="trip-body">
+        <div style="display:flex;gap:0.4rem;align-items:center;margin-bottom:0.35rem;">
+          <span style="background:var(--loch);color:white;font-family:'Lora',serif;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.18rem 0.5rem;border-radius:2px;">Loch</span>
+        </div>
+        <div class="trip-title">Tuesday Evening — Loch Lomond</div>
+        <div class="trip-date-line" style="color:var(--stone);margin-bottom:0.5rem;">Tue 6 May · Iain M.</div>
+        <div class="status-row">
+          <div class="status-pill sp-confirmed">✓ Confirmed</div>
+          <div class="status-pill sp-paid" style="background:var(--forest-pale);color:var(--forest);">Free</div>
+          <div class="status-pill sp-thread">💬 Group thread</div>
+        </div>
+        <div class="trip-meeting">
+          <div class="trip-meeting-icon">📍</div>
+          <div class="trip-meeting-text">Balloch Pier · 6:30pm</div>
+        </div>
+        <div class="trip-who">
+          <div class="trip-avatars">
+            <div class="tav">😊</div><div class="tav">👴</div><div class="tav">👩</div><div class="tav-more">+9</div>
+          </div>
+          <div class="trip-who-text">12 people going</div>
+          <div class="trip-countdown">in 33 days</div>
+        </div>
+      </div>
+      <div class="trip-actions">
+        <div class="cancel-btn" onclick="showCancel('Tuesday Evening — Loch Lomond', '£2.50', '£5')">Cancel my place</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- PAST TRIPS TAB -->
+<!-- ══════════════════════════════════ -->
+<div class="tab-panel" id="tab-past">
+
+  <!-- Tally summary card -->
+  <div class="tally-card">
+    <div class="tally-header">
+      <div class="tally-header-title">Experience log</div>
+      <div class="tally-header-level">
+        <div class="tally-animal">🦦</div>
+        <div class="tally-level-name">Otter · 3 years</div>
+      </div>
+    </div>
+    <div class="tally-body">
+
+      <!-- Sea grades -->
+      <div class="tally-track">
+        <div class="tally-track-label">Sea grades</div>
+        <div class="tally-grades">
+          <div class="tally-grade">
+            <div class="tg-label">A</div>
+            <div class="tg-marks sea-a">IIIII III</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">B</div>
+            <div class="tg-marks sea-b">IIIII I</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">C</div>
+            <div class="tg-marks sea-c">II</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tally-divider"></div>
+
+      <!-- River grades -->
+      <div class="tally-track">
+        <div class="tally-track-label">River grades</div>
+        <div class="tally-grades">
+          <div class="tally-grade">
+            <div class="tg-label">G1</div>
+            <div class="tg-marks riv-lo">II</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G1/2</div>
+            <div class="tg-marks riv-lo">III</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G2</div>
+            <div class="tg-marks riv-lo">IIIII I</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G2/3</div>
+            <div class="tg-marks riv-mid">I</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G3</div>
+            <div class="tg-marks riv-mid">IIIII III</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G3(4)</div>
+            <div class="tg-marks riv-mid">I</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">G4</div>
+            <div class="tg-marks none">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tally-divider"></div>
+
+      <!-- Pinkston -->
+      <div class="tally-track">
+        <div class="tally-track-label">Pinkston</div>
+        <div class="tally-grades">
+          <div class="tally-grade">
+            <div class="tg-label">P1</div>
+            <div class="tg-marks p1">IIII</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">P2</div>
+            <div class="tg-marks p2">II</div>
+          </div>
+          <div class="tally-grade">
+            <div class="tg-label">P3</div>
+            <div class="tg-marks none">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tally-divider"></div>
+
+      <!-- Stats row -->
+      <div class="tally-stat-row">
+        <div class="tally-stat">
+          <div class="tally-stat-value">24</div>
+          <div class="tally-stat-label">Trips total</div>
+        </div>
+        <div class="tally-stat">
+          <div class="tally-stat-value">16</div>
+          <div class="tally-stat-label">Sea trips</div>
+        </div>
+        <div class="tally-stat">
+          <div class="tally-stat-value">3 yrs</div>
+          <div class="tally-stat-label">Membership</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Past trips list -->
+  <div class="past-section-label">Recent trips</div>
+
+  <!-- Past trip 1 -->
+  <div class="past-trip-card">
+    <div class="past-accent" style="background:var(--sea-b)"></div>
+    <div class="past-thumb">
+      <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&q=70" alt="Cove">
+    </div>
+    <div class="past-body">
+      <div class="past-title">Cove & Kilcreggan</div>
+      <div class="past-sub">Sat 8 Mar · Leader: Iain M.</div>
+      <div class="past-bottom">
+        <div class="past-grade-tag" style="background:var(--sea-b-pale);color:var(--sea-c)">Sea B</div>
+        <div class="past-emoji">😁</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past trip 2 -->
+  <div class="past-trip-card">
+    <div class="past-accent" style="background:var(--riv-mid)"></div>
+    <div class="past-thumb">
+      <img src="https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=200&q=70" alt="River">
+    </div>
+    <div class="past-body">
+      <div class="past-title">River Orchy — G3</div>
+      <div class="past-sub">Sat 22 Feb · Leader: Sarah K.</div>
+      <div class="past-bottom">
+        <div class="past-grade-tag" style="background:var(--riv-mid-pale);color:var(--riv-hi)">G3</div>
+        <div class="past-emoji">🙂</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past trip 3 -->
+  <div class="past-trip-card">
+    <div class="past-accent" style="background:var(--loch)"></div>
+    <div class="past-thumb">
+      <div class="past-thumb-placeholder" style="background:linear-gradient(135deg,#2a4060,#3a6070)">🌊</div>
+    </div>
+    <div class="past-body">
+      <div class="past-title">Tuesday Evening — Loch Lomond</div>
+      <div class="past-sub">Tue 18 Feb · Leader: David R.</div>
+      <div class="past-bottom">
+        <div class="past-grade-tag" style="background:var(--loch-pale);color:var(--loch)">Loch</div>
+        <div class="past-emoji">😁</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past trip 4 -->
+  <div class="past-trip-card">
+    <div class="past-accent" style="background:var(--p2)"></div>
+    <div class="past-thumb">
+      <div class="past-thumb-placeholder" style="background:linear-gradient(135deg,#5a1a02,#b85530)">🌊</div>
+    </div>
+    <div class="past-body">
+      <div class="past-title">Pinkston — 2 Pumps</div>
+      <div class="past-sub">Thu 6 Feb · Leader: Iain M.</div>
+      <div class="past-bottom">
+        <div class="past-grade-tag" style="background:#fde8d8;color:var(--p2)">P2</div>
+        <div class="past-emoji">🙂</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past trip 5 -->
+  <div class="past-trip-card">
+    <div class="past-accent" style="background:var(--sea-c)"></div>
+    <div class="past-thumb">
+      <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&q=70" alt="Sea C">
+    </div>
+    <div class="past-body">
+      <div class="past-title">Arran Circumnavigation</div>
+      <div class="past-sub">Sat 18 Jan · Leader: Iain M.</div>
+      <div class="past-bottom">
+        <div class="past-grade-tag" style="background:#a8d8d0;color:var(--sea-c)">Sea C</div>
+        <div class="past-emoji">😁</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0.5rem 0.875rem 0.5rem; text-align:center;">
+    <div style="font-family:'Lora',serif; font-size:0.75rem; color:var(--stone); font-style:italic; cursor:pointer;">Show all 24 trips →</div>
+  </div>
+
+</div>
+
+<!-- CANCEL CONFIRMATION SHEET -->
+<div class="sheet-overlay" id="cancelSheet" onclick="hideCancel(event)">
+  <div class="cancel-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-body">
+      <div class="sheet-title" id="sheetTitle">Cancel your place?</div>
+      <div class="sheet-refund" id="sheetRefund"></div>
+      <div class="sheet-waitlist">Your place will be offered to the next person on the waitlist and the leader will be notified.</div>
+      <div class="sheet-btns">
+        <div class="sheet-btn-keep" onclick="hideCancel()">Keep my place</div>
+        <div class="sheet-btn-cancel" onclick="confirmCancel()">Yes, cancel my place</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item">
+    <div class="nav-icon">📅</div>
+    <div class="nav-label">Calendar</div>
+  </div>
+  <div class="nav-item active">
+    <div class="nav-icon">🦦</div>
+    <div class="nav-label" style="color:var(--forest-mid)">My Trips</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">📊</div>
+    <div class="nav-label">Progress</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Profile</div>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function showCancel(tripName, refund, paid) {
+  document.getElementById('sheetTitle').textContent = tripName;
+  document.getElementById('sheetRefund').innerHTML =
+    `You'll receive a <strong>${refund} refund</strong> (50% of ${paid}).`;
+  document.getElementById('cancelSheet').classList.add('visible');
+}
+
+function hideCancel(e) {
+  if (!e || e.target === document.getElementById('cancelSheet')) {
+    document.getElementById('cancelSheet').classList.remove('visible');
+  }
+}
+
+function confirmCancel() {
+  document.getElementById('cancelSheet').classList.remove('visible');
+  // In the real app: Stripe refund, notify leader, promote waitlist
+  alert('Your place has been cancelled and your refund is on its way.');
+}
+</script>
+
+</body>
+</html>

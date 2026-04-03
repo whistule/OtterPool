@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Approve Requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --topbar:       #2a4560;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+    --sea-a:        #00c8b4;
+    --sea-b:        #0098a0;
+    --sea-c:        #005a6e;
+    --riv-lo:       #58d048;
+    --riv-mid:      #28a030;
+    --riv-hi:       #0a5018;
+    --p1:           #d4703a;
+    --p2:           #b85530;
+    --p3:           #8a2e10;
+    --loch:         #5a7080;
+    --red:          #8a2828;
+    --red-pale:     #fde0e0;
+    --green:        #1a5a1a;
+    --green-pale:   #e0f0e0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 7rem;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 1rem;
+    height: 52px;
+    background: var(--topbar);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-back {
+    color: rgba(255,255,255,0.7);
+    font-size: 1.1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .topbar-info { flex: 1; min-width: 0; }
+
+  .topbar-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── QUEUE STRIP ── */
+  .queue-strip {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 0.875rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: sticky;
+    top: 52px;
+    z-index: 90;
+  }
+  .queue-strip::-webkit-scrollbar { display: none; }
+
+  .queue-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+    margin-right: 0.25rem;
+  }
+
+  .queue-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0.2rem 0.3rem;
+    border-radius: 6px;
+    transition: background 0.12s;
+    position: relative;
+  }
+
+  .queue-member:active { background: var(--snow); }
+  .queue-member.active { background: var(--forest-pale); }
+
+  .queue-av {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    border: 2px solid transparent;
+    position: relative;
+  }
+
+  .queue-member.active .queue-av {
+    border-color: var(--forest);
+  }
+
+  .queue-av-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    color: var(--stone);
+    white-space: nowrap;
+    max-width: 48px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+
+  .queue-member.active .queue-av-name { color: var(--forest); font-weight: 600; }
+
+  /* Score dot on avatar */
+  .queue-dot {
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+  .queue-dot.review  { background: var(--amber); }
+  .queue-dot.assess  { background: var(--red); }
+  .queue-dot.ok      { background: var(--green); }
+
+  /* ── MEMBER CARD ── */
+  .member-card {
+    margin: 0.875rem 0.875rem 0;
+    background: var(--white);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(20,26,20,0.05);
+  }
+
+  /* Card header */
+  .card-header {
+    padding: 1rem;
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-av {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+  }
+
+  .card-header-info { flex: 1; min-width: 0; }
+
+  .card-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
+  }
+
+  .card-level {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .card-level-badge {
+    font-size: 1rem;
+  }
+
+  .card-level-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    font-weight: 600;
+  }
+
+  .card-tenure {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* Auto-approval score banner */
+  .score-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .score-banner.review { background: #fffbf0; }
+  .score-banner.assess { background: var(--red-pale); }
+
+  .score-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  .score-text { flex: 1; }
+
+  .score-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--peat);
+    margin-bottom: 0.1rem;
+  }
+
+  .score-reason {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ── TABS ── */
+  .card-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-tab {
+    flex: 1;
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+  }
+
+  .card-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 15%; right: 15%;
+    height: 2.5px;
+    border-radius: 2px;
+    background: var(--topbar);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .card-tab.active { color: var(--peat); font-weight: 600; }
+  .card-tab.active::after { opacity: 1; }
+
+  /* ── TAB PANELS ── */
+  .card-panel { display: none; }
+  .card-panel.active { display: block; }
+
+  /* Experience panel */
+  .exp-section {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .exp-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.5rem;
+  }
+
+  .exp-grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.875rem;
+  }
+
+  .exp-grade {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+  }
+
+  .eg-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+  }
+
+  .eg-val {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  /* Threshold indicator */
+  .threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--snow);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .threshold-icon { font-size: 0.85rem; flex-shrink: 0; }
+
+  .threshold-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .threshold-text strong { color: var(--peat); font-style: normal; }
+
+  /* Leader private notes */
+  .leader-notes {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: #fffbf0;
+  }
+
+  .notes-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.35rem;
+  }
+
+  .notes-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* Past trips on this route */
+  .past-route {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .past-route-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+  }
+
+  .past-route-emoji { font-size: 0.9rem; flex-shrink: 0; }
+
+  .past-route-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+    font-style: italic;
+    flex: 1;
+  }
+
+  /* ── ASSESSMENT PANEL ── */
+  .assessment-q {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .assessment-q:last-child { border-bottom: none; }
+
+  .q-number {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.25rem;
+  }
+
+  .q-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    font-style: italic;
+    margin-bottom: 0.4rem;
+    line-height: 1.5;
+  }
+
+  .q-answer {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.65;
+  }
+
+  /* Emoji trail */
+  .emoji-trail {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+  }
+
+  .emoji-trail-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+  }
+
+  .trail-emojis {
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+  }
+
+  .trail-em {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .trail-arrow {
+    font-size: 0.6rem;
+    color: var(--stone-lt);
+    flex-shrink: 0;
+  }
+
+  /* Emoji scale legend */
+  .emoji-scale {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0.5rem 1rem;
+    background: var(--snow);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .emoji-scale::-webkit-scrollbar { display: none; }
+
+  .scale-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 52px;
+  }
+
+  .scale-em { font-size: 1.1rem; }
+
+  .scale-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.52rem;
+    color: var(--stone);
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* Summary panel */
+  .summary-block {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .summary-av {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .summary-author {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+    flex: 1;
+    font-style: italic;
+  }
+
+  .summary-status {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    padding: 0.12rem 0.4rem;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .summary-status.endorsed {
+    background: var(--green-pale);
+    color: var(--green);
+  }
+
+  .summary-status.draft {
+    background: var(--amber-pale);
+    color: var(--amber);
+  }
+
+  .summary-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    line-height: 1.75;
+  }
+
+  .endorsements {
+    margin-top: 0.75rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .endorsement-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.4rem;
+  }
+
+  .endorsement-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+  }
+
+  .endorsement-av {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .endorsement-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--peat);
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .endorsement-level {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  .endorsement-tick { font-size: 0.85rem; color: var(--forest-mid); }
+
+  .endorse-btn {
+    margin: 0.75rem 1rem 0;
+    padding: 0.65rem;
+    border: 1.5px solid var(--forest-lt);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--forest);
+    text-align: center;
+    cursor: pointer;
+    background: var(--forest-pale);
+  }
+
+  /* ── DECISION BAR ── */
+  .decision-bar {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 0.65rem 0.875rem 1.1rem;
+    z-index: 200;
+  }
+
+  .decision-btns {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-decline {
+    padding: 0.8rem 0.75rem;
+    background: var(--red-pale);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--red);
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .btn-ask {
+    padding: 0.8rem 0.75rem;
+    background: var(--snow);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--peat);
+    text-align: center;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .btn-approve {
+    padding: 0.8rem 0.75rem;
+    background: var(--forest);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  /* ── ASK SHEET ── */
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,26,20,0.5);
+    z-index: 300;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(2px);
+  }
+  .sheet-overlay.visible { display: flex; }
+
+  .ask-sheet {
+    background: var(--white);
+    border-radius: 12px 12px 0 0;
+    width: 100%; max-width: 430px;
+    margin: 0 auto;
+    padding: 0 0 1.5rem;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0.75rem auto 1rem;
+  }
+
+  .sheet-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--peat);
+    padding: 0 1.25rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+  }
+
+  .ask-textarea {
+    width: 100%;
+    margin: 0 0 0.75rem;
+    padding: 0.75rem 1.25rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.85rem;
+    color: var(--peat);
+    border: none;
+    outline: none;
+    background: transparent;
+    resize: none;
+    min-height: 100px;
+    line-height: 1.6;
+    display: block;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ask-textarea::placeholder { color: var(--stone-lt); font-style: italic; }
+
+  .ask-btns {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1.25rem;
+  }
+
+  .ask-send {
+    flex: 1;
+    padding: 0.8rem;
+    background: var(--topbar);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .ask-cancel {
+    padding: 0.8rem 1rem;
+    background: var(--snow);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    cursor: pointer;
+  }
+
+  /* ── CONFIRM SHEET ── */
+  .confirm-sheet {
+    background: var(--white);
+    border-radius: 12px 12px 0 0;
+    width: 100%; max-width: 430px;
+    margin: 0 auto;
+    padding: 0 0 1.5rem;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  }
+
+  .confirm-body {
+    padding: 0 1.25rem 0.75rem;
+  }
+
+  .confirm-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--peat);
+    margin-bottom: 0.3rem;
+  }
+
+  .confirm-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    line-height: 1.6;
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+
+  .confirm-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .confirm-yes-approve {
+    padding: 0.85rem;
+    background: var(--forest);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .confirm-yes-decline {
+    padding: 0.85rem;
+    background: var(--red-pale);
+    border-radius: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--red);
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .confirm-cancel {
+    padding: 0.85rem;
+    background: var(--snow);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    text-align: center;
+    cursor: pointer;
+  }
+
+  /* Optional message to member */
+  .optional-msg {
+    padding: 0 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .optional-msg-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+    margin-bottom: 0.3rem;
+  }
+
+  .optional-msg-input {
+    width: 100%;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.5rem 0.65rem;
+    outline: none;
+    background: var(--snow);
+    resize: none;
+    min-height: 60px;
+    line-height: 1.5;
+  }
+  .optional-msg-input::placeholder { color: var(--stone-lt); font-style: italic; }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-back">←</div>
+  <div class="topbar-info">
+    <div class="topbar-title">Kentallen — Castle Stalker & Shuna</div>
+    <div class="topbar-sub">Sea C · Sat 19 Apr · 3 requests pending</div>
+  </div>
+</div>
+
+<!-- QUEUE STRIP -->
+<div class="queue-strip">
+  <div class="queue-label">Pending</div>
+
+  <div class="queue-member active" onclick="showMember(0)">
+    <div class="queue-av">
+      😊
+      <div class="queue-dot review"></div>
+    </div>
+    <div class="queue-av-name">Duncan</div>
+  </div>
+
+  <div class="queue-member" onclick="showMember(1)">
+    <div class="queue-av">
+      👩
+      <div class="queue-dot assess"></div>
+    </div>
+    <div class="queue-av-name">Sarah T.</div>
+  </div>
+
+  <div class="queue-member" onclick="showMember(2)">
+    <div class="queue-av">
+      🧑
+      <div class="queue-dot ok"></div>
+    </div>
+    <div class="queue-av-name">Pete M.</div>
+  </div>
+</div>
+
+<!-- MEMBER CARD -->
+<div class="member-card" id="memberCard">
+
+  <!-- Header -->
+  <div class="card-header">
+    <div class="card-av" id="cardAv">😊</div>
+    <div class="card-header-info">
+      <div class="card-name" id="cardName">Duncan Reid</div>
+      <div class="card-level">
+        <div class="card-level-badge">🦦</div>
+        <div class="card-level-name">Otter</div>
+      </div>
+      <div class="card-tenure" id="cardTenure">Member for 3 years</div>
+    </div>
+  </div>
+
+  <!-- Score banner -->
+  <div class="score-banner review" id="scoreBanner">
+    <div class="score-icon">⚠️</div>
+    <div class="score-text">
+      <div class="score-title" id="scoreTitle">Needs review</div>
+      <div class="score-reason" id="scoreReason">2 Grade C trips — below threshold of 3. 3 years membership ✓ · Otter level ✓</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card-tabs">
+    <div class="card-tab active" onclick="switchCardTab('record', this)">Record</div>
+    <div class="card-tab" onclick="switchCardTab('assessment', this)">Assessment</div>
+    <div class="card-tab" onclick="switchCardTab('summary', this)">Summary</div>
+  </div>
+
+  <!-- Emoji scale legend -->
+  <div class="emoji-scale">
+    <div class="scale-item"><div class="scale-em">😁</div><div class="scale-label">Relaxed</div></div>
+    <div class="scale-item"><div class="scale-em">🤨</div><div class="scale-label">Focused</div></div>
+    <div class="scale-item"><div class="scale-em">😬</div><div class="scale-label">Stretched</div></div>
+    <div class="scale-item"><div class="scale-em">😨</div><div class="scale-label">Out of depth</div></div>
+    <div class="scale-item"><div class="scale-em">😱</div><div class="scale-label">Struggling</div></div>
+  </div>
+
+  <!-- RECORD PANEL -->
+  <div class="card-panel active" id="panel-record">
+
+    <!-- Sea grades -->
+    <div class="exp-section">
+      <div class="exp-label">Sea grades</div>
+      <div class="exp-grades">
+        <div class="exp-grade">
+          <div class="eg-label">A</div>
+          <div class="eg-val" style="color:var(--sea-a)">8</div>
+        </div>
+        <div class="exp-grade">
+          <div class="eg-label">B</div>
+          <div class="eg-val" style="color:var(--sea-b)">6</div>
+        </div>
+        <div class="exp-grade">
+          <div class="eg-label">C</div>
+          <div class="eg-val" style="color:var(--sea-c)">2</div>
+        </div>
+      </div>
+      <!-- Emoji trail for last 3 Grade C trips -->
+      <div class="emoji-trail" style="margin-top:0.5rem;">
+        <div class="emoji-trail-label">Last 3 at C</div>
+        <div class="trail-emojis">
+          <div class="trail-em">😬</div>
+          <div class="trail-arrow">→</div>
+          <div class="trail-em">🤨</div>
+          <div class="trail-arrow">→</div>
+          <div class="trail-em">😁</div>
+        </div>
+      </div>
+      <div class="threshold-row">
+        <div class="threshold-icon">ℹ️</div>
+        <div class="threshold-text">This event requires <strong>3 Grade C trips</strong>. Duncan has <strong>2</strong>.</div>
+      </div>
+    </div>
+
+    <!-- River grades -->
+    <div class="exp-section">
+      <div class="exp-label">River grades</div>
+      <div class="exp-grades">
+        <div class="exp-grade">
+          <div class="eg-label">G2</div>
+          <div class="eg-val" style="color:var(--riv-lo)">6</div>
+        </div>
+        <div class="exp-grade">
+          <div class="eg-label">G3</div>
+          <div class="eg-val" style="color:var(--riv-mid)">9</div>
+        </div>
+        <div class="exp-grade">
+          <div class="eg-label">G3(4)</div>
+          <div class="eg-val" style="color:var(--riv-mid)">1</div>
+        </div>
+      </div>
+      <div class="emoji-trail" style="margin-top:0.5rem;">
+        <div class="emoji-trail-label">Last 3 at G3</div>
+        <div class="trail-emojis">
+          <div class="trail-em">🤨</div>
+          <div class="trail-arrow">→</div>
+          <div class="trail-em">😁</div>
+          <div class="trail-arrow">→</div>
+          <div class="trail-em">😁</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pinkston -->
+    <div class="exp-section">
+      <div class="exp-label">Pinkston</div>
+      <div class="exp-grades">
+        <div class="exp-grade">
+          <div class="eg-label">P1</div>
+          <div class="eg-val" style="color:var(--p1)">4</div>
+        </div>
+        <div class="exp-grade">
+          <div class="eg-label">P2</div>
+          <div class="eg-val" style="color:var(--p2)">2</div>
+        </div>
+      </div>
+      <div class="emoji-trail" style="margin-top:0.5rem;">
+        <div class="emoji-trail-label">Last 2 at P2</div>
+        <div class="trail-emojis">
+          <div class="trail-em">😁</div>
+          <div class="trail-arrow">→</div>
+          <div class="trail-em">😁</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previous trips on this route -->
+    <div class="past-route">
+      <div class="exp-label">Previous trips on this route</div>
+      <div class="past-route-item">
+        <div class="past-route-emoji">😁</div>
+        <div class="past-route-text">Paddled Kentallen · Sep 2023 · with Iain M.</div>
+      </div>
+    </div>
+
+    <!-- Leader private notes -->
+    <div class="leader-notes">
+      <div class="notes-label">📌 Leader notes — private</div>
+      <div class="notes-text">Strong paddler, good group awareness. Slightly hesitant in tidal conditions last time out. Worth watching in the narrows.</div>
+    </div>
+
+  </div>
+
+  <!-- ASSESSMENT PANEL -->
+  <div class="card-panel" id="panel-assessment">
+
+    <div class="assessment-q">
+      <div class="q-number">Question 1</div>
+      <div class="q-text">How many years have you been paddling?</div>
+      <div class="q-answer">About 5 years, mostly sea kayaking around the west coast of Scotland. Started with the club 3 years ago.</div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 2</div>
+      <div class="q-text">Where have your top paddles of all time been?</div>
+      <div class="q-answer">Skye circumnavigation last summer was a highlight. Also loved the Garvellachs trip with DCKC in 2023. Did some paddling in Norway a few years back — fjord touring, fairly sheltered but stunning.</div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 3</div>
+      <div class="q-text">Where have you encountered your toughest conditions and what happened?</div>
+      <div class="q-answer">Got caught out in a Force 5 squall coming around the Mull of Kintyre. Conditions built faster than forecast. We rafted up, waited it out in a sheltered bay. Iain was leading — good learning experience.</div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 4</div>
+      <div class="q-text">How confident do you feel judging Beaufort scale and sea state?</div>
+      <div class="q-answer" style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:1.1rem;">⭐⭐⭐⭐☆</span>
+        <span style="font-family:'Lora',serif; font-size:0.78rem; color:var(--stone); font-style:italic;">Fairly confident</span>
+      </div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 5</div>
+      <div class="q-text">What do you think makes a good paddling group?</div>
+      <div class="q-answer">Clear communication before and during the trip. Everyone knowing their role. A leader who briefs well and checks in with the group. Not pushing on when conditions are against you.</div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 6</div>
+      <div class="q-text">Is there anything the leader should know about you before the trip?</div>
+      <div class="q-answer">I take blood pressure medication — nothing that affects paddling but it's in my ICE card. I'm a strong swimmer if that's relevant.</div>
+    </div>
+
+    <div class="assessment-q">
+      <div class="q-number">Question 7</div>
+      <div class="q-text">What is your favourite group size to paddle with?</div>
+      <div class="q-answer">6-8 people. Small enough to move efficiently but enough people to share the experience with.</div>
+    </div>
+
+  </div>
+
+  <!-- SUMMARY PANEL -->
+  <div class="card-panel" id="panel-summary">
+
+    <div class="summary-block">
+      <div class="summary-meta">
+        <div class="summary-av">👩</div>
+        <div class="summary-author">Written by Fiona Campbell, Membership Secretary · Mar 2022</div>
+        <div class="summary-status endorsed">Endorsed</div>
+      </div>
+      <div class="summary-text">
+        Duncan joined after a recommendation from Iain Mackintosh. He came with several years of independent sea kayaking experience — mainly day trips around Arran and the Clyde — and a clear enthusiasm for developing his skills in a club environment. He's personable, asks good questions, and takes feedback well. Iain spoke highly of his attitude and his ability to stay calm under pressure. The committee felt he was a strong candidate for membership.
+      </div>
+
+      <div class="endorsements">
+        <div class="endorsement-label">Endorsed by</div>
+        <div class="endorsement-row">
+          <div class="endorsement-av">🧑</div>
+          <div class="endorsement-name">Iain Mackintosh</div>
+          <div class="endorsement-level">🦭 Selkie · SKL</div>
+          <div class="endorsement-tick">✓</div>
+        </div>
+        <div class="endorsement-row">
+          <div class="endorsement-av">👴</div>
+          <div class="endorsement-name">Gordon MacPhail</div>
+          <div class="endorsement-level">🦭 Selkie · Advanced SKL</div>
+          <div class="endorsement-tick">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update note -->
+    <div class="summary-block" style="background:var(--snow);">
+      <div class="summary-meta">
+        <div class="summary-av">🧑</div>
+        <div class="summary-author">Updated by Iain Mackintosh · Jan 2024</div>
+        <div class="summary-status draft">Pending endorsement</div>
+      </div>
+      <div class="summary-text">
+        Duncan has come a long way in two years. His sea kayaking is now confident and he handles mixed conditions well. He's taken a leadership role informally on a couple of Tuesday evenings, looking after newer members. His one area to develop is decision-making in tidal races — he has a tendency to commit before fully reading the water. Worth keeping an eye on in exposed conditions but overall a reliable and valued member of the group.
+      </div>
+
+      <div class="endorsements">
+        <div class="endorsement-label">Endorsements needed</div>
+        <div class="endorsement-row">
+          <div class="endorsement-av">👩</div>
+          <div class="endorsement-name">Sarah Kerr</div>
+          <div class="endorsement-level">🦭 Selkie · SKL</div>
+          <div class="endorsement-tick" style="color:var(--stone-lt);">○</div>
+        </div>
+      </div>
+
+      <div class="endorse-btn">Endorse this summary</div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ASK SHEET -->
+<div class="sheet-overlay" id="askSheet" onclick="closeSheet(event, 'askSheet')">
+  <div class="ask-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ask Duncan a question</div>
+    <textarea class="ask-textarea" placeholder="Type your question… Duncan will receive it as a message and can reply before you make your decision."></textarea>
+    <div class="ask-btns">
+      <div class="ask-cancel" onclick="closeSheet(null, 'askSheet')">Cancel</div>
+      <div class="ask-send" onclick="sendQuestion()">Send question</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM SHEET -->
+<div class="sheet-overlay" id="confirmSheet" onclick="closeSheet(event, 'confirmSheet')">
+  <div class="confirm-sheet">
+    <div class="sheet-handle"></div>
+    <div class="confirm-body">
+      <div class="confirm-title" id="confirmTitle">Approve Duncan Reid?</div>
+      <div class="confirm-sub" id="confirmSub">Their card will be charged £12 and they'll be added to the trip. You can still remove them later if needed.</div>
+      <div class="optional-msg">
+        <div class="optional-msg-label">Optional message to Duncan</div>
+        <textarea class="optional-msg-input" placeholder="e.g. Great to have you along — make sure you're comfortable in the tidal sections…"></textarea>
+      </div>
+      <div class="confirm-btns" id="confirmBtns">
+        <div class="confirm-yes-approve" onclick="finalDecision('approved')">Yes, approve</div>
+        <div class="confirm-cancel" onclick="closeSheet(null, 'confirmSheet')">Cancel</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DECISION BAR -->
+<div class="decision-bar">
+  <div class="decision-btns">
+    <div class="btn-decline" onclick="showConfirm('decline')">Decline</div>
+    <div class="btn-ask" onclick="showAsk()">Ask…</div>
+    <div class="btn-approve" onclick="showConfirm('approve')">Approve</div>
+  </div>
+</div>
+
+<script>
+// Member data
+const members = [
+  {
+    av: '😊', name: 'Duncan Reid', level: '🦦 Otter', tenure: 'Member for 3 years',
+    score: 'review', scoreTitle: 'Needs review',
+    scoreReason: '2 Grade C trips — below threshold of 3. 3 years membership ✓ · Otter level ✓'
+  },
+  {
+    av: '👩', name: 'Sarah Thornton', level: '🦆 Duck', tenure: 'Member for 1 year',
+    score: 'assess', scoreTitle: 'Needs assessment',
+    scoreReason: 'Duck level — below Otter minimum for this event. 1 year membership. Only 1 Grade B trip recorded.'
+  },
+  {
+    av: '🧑', name: 'Pete Mackay', level: '🦦 Otter', tenure: 'Member for 5 years',
+    score: 'ok', scoreTitle: 'Auto-approved',
+    scoreReason: '5 Grade C trips ✓ · 5 years membership ✓ · Otter level ✓ — but you set this event to manual review for all.'
+  }
+];
+
+let currentMember = 0;
+let pendingAction = null;
+
+function showMember(idx) {
+  currentMember = idx;
+  const m = members[idx];
+
+  // Update queue highlight
+  document.querySelectorAll('.queue-member').forEach((q, i) => {
+    q.classList.toggle('active', i === idx);
+  });
+
+  // Update card header
+  document.getElementById('cardAv').textContent = m.av;
+  document.getElementById('cardName').textContent = m.name;
+  document.getElementById('cardTenure').textContent = m.tenure;
+
+  // Update level (simplified - just name)
+  document.querySelector('.card-level-badge').textContent = m.level.split(' ')[0];
+  document.querySelector('.card-level-name').textContent = m.level.split(' ').slice(1).join(' ');
+
+  // Update score banner
+  const banner = document.getElementById('scoreBanner');
+  banner.className = 'score-banner ' + m.score;
+  document.getElementById('scoreTitle').textContent = m.scoreTitle;
+  document.getElementById('scoreReason').textContent = m.scoreReason;
+
+  const icon = banner.querySelector('.score-icon');
+  icon.textContent = m.score === 'review' ? '⚠️' : m.score === 'assess' ? '🚫' : '✅';
+
+  // Reset to record tab
+  switchCardTab('record', document.querySelector('.card-tab'));
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function switchCardTab(name, el) {
+  document.querySelectorAll('.card-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.card-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function showAsk() {
+  document.getElementById('askSheet').classList.add('visible');
+}
+
+function showConfirm(action) {
+  pendingAction = action;
+  const m = members[currentMember];
+  const title = document.getElementById('confirmTitle');
+  const sub = document.getElementById('confirmSub');
+  const btns = document.getElementById('confirmBtns');
+
+  if (action === 'approve') {
+    title.textContent = `Approve ${m.name.split(' ')[0]}?`;
+    sub.textContent = `Their card will be charged £12 and they'll be added to the trip. You can still remove them later if needed.`;
+    btns.innerHTML = `
+      <div class="confirm-yes-approve" onclick="finalDecision('approved')">Yes, approve</div>
+      <div class="confirm-cancel" onclick="closeSheet(null, 'confirmSheet')">Cancel</div>
+    `;
+  } else {
+    title.textContent = `Decline ${m.name.split(' ')[0]}?`;
+    sub.textContent = `Their card authorisation will be released and they won't be charged. You can include a message below.`;
+    btns.innerHTML = `
+      <div class="confirm-yes-decline" onclick="finalDecision('declined')">Yes, decline</div>
+      <div class="confirm-cancel" onclick="closeSheet(null, 'confirmSheet')">Cancel</div>
+    `;
+  }
+
+  document.getElementById('confirmSheet').classList.add('visible');
+}
+
+function sendQuestion() {
+  closeSheet(null, 'askSheet');
+  alert('Question sent to Duncan. You\'ll be notified when they reply.');
+}
+
+function finalDecision(outcome) {
+  closeSheet(null, 'confirmSheet');
+  const name = members[currentMember].name.split(' ')[0];
+  alert(`${name} has been ${outcome}. ${outcome === 'approved' ? 'Payment captured and they\'ve been notified.' : 'Authorisation released and they\'ve been notified.'}`);
+}
+
+function closeSheet(e, id) {
+  if (!e || e.target === document.getElementById(id)) {
+    document.getElementById(id).classList.remove('visible');
+  }
+}
+</script>
+
+</body>
+</html>

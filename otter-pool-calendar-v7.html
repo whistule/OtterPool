@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Otter Pool — Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --peat:         #141a14;
+    --snow:         #f4f5f2;
+    --white:        #ffffff;
+    --border:       rgba(80,100,80,0.13);
+    --stone:        #7a8a78;
+    --stone-lt:     #aab8a8;
+    --forest:       #2c4a2e;
+    --forest-mid:   #3d6640;
+    --forest-lt:    #5a8c5e;
+    --forest-pale:  #e4ede4;
+    --amber:        #c4622d;
+    --amber-pale:   #f5e0d6;
+
+    /* Vivid grade colours */
+    --sea-a:        #00c8b4;
+    --sea-b:        #0098a0;
+    --sea-c:        #005a6e;
+    --sea-a-pale:   #d0f5f0;
+    --sea-b-pale:   #b0e4ea;
+    --sea-c-pale:   #80c8d8;
+
+    --riv-lo:       #58d048;
+    --riv-mid:      #28a030;
+    --riv-hi:       #0a5018;
+    --riv-lo-pale:  #d8f5d0;
+    --riv-mid-pale: #b0e0b4;
+    --riv-hi-pale:  #80c090;
+
+    --p1:           #d4703a;
+    --p2:           #b85530;
+    --p3:           #8a2e10;
+    --p1-pale:      #fde8d8;
+    --p2-pale:      #f8d0b8;
+    --p3-pale:      #f0b898;
+
+    --loch:         #5a7080;
+    --loch-pale:    #dde4e8;
+
+    --skills:       #e08800;
+    --skills-pale:  #faebd0;
+
+    --red:          #8a2828;
+    --red-pale:     #f8e4e4;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--snow);
+    font-family: 'Source Serif 4', serif;
+    color: var(--peat);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    font-size: 18px;
+  }
+
+  /* ── STICKY HEADER ── */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 54px;
+    background: #2a4560;
+  }
+
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-size: 1.65rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--snow);
+    letter-spacing: 0.03em;
+  }
+  .wordmark span { color: var(--sea-a); }
+
+  .topbar-right { display: flex; align-items: center; gap: 0.65rem; }
+
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(244,245,242,0.6);
+  }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--forest-mid);
+    border: 1.5px solid var(--forest-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  /* ── MONTH BAR — three rows ── */
+  .month-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Row 1: discipline tabs full width */
+  .discipline-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .disc-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.8rem 0.25rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background 0.12s;
+  }
+
+  .disc-tab:active { background: var(--snow); }
+
+  .disc-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 8%; right: 8%;
+    height: 2.5px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .disc-tab.active::after { opacity: 1; }
+
+  .disc-tab-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .disc-tab-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.92rem;
+    color: var(--stone);
+    white-space: nowrap;
+  }
+
+  .disc-tab.active .disc-tab-label {
+    color: var(--peat);
+    font-weight: 600;
+  }
+
+  /* Row 2: month name + arrows + grade chips */
+  .month-nav-row {
+    display: flex;
+    align-items: center;
+    padding: 0.45rem 0.875rem;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .month-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--forest);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .month-name:active { opacity: 0.6; }
+
+  .mnav-btns { display: flex; gap: 0.1rem; flex-shrink: 0; }
+
+  .mnav {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    color: var(--stone);
+    cursor: pointer;
+    user-select: none;
+  }
+  .mnav:active { color: var(--forest); }
+
+  .nav-sep {
+    width: 1px; height: 16px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .grade-chips {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .grade-chips::-webkit-scrollbar { display: none; }
+
+  .grade-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.75rem;
+    color: var(--stone);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+    transition: all 0.12s;
+  }
+
+  .grade-chip:active { transform: scale(0.94); }
+
+  .grade-chip.active {
+    border-color: currentColor;
+    font-weight: 600;
+    color: var(--peat);
+  }
+
+  .gchip-pip {
+    width: 18px; height: 6px;
+    border-radius: 2px;
+  }
+
+  /* Grade sub-chips — appear when discipline is active */
+  .grade-row {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    padding: 0.3rem 0.875rem 0.3rem;
+    background: var(--snow);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    display: none;
+  }
+  .grade-row.visible { display: flex; }
+  .grade-row::-webkit-scrollbar { display: none; }
+
+  .grade-all {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: white;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .grade-all.active {
+    background: var(--forest-pale);
+    border-color: var(--forest-mid);
+    color: var(--forest);
+  }
+
+  .grade-pip-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    background: white;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .grade-pip-chip:active { transform: scale(0.96); }
+
+  .grade-pip-chip.active {
+    border-color: currentColor;
+  }
+
+  .gpc-pip {
+    width: 20px; height: 7px;
+    border-radius: 3px;
+  }
+
+  .gpc-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    color: var(--stone);
+  }
+
+  .grade-pip-chip.active .gpc-label {
+    font-weight: 600;
+  }
+
+  /* ── MONTH GRID ── */
+  .month-strip {
+    padding: 0.4rem 0.875rem 0.32rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+  }
+
+  .two-week-row { margin-bottom: 0.18rem; }
+
+  .day-letters {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    margin-bottom: 0.06rem;
+  }
+
+  .dl {
+    text-align: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+
+  .days-row {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 1px;
+  }
+
+  .mday {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 0.1rem 0.02rem 0.18rem;
+    border-radius: 3px;
+  }
+
+  .mday-num {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.82rem;
+    color: var(--peat);
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    line-height: 1;
+  }
+
+  .mday.other .mday-num { color: var(--stone-lt); }
+  .mday.today .mday-num { background: var(--forest); color: white; font-weight: 600; }
+
+  .mday-events {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .mev {
+    width: 20px; height: 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  /* All event pip colours */
+  .mev.sea-a   { background: var(--sea-a); }
+  .mev.sea-b   { background: var(--sea-b); }
+  .mev.sea-c   { background: var(--sea-c); }
+  .mev.riv-lo  { background: var(--riv-lo); }
+  .mev.riv-mid { background: var(--riv-mid); }
+  .mev.riv-hi  { background: var(--riv-hi); }
+  .mev.p1      { background: var(--p1); }
+  .mev.p2      { background: var(--p2); }
+  .mev.p3      { background: var(--p3); }
+  .mev.loch    { background: var(--loch); }
+  .mev.skills  { background: var(--skills); }
+  .mev.faded   { opacity: 0.12; }
+
+  .row-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.15rem 0 0.2rem;
+  }
+
+  /* results count inline when filtering */
+  .results-inline {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone-lt);
+    font-style: italic;
+    padding: 0.2rem 0.875rem;
+    background: var(--snow);
+    border-bottom: 1px solid var(--border);
+    display: none;
+  }
+  .results-inline.visible { display: block; }
+
+  /* ── EVENT LIST ── */
+  .event-list { padding: 0.5rem 0.875rem 5.5rem; }
+
+  /* No more separate date headers - date is inline */
+  .row-date {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.62rem;
+    color: var(--stone-lt);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-style: normal;
+  }
+
+  .row-title-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    overflow: hidden;
+  }
+
+  /* ── EVENT ROW ── */
+  .event-row {
+    background: var(--white);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    align-items: stretch;
+    min-height: 72px;
+    transition: opacity 0.15s;
+  }
+  .event-row:active { box-shadow: 0 0 0 2px var(--forest-pale); }
+
+  /* Thumbnail on right of compact rows */
+  .row-thumb {
+    width: 95px;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .row-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.88);
+  }
+
+  .row-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+  }
+
+  .row-accent { width: 4px; flex-shrink: 0; }
+
+  .ra-loch    { background: var(--loch); }
+  .ra-sea-a   { background: var(--sea-a); }
+  .ra-sea-b   { background: var(--sea-b); }
+  .ra-sea-c   { background: var(--sea-c); }
+  .ra-riv-lo  { background: var(--riv-lo); }
+  .ra-riv-mid { background: var(--riv-mid); }
+  .ra-riv-hi  { background: var(--riv-hi); }
+  .ra-p1      { background: var(--p1); }
+  .ra-p2      { background: var(--p2); }
+  .ra-p3      { background: var(--p3); }
+  .ra-skills  { background: var(--skills); }
+
+  .row-body {
+    flex: 1;
+    padding: 0.65rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .row-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-date-inline {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    color: var(--stone-lt);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .row-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Bottom info row: avatars + meta */
+  .row-bottom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.1rem;
+  }
+
+  .row-avatars {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .rav {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+    background: var(--forest-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    margin-left: -5px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .rav:first-child { margin-left: 0; }
+
+  .rav-more {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+    background: var(--stone-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.55rem;
+    color: white;
+    margin-left: -5px;
+    flex-shrink: 0;
+  }
+
+  .row-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .row-places {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    color: var(--stone-lt);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .row-places.few  { color: var(--skills); }
+  .row-places.full { color: var(--red); }
+
+  .row-dot {
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: var(--stone-lt);
+    flex-shrink: 0;
+  }
+
+  .row-price {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--peat);
+    flex-shrink: 0;
+  }
+  .row-price.free {
+    color: var(--forest-mid);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.62rem;
+  }
+
+  .row-tags { display: flex; gap: 0.28rem; overflow: hidden; margin-bottom: 0.1rem; }
+
+  .rtag {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    padding: 0.12rem 0.36rem;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .rt-loch    { background: var(--loch-pale);    color: var(--loch); }
+  .rt-sea-a   { background: var(--sea-a-pale);   color: var(--sea-b); }
+  .rt-sea-b   { background: var(--sea-b-pale);   color: var(--sea-c); }
+  .rt-sea-c   { background: var(--sea-c-pale);   color: var(--sea-c); }
+  .rt-riv-lo  { background: var(--riv-lo-pale);  color: var(--riv-mid); }
+  .rt-riv-mid { background: var(--riv-mid-pale); color: var(--riv-hi); }
+  .rt-riv-hi  { background: var(--riv-hi-pale);  color: var(--riv-hi); }
+  .rt-p1      { background: var(--p1-pale);      color: var(--p2); }
+  .rt-p2      { background: var(--p2-pale);      color: var(--p3); }
+  .rt-p3      { background: var(--p3-pale);      color: var(--p3); }
+  .rt-skills  { background: var(--skills-pale);  color: var(--skills); }
+  .rt-stone   { background: var(--snow); color: var(--stone); border: 1px solid var(--border); }
+  .rt-red     { background: var(--red-pale); color: var(--red); }
+
+  .row-right {
+    padding: 0.65rem 0.85rem 0.65rem 0.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.22rem;
+    flex-shrink: 0;
+  }
+
+  .row-price {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--peat);
+  }
+  .row-price.free {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--forest-mid);
+  }
+
+  .row-places { font-family: 'Source Serif 4', serif; font-size: 0.72rem; color: var(--stone-lt); white-space: nowrap; }
+  .row-places.few  { color: var(--skills); }
+  .row-places.full { color: var(--red); }
+
+  /* ── FEATURED CARD ── */
+  .event-feat {
+    background: var(--white);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .event-feat.faded { opacity: 0.18; }
+
+  .feat-img {
+    height: 140px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feat-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.85);
+  }
+
+  .feat-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(20,26,20,0.05) 0%, rgba(20,26,20,0.62) 100%);
+  }
+
+  .feat-border {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+  }
+
+  .feat-cat {
+    position: absolute;
+    top: 0.5rem; left: 0.65rem;
+    padding: 0.14rem 0.45rem;
+    border-radius: 2px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+
+  .feat-title-wrap {
+    position: absolute;
+    bottom: 0.5rem; left: 0.65rem; right: 0.65rem;
+  }
+
+  .feat-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: white;
+    line-height: 1.2;
+    text-shadow: 0 1px 5px rgba(0,0,0,0.55);
+  }
+
+  .feat-body {
+    padding: 0.55rem 0.85rem 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .feat-tags { display: flex; gap: 0.25rem; flex-wrap: wrap; flex: 1; }
+
+  .feat-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.16rem;
+    flex-shrink: 0;
+  }
+
+  .feat-badge {
+    position: absolute;
+    top: 0.5rem; right: 0.65rem;
+    padding: 0.12rem 0.45rem;
+    border-radius: 2px;
+    background: var(--amber);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+  }
+    display: flex;
+    align-items: center;
+  }
+
+  .event-feat.ineligible,
+  .event-row.ineligible { opacity: 0.42; }
+
+  .ineligible-note {
+    padding: 0.22rem 0.8rem;
+    background: rgba(80,100,80,0.05);
+    border-top: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.65rem;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,26,20,0.55);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    padding: 1rem;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-card {
+    background: var(--white);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  }
+
+  .modal-top {
+    background: var(--forest);
+    padding: 1.1rem 1.25rem 0.95rem;
+  }
+
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--snow);
+    margin-bottom: 0.3rem;
+  }
+
+  .modal-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: rgba(244,245,242,0.65);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .modal-body { padding: 0.95rem 1.25rem 1.1rem; }
+
+  .modal-sessions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .session-pips { display: flex; gap: 0.4rem; }
+
+  .spip {
+    width: 30px; height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+  }
+  .spip.used { background: var(--amber); }
+
+  .session-text {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+  }
+  .session-text strong { color: var(--amber); }
+
+  .modal-btns { display: flex; gap: 0.5rem; }
+
+  .modal-btn-primary {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    background: var(--forest);
+    border-radius: 5px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .modal-btn-secondary {
+    padding: 0.65rem 1rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.78rem;
+    color: var(--stone);
+    text-align: center;
+    cursor: pointer;
+    background: var(--snow);
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 0.45rem 0 0.85rem;
+    z-index: 100;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.18rem;
+    cursor: pointer;
+    padding: 0.3rem 0;
+  }
+
+  .nav-icon { font-size: 1.3rem; }
+
+  .nav-label {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.64rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--stone-lt);
+  }
+  .nav-item.active .nav-label { color: var(--forest-mid); }
+
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="aspirantModal">
+  <div class="modal-card">
+    <div class="modal-top">
+      <div class="modal-title">Welcome back 🦦</div>
+      <div class="modal-sub">You've used 2 of your 3 trial sessions. Join DCKC to keep paddling with us.</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-sessions">
+        <div class="session-pips">
+          <div class="spip used"></div>
+          <div class="spip used"></div>
+          <div class="spip"></div>
+        </div>
+        <div class="session-text"><strong>1 session remaining</strong> before membership required</div>
+      </div>
+      <div class="modal-btns">
+        <div class="modal-btn-primary" onclick="dismissModal()">Join DCKC now</div>
+        <div class="modal-btn-secondary" onclick="dismissModal()">Maybe later</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STICKY HEADER -->
+<div class="sticky-header">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="wordmark">Otter<span>Pool</span></div>
+    <div class="topbar-right">
+      <div class="icon-btn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <div class="avatar">🦦</div>
+    </div>
+  </div>
+
+  <!-- MONTH BAR -->
+  <div class="month-bar">
+
+    <!-- Row 1: discipline tabs -->
+    <div class="discipline-tabs">
+      <div class="disc-tab" data-disc="sea" style="color:var(--sea-b)">
+        <div class="disc-tab-dot" style="background:var(--sea-b)"></div>
+        <div class="disc-tab-label">Sea</div>
+      </div>
+      <div class="disc-tab" data-disc="river" style="color:var(--riv-mid)">
+        <div class="disc-tab-dot" style="background:var(--riv-mid)"></div>
+        <div class="disc-tab-label">River</div>
+      </div>
+      <div class="disc-tab" data-disc="pool" style="color:var(--p2)">
+        <div class="disc-tab-dot" style="background:var(--p2)"></div>
+        <div class="disc-tab-label">Pool</div>
+      </div>
+      <div class="disc-tab" data-disc="loch" style="color:var(--loch)">
+        <div class="disc-tab-dot" style="background:var(--loch)"></div>
+        <div class="disc-tab-label">Loch</div>
+      </div>
+      <div class="disc-tab" data-disc="skills" style="color:var(--skills)">
+        <div class="disc-tab-dot" style="background:var(--skills)"></div>
+        <div class="disc-tab-label">Skills</div>
+      </div>
+    </div>
+
+    <!-- Row 2: month name + arrows + grade chips -->
+    <div class="month-nav-row">
+      <div class="month-name">April 2026</div>
+      <div class="mnav-btns">
+        <div class="mnav">‹</div>
+        <div class="mnav">›</div>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="grade-chips" id="gradeChips">
+        <!-- populated by JS when discipline selected -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MONTH GRID -->
+  <div class="month-strip">
+    <!-- Row 1: weeks of 31 Mar + 7 Apr -->
+    <div class="two-week-row">
+      <div class="day-letters">
+        <div class="dl">M</div><div class="dl">T</div><div class="dl">W</div><div class="dl">T</div><div class="dl">F</div><div class="dl">S</div><div class="dl">S</div>
+        <div class="dl">M</div><div class="dl">T</div><div class="dl">W</div><div class="dl">T</div><div class="dl">F</div><div class="dl">S</div><div class="dl">S</div>
+      </div>
+      <div class="days-row">
+        <div class="mday other"><div class="mday-num">31</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">1</div><div class="mday-events"><div class="mev loch" data-disc="loch"></div></div></div>
+        <div class="mday"><div class="mday-num">2</div><div class="mday-events"></div></div>
+        <div class="mday today"><div class="mday-num">3</div><div class="mday-events"><div class="mev p2" data-disc="pool" data-grade="p2"></div></div></div>
+        <div class="mday"><div class="mday-num">4</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">5</div><div class="mday-events"><div class="mev sea-a" data-disc="sea" data-grade="sea-a"></div></div></div>
+        <div class="mday"><div class="mday-num">6</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">7</div><div class="mday-events"><div class="mev loch" data-disc="loch"></div><div class="mev skills" data-disc="skills"></div></div></div>
+        <div class="mday"><div class="mday-num">8</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">9</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">10</div><div class="mday-events"><div class="mev p1" data-disc="pool" data-grade="p1"></div></div></div>
+        <div class="mday"><div class="mday-num">11</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">12</div><div class="mday-events"><div class="mev sea-a" data-disc="sea" data-grade="sea-a"></div></div></div>
+        <div class="mday"><div class="mday-num">13</div><div class="mday-events"></div></div>
+      </div>
+    </div>
+    <div class="row-divider"></div>
+    <!-- Row 2: weeks of 14 Apr + 21 Apr -->
+    <div class="two-week-row">
+      <div class="day-letters">
+        <div class="dl">M</div><div class="dl">T</div><div class="dl">W</div><div class="dl">T</div><div class="dl">F</div><div class="dl">S</div><div class="dl">S</div>
+        <div class="dl">M</div><div class="dl">T</div><div class="dl">W</div><div class="dl">T</div><div class="dl">F</div><div class="dl">S</div><div class="dl">S</div>
+      </div>
+      <div class="days-row">
+        <div class="mday"><div class="mday-num">14</div><div class="mday-events"><div class="mev loch" data-disc="loch"></div></div></div>
+        <div class="mday"><div class="mday-num">15</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">16</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">17</div><div class="mday-events"><div class="mev p2" data-disc="pool" data-grade="p2"></div></div></div>
+        <div class="mday"><div class="mday-num">18</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">19</div><div class="mday-events"><div class="mev sea-c" data-disc="sea" data-grade="sea-c"></div></div></div>
+        <div class="mday"><div class="mday-num">20</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">21</div><div class="mday-events"><div class="mev loch" data-disc="loch"></div></div></div>
+        <div class="mday"><div class="mday-num">22</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">23</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">24</div><div class="mday-events"><div class="mev p3" data-disc="pool" data-grade="p3"></div></div></div>
+        <div class="mday"><div class="mday-num">25</div><div class="mday-events"></div></div>
+        <div class="mday"><div class="mday-num">26</div><div class="mday-events"><div class="mev riv-mid" data-disc="river" data-grade="riv-mid"></div></div></div>
+        <div class="mday"><div class="mday-num">27</div><div class="mday-events"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-inline" id="resultsInline"></div>
+
+</div>
+
+<!-- EVENT LIST -->
+<div class="event-list">
+
+  <!-- Pinkston P2 -->
+  <div class="event-row" data-disc="pool" data-grade="p2">
+    <div class="row-accent ra-p2"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Thu 3 Apr</div>
+        <div class="row-title">Pinkston — 2 Pumps</div>
+      </div>
+      <div class="row-sub">Pinkston Watersports · 8:00–9:30pm · Iain M.</div>
+      <div class="row-tags">
+        <span class="rtag rt-p2">P2</span>
+        <span class="rtag rt-stone">🦆 Duck min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">😊</div>
+          <div class="rav">🧑</div>
+          <div class="rav">👩</div>
+          <div class="rav-more">+3</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places">6 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=200&q=75" alt="Pinkston whitewater">
+    </div>
+  </div>
+
+  <!-- Tuesday Evening -->
+  <div class="event-row" data-disc="loch">
+    <div class="row-accent ra-loch"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Tue 7 Apr</div>
+        <div class="row-title">Tuesday Evening — Loch Lomond</div>
+      </div>
+      <div class="row-sub">Balloch Bay · 6:30pm · Iain M.</div>
+      <div class="row-tags">
+        <span class="rtag rt-loch">Loch</span>
+        <span class="rtag rt-stone">🐸 Frog min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">👩</div>
+          <div class="rav">🧑</div>
+          <div class="rav">😊</div>
+          <div class="rav">👴</div>
+          <div class="rav-more">+8</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places">14 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=120&q=75" alt="Loch Lomond">
+    </div>
+  </div>
+
+  <!-- MicroSession -->
+  <div class="event-row" data-disc="skills">
+    <div class="row-accent ra-skills"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Tue 7 Apr</div>
+        <div class="row-title">MicroSession — Low Brace Turn</div>
+      </div>
+      <div class="row-sub">Follows Tuesday evening · Loch Lomond</div>
+      <div class="row-tags">
+        <span class="rtag rt-skills">Skills</span>
+        <span class="rtag rt-stone">🐸 Frog min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">😊</div>
+          <div class="rav">👩</div>
+          <div class="rav-more">+2</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places">8 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price free">Free</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1622163642998-1ea32b0bbc67?w=200&q=75" alt="Kayak skills session">
+    </div>
+  </div>
+
+  <!-- Pinkston P1 -->
+  <div class="event-row" data-disc="pool" data-grade="p1">
+    <div class="row-accent ra-p1"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Thu 10 Apr</div>
+        <div class="row-title">Pinkston — 1 Pump</div>
+      </div>
+      <div class="row-sub">Pinkston Watersports · 8:00–9:30pm · Sarah K.</div>
+      <div class="row-tags">
+        <span class="rtag rt-p1">P1</span>
+        <span class="rtag rt-stone">🦆 Duck min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">🧑</div>
+          <div class="rav">👩</div>
+          <div class="rav-more">+5</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places few">3 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=200&q=75" alt="Pinkston whitewater">
+    </div>
+  </div>
+
+  <!-- Second Saturday - featured -->
+  <div class="event-feat" data-disc="sea" data-grade="sea-a">
+    <div class="feat-img">
+      <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80" alt="Firth of Clyde" loading="lazy">
+      <div class="feat-overlay"></div>
+      <div class="feat-border ra-sea-a"></div>
+      <div class="feat-cat" style="background:rgba(0,152,160,0.88);">Second Saturday · Sea A</div>
+      <div class="feat-badge">Featured</div>
+      <div class="feat-title-wrap">
+        <div class="feat-title">Cove & Kilcreggan — Firth of Clyde</div>
+      </div>
+    </div>
+    <div class="feat-body">
+      <div class="feat-tags">
+        <span class="rtag rt-sea-a">Sea A</span>
+        <span class="rtag rt-stone">🦆 Duck min</span>
+        <span class="rtag rt-stone">Sat 12 Apr · 9:00am</span>
+        <span class="rtag rt-stone">Iain M.</span>
+      </div>
+      <div class="feat-right">
+        <div class="row-price free">Free</div>
+        <div class="row-places">8 left</div>
+      </div>
+    </div>
+    <div class="feat-avatars">
+      <div class="row-avatars">
+        <div class="rav">👩</div>
+        <div class="rav">😊</div>
+        <div class="rav">🧑</div>
+        <div class="rav-more">+4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Away Tuesday -->
+  <div class="event-row" data-disc="loch">
+    <div class="row-accent ra-loch"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Tue 14 Apr</div>
+        <div class="row-title">All Away Tuesday — Loch Ard</div>
+      </div>
+      <div class="row-sub">Aberfoyle · 6:00pm · Sarah K.</div>
+      <div class="row-tags">
+        <span class="rtag rt-loch">Loch</span>
+        <span class="rtag rt-stone">🐸 Frog min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">😊</div>
+          <div class="rav">👴</div>
+          <div class="rav">👩</div>
+          <div class="rav-more">+6</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places few">3 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=120&q=75" alt="Loch Ard">
+    </div>
+  </div>
+
+  <!-- Kentallen Grade C - ineligible featured -->
+  <div class="event-feat ineligible" data-disc="sea" data-grade="sea-c">
+    <div class="feat-img">
+      <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80" alt="Scottish coastline" loading="lazy">
+      <div class="feat-overlay"></div>
+      <div class="feat-border ra-sea-c"></div>
+      <div class="feat-cat" style="background:rgba(0,90,110,0.9);">Sea Kayak · Grade C</div>
+      <div class="feat-title-wrap">
+        <div class="feat-title">Kentallen — Castle Stalker & Shuna</div>
+      </div>
+    </div>
+    <div class="feat-body">
+      <div class="feat-tags">
+        <span class="rtag rt-red">🦦 Otter required</span>
+        <span class="rtag rt-stone">Sat 19 Apr · 8:00am</span>
+        <span class="rtag rt-stone">2 nights</span>
+      </div>
+      <div class="feat-right">
+        <div class="row-price">£12</div>
+        <div class="row-places">4 left</div>
+      </div>
+    </div>
+    <div class="ineligible-note">Otter level required — keep paddling to unlock this trip</div>
+  </div>
+
+  <!-- Pinkston P3 -->
+  <div class="event-row" data-disc="pool" data-grade="p3">
+    <div class="row-accent ra-p3"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Thu 24 Apr</div>
+        <div class="row-title">Pinkston — 3 Pumps</div>
+      </div>
+      <div class="row-sub">Pinkston Watersports · 8:00–9:30pm · David R.</div>
+      <div class="row-tags">
+        <span class="rtag rt-p3">P3</span>
+        <span class="rtag rt-stone">🦆 Duck min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">🧑</div>
+          <div class="rav">👩</div>
+          <div class="rav">😊</div>
+          <div class="rav">👴</div>
+          <div class="rav">🧑</div>
+          <div class="rav">👩</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places full">Full</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=200&q=75" alt="Pinkston whitewater">
+    </div>
+  </div>
+
+  <!-- River Tummel - featured -->
+  <div class="event-feat" data-disc="river" data-grade="riv-mid">
+    <div class="feat-img">
+      <img src="https://images.unsplash.com/photo-1530866495561-507c9faab2ed?w=600&q=80" alt="Scottish river" loading="lazy">
+      <div class="feat-overlay"></div>
+      <div class="feat-border ra-riv-mid"></div>
+      <div class="feat-cat" style="background:rgba(40,160,48,0.88);">River Trip · Grade 3</div>
+      <div class="feat-badge">Featured</div>
+      <div class="feat-title-wrap">
+        <div class="feat-title">River Tummel — Pitlochry to Ballinluig</div>
+      </div>
+    </div>
+    <div class="feat-body">
+      <div class="feat-tags">
+        <span class="rtag rt-riv-mid">G3</span>
+        <span class="rtag rt-stone">Sat 26 Apr · 9:00am</span>
+        <span class="rtag rt-stone">🦦 Otter min</span>
+        <span class="rtag rt-stone">Approval req.</span>
+      </div>
+      <div class="feat-right">
+        <div class="row-price">£8</div>
+        <div class="row-places">5 left</div>
+      </div>
+    </div>
+    <div class="feat-avatars">
+      <div class="row-avatars">
+        <div class="rav">😊</div>
+        <div class="rav">🧑</div>
+        <div class="rav-more">+2</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tuesday Evening 28 Apr -->
+  <div class="event-row" data-disc="loch">
+    <div class="row-accent ra-loch"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Tue 28 Apr</div>
+        <div class="row-title">Tuesday Evening — Loch Lomond</div>
+      </div>
+      <div class="row-sub">Balloch Bay · 6:30pm · David R.</div>
+      <div class="row-tags">
+        <span class="rtag rt-loch">Loch</span>
+        <span class="rtag rt-stone">🐸 Frog min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">👩</div>
+          <div class="rav">😊</div>
+          <div class="rav-more">+3</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places">12 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=120&q=75" alt="Loch Lomond">
+    </div>
+  </div>
+
+  <!-- Pinkston P2 29 Apr -->
+  <div class="event-row" data-disc="pool" data-grade="p2">
+    <div class="row-accent ra-p2"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline">Thu 29 Apr</div>
+        <div class="row-title">Pinkston — 2 Pumps</div>
+      </div>
+      <div class="row-sub">Pinkston Watersports · 8:00–9:30pm · Iain M.</div>
+      <div class="row-tags">
+        <span class="rtag rt-p2">P2</span>
+        <span class="rtag rt-stone">🦆 Duck min</span>
+      </div>
+      <div class="row-bottom">
+        <div class="row-avatars">
+          <div class="rav">🧑</div>
+          <div class="rav">👩</div>
+          <div class="rav">😊</div>
+          <div class="rav-more">+4</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-places">9 left</div>
+          <div class="row-dot"></div>
+          <div class="row-price">£5</div>
+        </div>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <div class="row-thumb-placeholder" style="background:linear-gradient(135deg,#3a1a0a,#b85530)">🌊</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active">
+    <div class="nav-icon">📅</div>
+    <div class="nav-label" style="color:var(--forest-mid)">Calendar</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">🦦</div>
+    <div class="nav-label">My Trips</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">📊</div>
+    <div class="nav-label">Progress</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Profile</div>
+  </div>
+</div>
+
+<script>
+// ── Modal ──
+function dismissModal() {
+  document.getElementById('aspirantModal').style.display = 'none';
+}
+document.getElementById('aspirantModal').addEventListener('click', function(e) {
+  if (e.target === this) dismissModal();
+});
+
+// Month name resets filter
+document.querySelector('.month-name').addEventListener('click', function() {
+  activeDisc = null;
+  activeGrade = null;
+  document.querySelectorAll('.disc-tab').forEach(c => c.classList.remove('active'));
+  gradeChips.innerHTML = '';
+  applyFilter();
+});
+
+const gradeConfig = {
+  sea: [
+    { grade: 'sea-a', label: 'Sea A', color: 'var(--sea-a)' },
+    { grade: 'sea-b', label: 'Sea B', color: 'var(--sea-b)' },
+    { grade: 'sea-c', label: 'Sea C', color: 'var(--sea-c)' }
+  ],
+  river: [
+    { grade: 'riv-lo',  label: 'G1/2', color: 'var(--riv-lo)' },
+    { grade: 'riv-mid', label: 'G3',   color: 'var(--riv-mid)' },
+    { grade: 'riv-hi',  label: 'G4/5', color: 'var(--riv-hi)' }
+  ],
+  pool: [
+    { grade: 'p1', label: 'P1', color: 'var(--p1)' },
+    { grade: 'p2', label: 'P2', color: 'var(--p2)' },
+    { grade: 'p3', label: 'P3', color: 'var(--p3)' }
+  ]
+};
+
+let activeDisc = null;
+let activeGrade = null;
+
+const gradeChips = document.getElementById('gradeChips');
+const resultsInline = document.getElementById('resultsInline');
+
+// ── Discipline tabs ──
+document.querySelectorAll('.disc-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    const disc = this.dataset.disc;
+
+    if (activeDisc === disc) {
+      activeDisc = null;
+      activeGrade = null;
+      this.classList.remove('active');
+      gradeChips.innerHTML = '';
+      applyFilter();
+      return;
+    }
+
+    activeDisc = disc;
+    activeGrade = null;
+    document.querySelectorAll('.disc-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+
+    // Build grade chips inline with month nav
+    gradeChips.innerHTML = '';
+    if (gradeConfig[disc]) {
+      gradeConfig[disc].forEach(function(g) {
+        const chip = document.createElement('div');
+        chip.className = 'grade-chip';
+        chip.dataset.grade = g.grade;
+        chip.style.color = g.color;
+        chip.innerHTML = `<div class="gchip-pip" style="background:${g.color}"></div>${g.label}`;
+        chip.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (activeGrade === g.grade) {
+            activeGrade = null;
+            this.classList.remove('active');
+          } else {
+            activeGrade = g.grade;
+            document.querySelectorAll('.grade-chip').forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+          }
+          applyFilter();
+        });
+        gradeChips.appendChild(chip);
+      });
+    }
+
+    applyFilter();
+  });
+});
+
+// ── Apply filter ──
+function applyFilter() {
+  const cards = document.querySelectorAll('.event-row, .event-feat');
+  let visibleCount = 0;
+
+  cards.forEach(function(card) {
+    const disc = card.dataset.disc;
+    const grade = card.dataset.grade;
+    let show = true;
+    if (activeDisc && disc !== activeDisc) show = false;
+    if (show && activeGrade && grade !== activeGrade) show = false;
+    card.style.display = show ? '' : 'none';
+    if (show) visibleCount++;
+  });
+
+  document.querySelectorAll('.mev').forEach(function(pip) {
+    const disc = pip.dataset.disc;
+    const grade = pip.dataset.grade;
+    let show = true;
+    if (activeDisc && disc !== activeDisc) show = false;
+    if (show && activeGrade && grade !== activeGrade) show = false;
+    pip.classList.toggle('faded', !show);
+  });
+
+  if (activeDisc) {
+    resultsInline.textContent = `${visibleCount} event${visibleCount !== 1 ? 's' : ''}`;
+    resultsInline.classList.add('visible');
+  } else {
+    resultsInline.textContent = '';
+    resultsInline.classList.remove('visible');
+  }
+}
+</script>
+
+</body>
+</html>
