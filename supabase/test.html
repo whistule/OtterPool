@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OtterPool — API Test</title>
+<style>
+  :root {
+    --peat: #141a14;
+    --snow: #f4f5f2;
+    --forest: #2c4a2e;
+    --forest-pale: #e4ede4;
+    --topbar: #2a4560;
+    --stone: #7a8a78;
+    --red: #8a1a1a;
+    --red-pale: #fde8e8;
+    --green: #1a5a1a;
+    --green-pale: #e0f0e0;
+    --amber: #c4622d;
+    --amber-pale: #f5e0d6;
+    --border: rgba(80,100,80,0.13);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--snow);
+    color: var(--peat);
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--stone); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+  /* sections */
+  section {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  section h2 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--topbar);
+  }
+
+  /* config */
+  .config-grid {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .config-grid label {
+    font-size: 0.8rem;
+    color: var(--stone);
+  }
+  .config-grid input {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+
+  /* buttons */
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--forest);
+    color: #fff;
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--forest-pale);
+    color: var(--forest);
+  }
+  .btn-small {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  /* status badge */
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .badge-ok { background: var(--green-pale); color: var(--green); }
+  .badge-warn { background: var(--amber-pale); color: var(--amber); }
+  .badge-err { background: var(--red-pale); color: var(--red); }
+  .badge-off { background: #eee; color: #999; }
+
+  /* log */
+  #log {
+    font-family: monospace;
+    font-size: 0.75rem;
+    background: var(--peat);
+    color: #b5c4b5;
+    border-radius: 8px;
+    padding: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #log .log-ok { color: #6ec96e; }
+  #log .log-err { color: #e06060; }
+  #log .log-info { color: #80b0d0; }
+
+  /* event cards */
+  .event-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .event-card .meta {
+    font-size: 0.8rem;
+    flex: 1;
+  }
+  .event-card .meta strong { display: block; }
+  .event-card .meta span { color: var(--stone); font-size: 0.75rem; }
+
+  /* user info */
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .hidden { display: none; }
+  .mt { margin-top: 0.5rem; }
+  .mb { margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>OtterPool API Test</h1>
+<p class="subtitle">Sign in, browse events, sign up — watch the data flow</p>
+
+<!-- Config -->
+<section id="config-section">
+  <h2>1. Supabase Config</h2>
+  <span id="config-status" class="badge badge-off">loading config.local.js...</span>
+</section>
+
+<!-- Auth -->
+<section id="auth-section" class="hidden">
+  <h2>2. Sign In</h2>
+  <div class="config-grid">
+    <div>
+      <label>Email</label>
+      <input id="auth-email" placeholder="member1@test.com" />
+    </div>
+    <div>
+      <label>Password</label>
+      <input id="auth-pass" type="password" placeholder="password" />
+    </div>
+  </div>
+  <button class="btn-primary mt" onclick="signIn()">Sign In</button>
+  <button class="btn-secondary mt" onclick="signOut()">Sign Out</button>
+  <div id="user-display" class="user-info mt hidden"></div>
+</section>
+
+<!-- Events -->
+<section id="events-section" class="hidden">
+  <h2>3. Events</h2>
+  <button class="btn-secondary btn-small mb" onclick="loadEvents()">Refresh</button>
+  <div id="events-list"><em style="color:var(--stone);font-size:0.8rem;">Sign in to see events</em></div>
+</section>
+
+<!-- Signups -->
+<section id="signups-section" class="hidden">
+  <h2>4. My Sign-ups</h2>
+  <button class="btn-secondary btn-small mb" onclick="loadSignups()">Refresh</button>
+  <div id="signups-list"></div>
+</section>
+
+<!-- Log -->
+<section>
+  <h2>Request Log</h2>
+  <div id="log"></div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.local.js"></script>
+<script>
+  let sb = null;
+  let currentUser = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ── Logging ──
+
+  function log(msg, cls = '') {
+    const el = $('log');
+    const line = document.createElement('span');
+    line.className = cls;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ── Supabase init (auto from config.local.js) ──
+
+  function initSupabase() {
+    if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
+      log('Missing config — copy config.js to config.local.js and fill in your values', 'log-err');
+      $('config-status').textContent = 'missing config.local.js';
+      $('config-status').className = 'badge badge-err';
+      return;
+    }
+
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    log(`Connected to ${SUPABASE_URL}`, 'log-ok');
+    $('config-status').textContent = 'connected';
+    $('config-status').className = 'badge badge-ok';
+    $('auth-section').classList.remove('hidden');
+  }
+
+  // ── Auth ──
+
+  async function signIn() {
+    const email = $('auth-email').value.trim();
+    const pass = $('auth-pass').value.trim();
+    if (!email || !pass) { log('Enter email and password', 'log-err'); return; }
+
+    log(`Signing in as ${email}...`, 'log-info');
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+    if (error) {
+      log(`Auth error: ${error.message}`, 'log-err');
+      return;
+    }
+
+    currentUser = data.user;
+    log(`Signed in — uid: ${currentUser.id}`, 'log-ok');
+
+    // Fetch profile
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (profile) {
+      log(`Profile: ${profile.full_name || '(no name)'} — ${profile.level} — ${profile.status}`, 'log-info');
+      $('user-display').innerHTML = `
+        Signed in as <strong>${profile.full_name || currentUser.email}</strong>
+        <span class="badge badge-ok">${profile.level}</span>
+        <span class="badge ${profile.status === 'active' ? 'badge-ok' : 'badge-warn'}">${profile.status}</span>
+      `;
+      $('user-display').classList.remove('hidden');
+    }
+
+    $('events-section').classList.remove('hidden');
+    $('signups-section').classList.remove('hidden');
+    loadEvents();
+    loadSignups();
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    currentUser = null;
+    $('user-display').classList.add('hidden');
+    $('events-section').classList.add('hidden');
+    $('signups-section').classList.add('hidden');
+    $('events-list').innerHTML = '';
+    $('signups-list').innerHTML = '';
+    log('Signed out', 'log-info');
+  }
+
+  // ── Events ──
+
+  async function loadEvents() {
+    log('Fetching events...', 'log-info');
+    const { data: events, error } = await sb
+      .from('calendar_events')
+      .select('*')
+      .order('starts_at');
+
+    if (error) {
+      log(`Events error: ${error.message}`, 'log-err');
+      return;
+    }
+
+    log(`Got ${events.length} event(s)`, 'log-ok');
+    const list = $('events-list');
+
+    if (events.length === 0) {
+      list.innerHTML = '<em style="color:var(--stone);font-size:0.8rem;">No events yet — create some in the Supabase dashboard or via seed.sql</em>';
+      return;
+    }
+
+    list.innerHTML = events.map(e => `
+      <div class="event-card">
+        <div class="meta">
+          <strong>${e.title}</strong>
+          <span>${e.category} · ${new Date(e.starts_at).toLocaleDateString()} · ${e.grade_advertised || 'no grade'}</span>
+          <span>${e.confirmed_count}/${e.max_participants || '∞'} confirmed · ${e.cost > 0 ? '£' + e.cost : 'Free'}</span>
+        </div>
+        <button class="btn-primary btn-small" onclick="doSignup('${e.id}')">Sign Up</button>
+      </div>
+    `).join('');
+  }
+
+  // ── Sign-up (calls Edge Function) ──
+
+  async function doSignup(eventId) {
+    log(`Signing up for event ${eventId.slice(0, 8)}...`, 'log-info');
+
+    const { data, error } = await sb.functions.invoke('sign-up', {
+      body: { event_id: eventId },
+    });
+
+    if (error) {
+      log(`Sign-up failed: ${error.message}`, 'log-err');
+      return;
+    }
+
+    if (data.error) {
+      log(`Sign-up rejected: ${data.error}`, 'log-err');
+      return;
+    }
+
+    log(`${data.message} — status: ${data.signup.status}`, 'log-ok');
+    loadEvents();
+    loadSignups();
+  }
+
+  // ── My Sign-ups ──
+
+  async function loadSignups() {
+    const { data: signups, error } = await sb
+      .from('event_signups')
+      .select('id, status, signed_up_at, events(title, starts_at)')
+      .eq('member_id', currentUser.id)
+      .order('signed_up_at', { ascending: false });
+
+    if (error) {
+      log(`Signups error: ${error.message}`, 'log-err');
+      return;
+    }
+
+    const list = $('signups-list');
+    if (signups.length === 0) {
+      list.innerHTML = '<em style="color:var(--stone);font-size:0.8rem;">No sign-ups yet</em>';
+      return;
+    }
+
+    const badgeClass = (s) => ({
+      confirmed: 'badge-ok',
+      pending_review: 'badge-warn',
+      waitlisted: 'badge-warn',
+      declined: 'badge-err',
+      withdrawn: 'badge-off',
+    }[s] || 'badge-off');
+
+    list.innerHTML = signups.map(s => `
+      <div class="event-card">
+        <div class="meta">
+          <strong>${s.events?.title || 'Unknown event'}</strong>
+          <span>${new Date(s.signed_up_at).toLocaleString()}</span>
+        </div>
+        <span class="badge ${badgeClass(s.status)}">${s.status}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Auto-connect on load ──
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+  });
+</script>
+</body>
+</html>
