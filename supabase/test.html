@@ -25,10 +25,25 @@
     font-family: 'Source Serif 4', Georgia, serif;
     background: var(--snow);
     color: var(--peat);
-    max-width: 480px;
-    margin: 0 auto;
+    display: flex;
+    gap: 1rem;
     padding: 1rem;
+    min-height: 100vh;
   }
+
+  /* two-column layout */
+  .main { flex: 1; max-width: 480px; }
+  .sidebar {
+    width: 360px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 1rem;
+    align-self: flex-start;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+  }
+
   h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
   .subtitle { color: var(--stone); font-size: 0.85rem; margin-bottom: 1.5rem; }
 
@@ -111,7 +126,7 @@
     color: #b5c4b5;
     border-radius: 8px;
     padding: 0.75rem;
-    max-height: 240px;
+    flex: 1;
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-all;
@@ -146,6 +161,13 @@
     font-size: 0.85rem;
   }
 
+  .sidebar-top {
+    margin-bottom: 0;
+    border-radius: 0;
+    border-bottom: none;
+  }
+  .sidebar-top:first-child { border-radius: 10px 10px 0 0; }
+
   .hidden { display: none; }
   .mt { margin-top: 0.5rem; }
   .mb { margin-bottom: 0.5rem; }
@@ -153,52 +175,55 @@
 </head>
 <body>
 
-<h1>OtterPool API Test</h1>
-<p class="subtitle">Sign in, browse events, sign up — watch the data flow</p>
+<div class="main">
+  <h1>OtterPool API Test</h1>
+  <p class="subtitle">Sign in, browse events, sign up — watch the data flow</p>
 
-<!-- Config -->
-<section id="config-section">
-  <h2>1. Supabase Config</h2>
-  <span id="config-status" class="badge badge-off">loading config.local.js...</span>
-</section>
-
-<!-- Auth -->
-<section id="auth-section" class="hidden">
-  <h2>2. Sign In</h2>
-  <div class="config-grid">
-    <div>
-      <label>Email</label>
-      <input id="auth-email" placeholder="member1@test.com" />
+  <!-- Auth -->
+  <section id="auth-section" class="hidden">
+    <h2>2. Sign In</h2>
+    <div class="config-grid">
+      <div>
+        <label>Email</label>
+        <input id="auth-email" placeholder="member1@test.com" />
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="auth-pass" type="password" placeholder="password" />
+      </div>
     </div>
-    <div>
-      <label>Password</label>
-      <input id="auth-pass" type="password" placeholder="password" />
-    </div>
-  </div>
-  <button class="btn-primary mt" onclick="signIn()">Sign In</button>
-  <button class="btn-secondary mt" onclick="signOut()">Sign Out</button>
-  <div id="user-display" class="user-info mt hidden"></div>
-</section>
+    <button class="btn-primary mt" onclick="signIn()">Sign In</button>
+  </section>
 
-<!-- Events -->
-<section id="events-section" class="hidden">
-  <h2>3. Events</h2>
-  <button class="btn-secondary btn-small mb" onclick="loadEvents()">Refresh</button>
-  <div id="events-list"><em style="color:var(--stone);font-size:0.8rem;">Sign in to see events</em></div>
-</section>
 
-<!-- Signups -->
-<section id="signups-section" class="hidden">
-  <h2>4. My Sign-ups</h2>
-  <button class="btn-secondary btn-small mb" onclick="loadSignups()">Refresh</button>
-  <div id="signups-list"></div>
-</section>
+  <!-- Events -->
+  <section id="events-section" class="hidden">
+    <h2>3. Events</h2>
+    <button class="btn-secondary btn-small mb" onclick="loadEvents()">Refresh</button>
+    <div id="events-list"><em style="color:var(--stone);font-size:0.8rem;">Sign in to see events</em></div>
+  </section>
 
-<!-- Log -->
-<section>
-  <h2>Request Log</h2>
-  <div id="log"></div>
-</section>
+  <!-- Signups -->
+  <section id="signups-section" class="hidden">
+    <h2>4. My Sign-ups</h2>
+    <button class="btn-secondary btn-small mb" onclick="loadSignups()">Refresh</button>
+    <div id="signups-list"></div>
+  </section>
+</div>
+
+<div class="sidebar">
+  <section id="config-section" style="border-radius:10px 10px 0 0;" class="sidebar-top">
+    <h2 style="margin-bottom:0.25rem;">Supabase</h2>
+    <span id="config-status" class="badge badge-off">loading config.local.js...</span>
+  </section>
+  <section id="signed-in-section" class="hidden sidebar-top">
+    <div id="user-display" class="user-info" style="justify-content:space-between;"></div>
+  </section>
+  <section style="display:flex;flex-direction:column;flex:1;margin-bottom:0;border-radius:0 0 10px 10px;border-top:none;">
+    <h2>Request Log</h2>
+    <div id="log"></div>
+  </section>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.local.js"></script>
@@ -259,13 +284,17 @@
     if (profile) {
       log(`Profile: ${profile.full_name || '(no name)'} — ${profile.level} — ${profile.status}`, 'log-info');
       $('user-display').innerHTML = `
-        Signed in as <strong>${profile.full_name || currentUser.email}</strong>
-        <span class="badge badge-ok">${profile.level}</span>
-        <span class="badge ${profile.status === 'active' ? 'badge-ok' : 'badge-warn'}">${profile.status}</span>
+        <div class="user-info" style="gap:0.5rem;">
+          Signed in as <strong>${profile.full_name || currentUser.email}</strong>
+          <span class="badge badge-ok">${profile.level}</span>
+          <span class="badge ${profile.status === 'active' ? 'badge-ok' : 'badge-warn'}">${profile.status}</span>
+        </div>
+        <button class="btn-secondary btn-small" onclick="signOut()">Sign Out</button>
       `;
-      $('user-display').classList.remove('hidden');
     }
 
+    $('auth-section').classList.add('hidden');
+    $('signed-in-section').classList.remove('hidden');
     $('events-section').classList.remove('hidden');
     $('signups-section').classList.remove('hidden');
     loadEvents();
@@ -275,7 +304,8 @@
   async function signOut() {
     await sb.auth.signOut();
     currentUser = null;
-    $('user-display').classList.add('hidden');
+    $('signed-in-section').classList.add('hidden');
+    $('auth-section').classList.remove('hidden');
     $('events-section').classList.add('hidden');
     $('signups-section').classList.add('hidden');
     $('events-list').innerHTML = '';
