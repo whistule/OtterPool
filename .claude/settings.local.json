@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where python:*)",
+      "Bash(where npx:*)",
+      "Bash(where node:*)",
+      "Bash(where http-server:*)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/Admin/AppData/Local/Programs/**)",
+      "Read(//c/ProgramData/miniconda3/**)",
+      "Read(//c/Users/Admin/miniconda3/**)",
+      "Read(//c/Users/Admin/anaconda3/**)",
+      "WebSearch",
+      "Bash(gh api:*)"
+    ]
+  }
+}
