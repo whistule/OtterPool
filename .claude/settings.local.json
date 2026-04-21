@@ -12,7 +12,10 @@
       "Read(//c/Users/Admin/miniconda3/**)",
       "Read(//c/Users/Admin/anaconda3/**)",
       "WebSearch",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "WebFetch(domain:dckc.co.uk)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

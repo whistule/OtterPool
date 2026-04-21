@@ -32,6 +32,7 @@
     --p2:          #b85530;
     --p3:          #8a2e10;
     --loch:        #5a7080;
+    --skills:      #7a4fa8;
     --red:         #8a1a1a;
     --red-pale:    #fde8e8;
     --green:       #1a5a1a;
@@ -92,7 +93,7 @@
     background: var(--white);
     border-top: 2px solid var(--border);
     display: flex;
-    padding: 0.75rem 0 1.25rem;
+    padding: 0.75rem 1rem 1.25rem;
     z-index: 200;
     box-shadow: 0 -3px 20px rgba(20,26,20,0.1);
   }
@@ -113,13 +114,16 @@
   .nav-icon { font-size: 2.4rem; line-height: 1; }
 
   .nav-label {
-    font-family: 'Fraunces', serif;
-    font-size: 0.95rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.5rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     color: var(--stone-lt);
     text-transform: none;
+    text-align: center;
+    line-height: 1.1;
     transition: color 0.15s;
+    white-space: nowrap;
   }
 
   .nav-item.active .nav-label { color: var(--forest-mid); }
@@ -195,9 +199,21 @@
   }
 
   .dckc-logo {
-    width: 90px;
-    height: 58px;
-    margin-right: 1rem;
+    width: 64px;
+    height: 42px;
+    margin-right: 0.8rem;
+  }
+
+  /* Small topbar variant — injected onto every .topbar */
+  .dckc-logo.dckc-logo-sm {
+    width: 56px;
+    height: 36px;
+    margin-right: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .topbar.has-logo {
+    gap: 0.5rem;
   }
 
   .wordmark {
@@ -456,8 +472,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
-    padding: 0.8rem 0.25rem;
+    gap: 0.28rem;
+    padding: 0.55rem 0.2rem;
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -480,14 +496,14 @@
   .disc-tab.active::after { opacity: 1; }
 
   .disc-tab-dot {
-    width: 8px; height: 8px;
+    width: 7px; height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .disc-tab-label {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.05rem;
+    font-size: 0.9rem;
     color: var(--stone);
     white-space: nowrap;
   }
@@ -762,23 +778,22 @@
 
   .row-title-line {
     display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
+    align-items: center;
+    gap: 0.7rem;
     overflow: hidden;
   }
 
   /* ── EVENT ROW ── */
   .event-row {
     background: var(--white);
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    margin: 0 0.55rem 0.5rem;
     overflow: hidden;
     cursor: pointer;
     display: flex;
     align-items: stretch;
-    min-height: 72px;
+    min-height: 84px;
     transition: opacity 0.15s;
   }
   .event-row:active { box-shadow: 0 0 0 2px var(--forest-pale); }
@@ -824,28 +839,51 @@
 
   .row-body {
     flex: 1;
-    padding: 0.65rem 0.5rem 0.65rem 0.65rem;
+    padding: 0.8rem 0.6rem 0.8rem 0.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.2rem;
+    gap: 0.3rem;
     min-width: 0;
   }
 
   .row-title {
-    font-family: 'Fraunces', serif;
-    font-size: 1.2rem;
-    font-weight: 500;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
     color: var(--peat);
     line-height: 1.3;
   }
 
   .row-date-inline {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.05rem;
-    color: var(--stone-lt);
-    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    min-width: 2.8rem;
     flex-shrink: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .rd-day {
+    font-size: 0.66rem;
+    color: var(--stone-lt);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .rd-num {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--peat);
+    line-height: 1;
+    margin-top: 0.15rem;
+  }
+  .rd-time {
+    font-size: 0.7rem;
+    color: var(--stone);
+    margin-top: 0.2rem;
+    white-space: nowrap;
   }
 
   .row-sub {
@@ -873,12 +911,12 @@
   }
 
   .rav {
-    width: 22px; height: 22px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     border: 1.5px solid var(--white);
     background: var(--forest-pale);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     margin-left: -5px;
     overflow: hidden;
     flex-shrink: 0;
@@ -886,13 +924,13 @@
   .rav:first-child { margin-left: 0; }
 
   .rav-more {
-    width: 22px; height: 22px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     border: 1.5px solid var(--white);
     background: var(--stone-lt);
     display: flex; align-items: center; justify-content: center;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.78rem;
     color: white;
     margin-left: -5px;
     flex-shrink: 0;
@@ -939,23 +977,23 @@
     font-size: 1rem;
   }
 
-  .row-tags { display: flex; gap: 0.35rem; overflow: hidden; margin-bottom: 0.1rem; align-items: center; flex-wrap: wrap; }
+  .row-tags { display: flex; gap: 0.4rem; overflow: hidden; margin-bottom: 0.1rem; align-items: center; flex-wrap: wrap; }
   .row-tags .row-spacer { flex: 1; }
-  .row-tags .row-places, .row-tags .row-price { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.95rem; white-space: nowrap; }
+  .row-tags .row-places, .row-tags .row-price { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.82rem; white-space: nowrap; }
   .row-tags .row-places { color: var(--stone-lt); }
   .row-tags .row-places.few { color: var(--skills); }
   .row-tags .row-places.full { color: var(--red); font-weight: 500; }
   .row-tags .row-price { color: var(--forest-mid); font-weight: 500; }
   .row-tags .row-price.free { color: var(--forest-mid); }
-  .row-tags .row-sep { color: var(--stone-lt); font-size: 0.8rem; }
-  .row-tags .row-avatars { display: flex; align-items: center; margin: 0 0.1rem; flex-shrink: 0; }
+  .row-tags .row-sep { color: var(--stone-lt); font-size: 0.7rem; }
+  .row-tags .row-avatars { display: flex; align-items: center; margin: 0 0.15rem; flex-shrink: 0; }
 
   .rtag {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.05rem;
+    font-size: 0.85rem;
     letter-spacing: 0.03em;
-    padding: 0.12rem 0.36rem;
-    border-radius: 2px;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -972,6 +1010,7 @@
   .rt-p3      { background: var(--p3-pale);      color: var(--p3); }
   .rt-skills  { background: var(--skills-pale);  color: var(--skills); }
   .rt-stone   { background: var(--snow); color: var(--stone); border: 1px solid var(--border); }
+  .rt-guest   { background: #fef2e8; color: var(--amber); border: 1px solid #f3d5bb; font-weight: 600; }
   .rt-red     { background: var(--red-pale); color: var(--red); }
 
   .row-right {
@@ -1005,9 +1044,9 @@
   /* ── FEATURED CARD ── */
   .event-feat {
     background: var(--white);
-    border-radius: 6px;
+    border-radius: 3px;
     border: 1px solid var(--border);
-    margin-bottom: 0.35rem;
+    margin: 0 0.55rem 0.5rem;
     overflow: hidden;
     cursor: pointer;
     transition: opacity 0.15s;
@@ -1959,6 +1998,17 @@
     align-items: center;
     gap: 0.875rem;
     z-index: 100;
+  }
+
+  .bottom-bar.inline {
+    position: static;
+    transform: none;
+    margin: 0 1rem 1rem;
+    width: auto;
+    max-width: none;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
   }
 
   .bottom-price {
@@ -7509,15 +7559,17 @@
     padding: 0.3rem 0;
   }
 
-  .nav-icon { font-size: 2.4rem; }
+  .nav-icon { font-size: 3.2rem; line-height: 1; }
 
   .nav-label {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     text-transform: none;
     color: var(--stone-lt);
+    text-align: center;
+    white-space: nowrap;
   }
 
   .nav-item.active .nav-label { color: var(--forest-mid); }
@@ -9245,6 +9297,256 @@
     color: var(--amber);
     border: 1px solid rgba(160,104,40,0.2);
   }
+
+  /* ── MONTH VIEW ── */
+  .mv-legend {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 0.55rem 0.85rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+  .mv-key {
+    display: flex; align-items: center; gap: 0.28rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.72rem;
+    color: var(--stone);
+  }
+  .mv-key-dot {
+    width: 16px; height: 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .mv-key-dot.sea { background: var(--sea-b); }
+  .mv-key-dot.river { background: var(--riv-mid); }
+  .mv-key-dot.pinkston { background: var(--p2); }
+  .mv-key-dot.loch { background: var(--loch); }
+  .mv-key-dot.skills { background: var(--skills); }
+  .mv-key-dot.guest { background: var(--amber); }
+
+  /* Week-split layout: Mon-Thu on top row, Fri-Sun on bottom */
+  .mv3-wrap { padding: 0 0 5rem; background: var(--snow); }
+  .mv3-week {
+    background: var(--white);
+    padding: 0 0.55rem;
+    margin-bottom: 0;
+  }
+  .mv3-row {
+    display: grid;
+    gap: 0;
+    margin-top: 0;
+  }
+  /* Small offset on each side so the two halves of the week feel distinct,
+     but no giant empty gutter. */
+  .mv3-row.weekdays {
+    grid-template-columns: repeat(4, 1fr);
+    padding-right: 11%;
+  }
+  .mv3-row.weekend {
+    grid-template-columns: repeat(3, 1fr);
+    padding-left: 15%;
+  }
+  .mv3-cell {
+    height: 81px;
+    padding: 0.3rem 0.4rem 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+  .mv3-evs { overflow: hidden; flex: 1; min-height: 0; }
+  .mv3-cell.other { opacity: 0.35; }
+
+  /* Weekdays: turquoise-tinged tiles (every cell gets a full border) */
+  .mv3-row.weekdays .mv3-cell {
+    background: #e3f1f2;
+    border: 1px solid #bed8dc;
+    margin-right: -1px; /* collapse shared edges so bars bridge across cells */
+    border-radius: 0;
+  }
+  .mv3-row.weekdays .mv3-cell:last-child { margin-right: 0; }
+  .mv3-row.weekdays .mv3-cell.has-events {
+    background: #ecf6f7;
+  }
+  .mv3-row.weekdays .mv3-day {
+    color: #4e7e85;
+  }
+
+  /* Weekend: warmer amber cards (every cell gets a full border) */
+  .mv3-row.weekend .mv3-cell {
+    background: #f6e8d4;
+    border: 1px solid #e3c9a2;
+    margin-right: -1px;
+    border-radius: 0;
+  }
+  .mv3-row.weekend .mv3-cell:last-child { margin-right: 0; }
+  .mv3-row.weekend .mv3-cell.has-events {
+    background: #fff9ef;
+    box-shadow: 0 1px 2px rgba(184,85,48,0.08);
+  }
+  .mv3-row.weekend .mv3-day {
+    color: var(--amber);
+  }
+  .mv3-head {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  /* Bars stacked at the bottom of each cell, flush to adjacent cells so
+     a multi-day event appears as one continuous line across its cells. */
+  /* Bars sit in an absolute strip that covers the cell borders left/right, so
+     adjacent cells' bars butt up seamlessly for multi-day events. */
+  .mv3-bars {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    z-index: 1;
+  }
+  .mv3-bars .mv3-ev-bar {
+    width: 100%;
+    height: 4px;
+    border-radius: 0;
+  }
+  .mv3-day {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.56rem;
+    color: var(--stone-lt);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .mv3-num {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.08rem;
+    font-weight: 600;
+    color: var(--peat);
+    line-height: 1;
+  }
+  .mv3-cell.today .mv3-num {
+    background: var(--forest);
+    color: white;
+    border-radius: 50%;
+    padding: 3px 6px;
+    font-weight: 600;
+  }
+  .mv3-evs { display: flex; flex-direction: column; gap: 2px; }
+  .mv3-ev {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.63rem;
+    color: var(--peat);
+    line-height: 1.15;
+  }
+  .mv3-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+  .mv3-ev-bar {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .mv3-ev-bar.loch { background: var(--loch); }
+  .mv3-ev-bar.skills { background: var(--skills); }
+  .mv3-ev-bar.guest { background: var(--amber); }
+  .mv3-ev-bar.p1 { background: var(--p1); }
+  .mv3-ev-bar.p2 { background: var(--p2); }
+  .mv3-ev-bar.sea-a { background: var(--sea-a); }
+  .mv3-ev-bar.sea-b { background: var(--sea-b); }
+  .mv3-ev-bar.sea-c { background: var(--sea-c); }
+  .mv3-ev-bar.riv-mid { background: var(--riv-mid); }
+  .mv3-ev-title {
+    min-width: 0;
+    flex: 1;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .mv3-thumb {
+    width: 44px; height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .mv3-row { position: relative; }
+  .mv3-indent {
+    position: absolute;
+    top: 0; bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  /* Photos disabled for now — indents kept as spacing only */
+  .mv3-indent { display: none; }
+  /* Photo fills the indent gutter exactly.
+     Native dims swap with row-height × indent-width so it fits post-rotation. */
+  .mv3-indent .mv3-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 76px;    /* becomes visual height after 90° rotation */
+    height: 64px;   /* becomes visual width after 90° rotation */
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    object-fit: cover;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    transform-origin: center;
+    filter: saturate(0.8) contrast(0.94);
+    opacity: 0.82;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: filter 0.18s ease, opacity 0.18s ease;
+  }
+  .mv3-indent .mv3-thumb:active { filter: saturate(1) contrast(1); opacity: 1; }
+
+  /* Lightbox popup for the row-highlight photo */
+  .mv3-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,26,20,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .mv3-lightbox.open { display: flex; }
+  .mv3-lightbox img {
+    width: 90vw;
+    max-width: 560px;
+    height: auto;
+    max-height: 80vh;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    border: 4px solid var(--white);
+    animation: popin 0.22s ease;
+  }
+  @keyframes popin {
+    from { transform: scale(0.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .mv3-lightbox-close {
+    position: absolute;
+    top: 1.2rem; right: 1.2rem;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    cursor: pointer;
+  }
+  .month-name { cursor: pointer; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
@@ -9264,6 +9566,10 @@
     <div class="nav-item" id="nav-mytrips" onclick="navigate('mytrips')">
       <div class="nav-icon">🚣</div>
       <div class="nav-label">My Trips</div>
+    </div>
+    <div class="nav-item" id="nav-levels" onclick="navigate('levels')">
+      <div class="nav-icon">🧭</div>
+      <div class="nav-label">Levels</div>
     </div>
     <div class="nav-item" id="nav-progress" onclick="navigate('progress')">
       <div class="nav-icon">🦦</div>
@@ -9287,18 +9593,54 @@
 
 // Current state
 let currentScreen = 'home';
-let isLeader = false;
+let isLeader = true;
 let navHistory = [];
+
+// Shared DCKC club logo — injected into every screen topbar (see injectDckcLogo)
+const DCKC_LOGO_SVG = `<svg class="dckc-logo dckc-logo-sm" viewBox="0 0 517.15 325.12" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-label="DCKC">
+  <defs>
+    <style>.tlg1{fill:#fdfefe}.tlg2,.tlg3{fill:#2a4560}.tlg4,.tlg5{fill:#fff}.tlg6,.tlg7{fill:none}.tlg6,.tlg3{stroke:#fff;stroke-miterlimit:10;stroke-width:5px}.tlg8{fill:#7ca895}.tlg9{fill:#5ba4b5}.tlg10{font-size:48px}.tlg5{font-family:Belgium,Belgium}.tlg11{font-size:29px}</style>
+    <path id="tlgpath" d="M92.09,312.83c46-40,60.58-118.68,60.58-118.68,0,0,43.5,160.52,364.48-41.21"/>
+  </defs>
+  <g><g>
+    <path class="tlg4" d="M510.4,159.94c-77.76,54.54-216.78,134.41-313.1,98.8-25.35-9.69-47.75-29.99-55.91-56.36,0,0,9.14-.37,9.14-.37-2.5,11.28-5.85,22.19-9.78,33.02-11.79,31.78-28.44,63.41-55.41,84.8,16-15.8,27.61-35.39,36.51-55.89,11.43-25.85,18.43-54.22,22.68-82.12,1.47,4.3,6.12,19.65,8.07,23.39,6.05,12.74,15.75,23.61,27.28,31.67,86.51,58.14,249.73-32.96,330.53-76.93h0Z"/>
+    <ellipse class="tlg2" cx="312.03" cy="196.07" rx="58.41" ry="26" transform="translate(-49 122.15) rotate(-20.57)"/>
+    <ellipse class="tlg7" cx="287.46" cy="195.58" rx="58.41" ry="26" transform="translate(-50.39 113.48) rotate(-20.57)"/>
+    <ellipse class="tlg6" cx="304.08" cy="200.56" rx="58.41" ry="26" transform="translate(-51.08 119.64) rotate(-20.57)"/>
+    <path class="tlg1" d="M5.44,154.26c4.21-12.59,13.14-24.32,25.36-30.38,8.13-4.18,17.15-6.42,26.12-7.73,13.25-1.33,26.71-.87,39.89-1.14-4.6.91,321.54-84.5,320.32-84.28,0,0-1.97,1.37-1.97,1.37.37-.52.66-.87.98-1.28,4.68-5.6,10.2-10.54,16.3-14.52,6.64-3.99,13.79-7.01,21.16-9.01,14.52-4.01,30.09-3.82,44.71-.72-11.05-.93-22.11-.39-32.84,2.21-10.46,2.49-20.53,7.06-29.12,13.4-5.42,3.73-10.62,7.89-14.76,13.03-.42.55-1.1,1.42-1.49,1.97,0,0-1.19.31-1.19.31L97.76,121.9l-.41.11s-.43,0-.43,0c-8.86.13-17.65.05-26.34.33-8.6.48-17.2.87-25.66,2.26-17.75,2.79-31.58,13.33-39.48,29.66h0Z"/>
+    <path class="tlg3" d="M366.77,50.15c-4.08,10.2,8.84,24.31,8.84,24.31,11.56,26.53-1.36,56.64-17.69,59.36-16.33,2.72-21.6,27.53-21.6,27.53-53.38,74.79-77.04,7-77.04,7,0,0-1.96-6-5.96-15.5-1.09-2.58,1-6.5-30.1-6.78,0,0-14.29,8.16-44.22-10.88-29.93-19.05-28.57-15.65-28.57-15.65l-24.49-11.56s2.04-21.77,33.33-10.2l.68,12.93,55.78,17.69s44.08-5.53,61.08,5.97l-2-1,.78-6.33s-22.78-10.17-10.78-28.17c1.98-2.97,6.79-3.04,11.46-5.84,37.41-22.45,21.09,28.57,21.09,28.57l39.46-3.4s12.24-13.61,21.77-16.33c0,0-4.76,5.44-3.4-35.37,0,0-1.36-14.97-15.65-10.88,0,0-1.36-19.73,26.53-9.52l.68,4.08Z"/>
+    <path class="tlg8" d="M82.8,130.23s-10.55-5.27-49.81,16.41c0,0-6.45-7.03,4.69-16.41,0,0-12.31,4.1-16.41,24.03,0,0,36.34,5.27,61.54-24.03Z"/>
+    <path class="tlg4" d="M247.89,98.99s42.08,3.7,54.28-2c0,0-17.8-34.69-38.19-4.46l-19.88-5.05s-9.24-.46,3.78,11.51Z"/>
+    <path class="tlg4" d="M270.54,181.97l-.75,13.27s27.73,27.42,59.2-4.42l11.24-49.54"/>
+    <path class="tlg9" d="M433.22,34.91c2.71-3.83,4.71-10.95,58.54-10.26,0,0,2.68-10.47-13.46-13.88,0,0,14.49-2.49,29.25,15.22,0,0-33.48,24.71-74.33,8.92Z"/>
+    <text><textPath startOffset="73.3%" xlink:href="#tlgpath"><tspan class="tlg5"><tspan class="tlg11" x="0" y="0" xml:space="preserve">                    </tspan><tspan class="tlg10" x="0" y="0">DCKC</tspan></tspan></textPath></text>
+    <polygon class="tlg4" points="338.24 142.57 345.74 137.65 341.24 150.65 336.07 152.32 338.24 142.57"/>
+  </g></g>
+</svg>`;
+
+function injectDckcLogo(wrapper) {
+  wrapper.querySelectorAll('.topbar').forEach(topbar => {
+    if (topbar.querySelector('.dckc-logo')) return;
+    topbar.insertAdjacentHTML('afterbegin', DCKC_LOGO_SVG);
+    topbar.classList.add('has-logo');
+  });
+  // Club logo → calendar (applies to both injected and the home hero logo)
+  wrapper.querySelectorAll('.dckc-logo').forEach(logo => {
+    logo.style.cursor = 'pointer';
+    logo.onclick = () => navigate('calendar');
+  });
+}
 
 // Screen definitions
 const screens = {
   home:         { label: 'OtterPool',          nav: null       },
   calendar:     { label: 'Calendar',            nav: 'calendar' },
+  monthview:    { label: 'Month view',          nav: 'calendar' },
   event:        { label: 'Event',               nav: null       },
   create:       { label: 'Create Event',        nav: null       },
   mytrips:      { label: 'My Trips',            nav: 'mytrips'  },
   progress:     { label: 'Progress',            nav: 'progress' },
-  levels:       { label: 'Levels',              nav: null       },
+  levels:       { label: 'Levels',              nav: 'levels'   },
   approval:     { label: 'Approvals',           nav: null       },
   participants: { label: 'Participants',        nav: null       },
   posttrip:     { label: 'Post-trip',           nav: null       },
@@ -9397,6 +9739,7 @@ function loadScreen(screenId, back) {
   wrapper.innerHTML = html;
   container.innerHTML = '';
   container.appendChild(wrapper);
+  injectDckcLogo(wrapper);
   wireNavigation(wrapper, screenId);
   const fn = window['runInit_' + screenId];
   if (fn) fn();
@@ -9460,6 +9803,67 @@ function wireNavigation(wrapper, screenId) {
           el.style.cursor = 'pointer';
           el.onclick = (e) => { e.stopPropagation(); navigate('levels'); };
         }
+      });
+      // Month name → full month view
+      wrapper.querySelectorAll('.month-name').forEach(el => {
+        el.onclick = () => navigate('monthview');
+      });
+      // Coloured pips in the date strip → event detail
+      wrapper.querySelectorAll('.month-strip .mev').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.onclick = (e) => { e.stopPropagation(); navigate('event'); };
+      });
+      break;
+
+    case 'monthview':
+      // Put date number first, day-of-week label to its right
+      wrapper.querySelectorAll('.mv3-head').forEach(head => {
+        const day = head.querySelector('.mv3-day');
+        const num = head.querySelector('.mv3-num');
+        if (day && num && head.firstElementChild !== num) {
+          head.insertBefore(num, head.firstChild);
+        }
+      });
+      // Stack event bars at the bottom of each cell (flush across cells for multi-day)
+      wrapper.querySelectorAll('.mv3-cell.has-events').forEach(cell => {
+        const bars = [...cell.querySelectorAll('.mv3-ev-bar')];
+        if (bars.length) {
+          const strip = document.createElement('div');
+          strip.className = 'mv3-bars';
+          bars.forEach(b => { b.remove(); strip.appendChild(b); });
+          cell.appendChild(strip);
+        }
+        cell.onclick = () => navigate('event');
+      });
+      // Move thumbnails out of cells; keep only first per row, rotate & enlarge
+      wrapper.querySelectorAll('.mv3-row').forEach(row => {
+        const thumbs = [...row.querySelectorAll('.mv3-thumb')];
+        if (!thumbs.length) return;
+        const indent = document.createElement('div');
+        indent.className = 'mv3-indent';
+        const first = thumbs[0];
+        first.remove();
+        indent.appendChild(first);
+        thumbs.slice(1).forEach(t => t.remove());
+        row.appendChild(indent);
+      });
+      // Photo tap → lightbox popup
+      let lightbox = document.querySelector('.mv3-lightbox');
+      if (!lightbox) {
+        lightbox = document.createElement('div');
+        lightbox.className = 'mv3-lightbox';
+        lightbox.innerHTML = '<div class="mv3-lightbox-close">✕</div><img alt="">';
+        lightbox.onclick = () => lightbox.classList.remove('open');
+        document.body.appendChild(lightbox);
+      }
+      const bigImage = lightbox.querySelector('img');
+      wrapper.querySelectorAll('.mv3-indent .mv3-thumb').forEach(img => {
+        img.onclick = (e) => {
+          e.stopPropagation();
+          // Upgrade to a higher-res variant of the Unsplash URL
+          bigImage.src = img.src.replace(/\?w=\d+/, '?w=1200');
+          lightbox.classList.add('open');
+        };
       });
       break;
 
@@ -9706,7 +10110,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+          <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">＋</div>' : ''}
@@ -9723,33 +10127,9 @@ function renderHome() {
       </div>
 
       <div class="screen-grid">
-        <div class="screen-tile" onclick="navigate('calendar')">
-          <div class="tile-icon">📅</div>
-          <div class="tile-info"><div class="tile-name">Calendar</div></div>
-        </div>
         <div class="screen-tile" onclick="navigate('event')">
           <div class="tile-icon">🌊</div>
           <div class="tile-info"><div class="tile-name">Event</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('mytrips')">
-          <div class="tile-icon">🚣</div>
-          <div class="tile-info"><div class="tile-name">My Trips</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('progress')">
-          <div class="tile-icon">🦦</div>
-          <div class="tile-info"><div class="tile-name">Progress</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('levels')">
-          <div class="tile-icon">🧭</div>
-          <div class="tile-info"><div class="tile-name">Levels</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('profile')">
-          <div class="tile-icon">👤</div>
-          <div class="tile-info"><div class="tile-name">Profile</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('notifications')">
-          <div class="tile-icon">🔔</div>
-          <div class="tile-info"><div class="tile-name">Notify</div></div>
         </div>
         <div class="screen-tile" onclick="navigate('signup')">
           <div class="tile-icon">✍️</div>
@@ -9758,10 +10138,6 @@ function renderHome() {
         <div class="screen-tile" onclick="navigate('posttrip')">
           <div class="tile-icon">📝</div>
           <div class="tile-info"><div class="tile-name">Post-trip</div></div>
-        </div>
-        <div class="screen-tile" onclick="navigate('create')">
-          <div class="tile-icon">＋</div>
-          <div class="tile-info"><div class="tile-name">Create Event</div></div>
         </div>
         <div class="screen-tile" onclick="navigate('approval')">
           <div class="tile-icon">✅</div>
@@ -9819,7 +10195,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+    <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -9935,7 +10311,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-p2"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Thu 3 · 8pm</div>
+        <div class="row-date-inline"><span class="rd-day">Thu</span><span class="rd-num">3</span><span class="rd-time">8pm</span></div>
         <div class="row-title">Pinkston — 2 Pumps</div>
       </div>
       <div class="row-tags">
@@ -9958,7 +10334,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-loch"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Tue 7<br>6:30pm</div>
+        <div class="row-date-inline"><span class="rd-day">Tue</span><span class="rd-num">7</span><span class="rd-time">6:30pm</span></div>
         <div class="row-title">Tuesday Evening — Loch Lomond</div>
       </div>
       <div class="row-sub">Weekly club session — all welcome!</div>
@@ -9982,7 +10358,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-skills"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Tue 7</div>
+        <div class="row-date-inline"><span class="rd-day">Tue</span><span class="rd-num">7</span></div>
         <div class="row-title">MicroSession — Low Brace Turn</div>
       </div>
       <div class="row-sub">Follows Tuesday evening · Loch Lomond</div>
@@ -10000,12 +10376,36 @@ screenData['calendar'] = `<!-- MODAL -->
     </div>
   </div>
 
+  <!-- Guest MicroSession -->
+  <div class="event-row" data-disc="skills">
+    <div class="row-accent ra-skills"></div>
+    <div class="row-body">
+      <div class="row-title-line">
+        <div class="row-date-inline"><span class="rd-day">Tue</span><span class="rd-num">21</span></div>
+        <div class="row-title">MicroSession — How not to get back in your kayak!</div>
+      </div>
+      <div class="row-sub">Guest session · follows Tuesday evening · Loch Lomond</div>
+      <div class="row-tags">
+        <span class="rtag rt-skills">Skills</span>
+        <span class="rtag rt-guest">🎤 Guest</span>
+        <span class="rtag rt-stone">🐸 min</span>
+        <span class="row-spacer"></span>
+        <span class="row-places">10 left</span>
+        <span class="row-sep">·</span>
+        <span class="row-price free">Free</span>
+      </div>
+    </div>
+    <div class="row-thumb">
+      <img src="https://dckc.co.uk/wp-content/uploads/Leigh2.jpg" alt="Guest skills session with Leigh">
+    </div>
+  </div>
+
   <!-- Pinkston P1 -->
   <div class="event-row" data-disc="pool" data-grade="p1">
     <div class="row-accent ra-p1"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Thu 10 · 8pm</div>
+        <div class="row-date-inline"><span class="rd-day">Thu</span><span class="rd-num">10</span><span class="rd-time">8pm</span></div>
         <div class="row-title">Pinkston — 1 Pump</div>
       </div>
       <div class="row-tags">
@@ -10064,7 +10464,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-loch"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Tue 14<br>6pm</div>
+        <div class="row-date-inline"><span class="rd-day">Tue</span><span class="rd-num">14</span><span class="rd-time">6pm</span></div>
         <div class="row-title">All Away Tuesday — Loch Ard</div>
       </div>
       <div class="row-sub">Monthly evening all away trip to a beautiful loch!</div>
@@ -10123,7 +10523,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-p3"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Thu 24 · 8pm</div>
+        <div class="row-date-inline"><span class="rd-day">Thu</span><span class="rd-num">24</span><span class="rd-time">8pm</span></div>
         <div class="row-title">Pinkston — 3 Pumps</div>
       </div>
       <div class="row-tags">
@@ -10182,7 +10582,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-loch"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Tue 28<br>6:30pm</div>
+        <div class="row-date-inline"><span class="rd-day">Tue</span><span class="rd-num">28</span><span class="rd-time">6:30pm</span></div>
         <div class="row-title">Tuesday Evening — Loch Lomond</div>
       </div>
       <div class="row-sub">Weekly club session — all welcome!</div>
@@ -10206,7 +10606,7 @@ screenData['calendar'] = `<!-- MODAL -->
     <div class="row-accent ra-p2"></div>
     <div class="row-body">
       <div class="row-title-line">
-        <div class="row-date-inline">Thu 29 · 8pm</div>
+        <div class="row-date-inline"><span class="rd-day">Thu</span><span class="rd-num">29</span><span class="rd-time">8pm</span></div>
         <div class="row-title">Pinkston — 2 Pumps</div>
       </div>
       <div class="row-tags">
@@ -10369,6 +10769,106 @@ function applyFilter() {
   }
 }
 <\/script>`;
+screenData['monthview'] = `<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-back">←</div>
+    <div class="topbar-title">April 2026</div>
+  </div>
+  <div class="mnav-btns" style="color:var(--stone);">
+    <div class="mnav">‹</div>
+    <div class="mnav">›</div>
+  </div>
+</div>
+
+<!-- COLOUR KEY -->
+<div class="mv-legend">
+  <div class="mv-key"><span class="mv-key-dot sea"></span>Sea</div>
+  <div class="mv-key"><span class="mv-key-dot river"></span>River</div>
+  <div class="mv-key"><span class="mv-key-dot pinkston"></span>Pinkston</div>
+  <div class="mv-key"><span class="mv-key-dot loch"></span>Loch</div>
+  <div class="mv-key"><span class="mv-key-dot skills"></span>Skills</div>
+  <div class="mv-key"><span class="mv-key-dot guest"></span>Guest</div>
+</div>
+
+<!-- MONTH — week-split layout -->
+<div class="mv3-wrap">
+  <!-- Week 1: Mar 30 – Apr 5 -->
+  <div class="mv3-week">
+    <div class="mv3-row weekdays">
+      <div class="mv3-cell other"><div class="mv3-head"><span class="mv3-day">Mon</span><span class="mv3-num">30</span></div></div>
+      <div class="mv3-cell other"><div class="mv3-head"><span class="mv3-day">Tue</span><span class="mv3-num">31</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Wed</span><span class="mv3-num">1</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar loch"></span><span class="mv3-ev-title">Loch eve</span></div></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Thu</span><span class="mv3-num">2</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar p2"></span><span class="mv3-ev-title">Pinkston · 2 Pumps</span></div></div></div>
+    </div>
+    <div class="mv3-row weekend">
+      <div class="mv3-cell today"><div class="mv3-head"><span class="mv3-day">Fri</span><span class="mv3-num">3</span></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Sat</span><span class="mv3-num">4</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Sun</span><span class="mv3-num">5</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-a"></span><span class="mv3-ev-title">Sea A paddle</span></div></div></div>
+    </div>
+  </div>
+
+  <!-- Week 2: Apr 6 – 12 -->
+  <div class="mv3-week">
+    <div class="mv3-row weekdays">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Mon</span><span class="mv3-num">6</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Tue</span><span class="mv3-num">7</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar loch"></span><span class="mv3-ev-title">Tuesday eve</span></div><div class="mv3-ev"><span class="mv3-ev-bar skills"></span><span class="mv3-ev-title">MicroSession</span></div></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Wed</span><span class="mv3-num">8</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Thu</span><span class="mv3-num">9</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar p1"></span><span class="mv3-ev-title">Pinkston · 1 Pump</span></div></div></div>
+    </div>
+    <div class="mv3-row weekend">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Fri</span><span class="mv3-num">10</span></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Sat</span><span class="mv3-num">11</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Sun</span><span class="mv3-num">12</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-a"></span><span class="mv3-ev-title">Cove & Kilcreggan</span><img class="mv3-thumb" src="https://dckc.co.uk/wp-content/uploads/maidens.jpeg" alt=""></div></div></div>
+    </div>
+  </div>
+
+  <!-- Week 3: Apr 13 – 19 -->
+  <div class="mv3-week">
+    <div class="mv3-row weekdays">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Mon</span><span class="mv3-num">13</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Tue</span><span class="mv3-num">14</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar loch"></span><span class="mv3-ev-title">All Away Tuesday</span></div></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Wed</span><span class="mv3-num">15</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Thu</span><span class="mv3-num">16</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar p2"></span><span class="mv3-ev-title">Pinkston · P2</span></div></div></div>
+    </div>
+    <div class="mv3-row weekend">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Fri</span><span class="mv3-num">17</span></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Sat</span><span class="mv3-num">18</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Sun</span><span class="mv3-num">19</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-c"></span><span class="mv3-ev-title">Kentallen</span><img class="mv3-thumb" src="https://dckc.co.uk/wp-content/uploads/Loch_Etive.jpg" alt=""></div></div></div>
+    </div>
+  </div>
+
+  <!-- Week 4: Apr 20 – 26 -->
+  <div class="mv3-week">
+    <div class="mv3-row weekdays">
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Mon</span><span class="mv3-num">20</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-c"></span><span class="mv3-ev-title">Kentallen</span></div></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Tue</span><span class="mv3-num">21</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-c"></span><span class="mv3-ev-title">Kentallen</span></div><div class="mv3-ev"><span class="mv3-ev-bar loch"></span><span class="mv3-ev-title">Tuesday eve</span></div><div class="mv3-ev"><span class="mv3-ev-bar guest"></span><span class="mv3-ev-title">Guest · rescue</span><img class="mv3-thumb" src="https://dckc.co.uk/wp-content/uploads/Leigh2.jpg" alt=""></div></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Wed</span><span class="mv3-num">22</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Thu</span><span class="mv3-num">23</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar p2"></span><span class="mv3-ev-title">Pinkston · P2</span></div></div></div>
+    </div>
+    <div class="mv3-row weekend">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Fri</span><span class="mv3-num">24</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Sat</span><span class="mv3-num">25</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-b"></span><span class="mv3-ev-title">Loch Awe weekender</span><img class="mv3-thumb" src="https://dckc.co.uk/wp-content/uploads/Loch_Etive.jpg" alt=""></div></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Sun</span><span class="mv3-num">26</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar sea-b"></span><span class="mv3-ev-title">Loch Awe weekender</span></div><div class="mv3-ev"><span class="mv3-ev-bar riv-mid"></span><span class="mv3-ev-title">River Tummel</span><img class="mv3-thumb" src="https://dckc.co.uk/wp-content/uploads/DSCF6312.jpg" alt=""></div></div></div>
+    </div>
+  </div>
+
+  <!-- Week 5: Apr 27 – May 3 -->
+  <div class="mv3-week">
+    <div class="mv3-row weekdays">
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Mon</span><span class="mv3-num">27</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Tue</span><span class="mv3-num">28</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar loch"></span><span class="mv3-ev-title">Tuesday eve</span></div></div></div>
+      <div class="mv3-cell"><div class="mv3-head"><span class="mv3-day">Wed</span><span class="mv3-num">29</span></div></div>
+      <div class="mv3-cell has-events"><div class="mv3-head"><span class="mv3-day">Thu</span><span class="mv3-num">30</span></div><div class="mv3-evs"><div class="mv3-ev"><span class="mv3-ev-bar p2"></span><span class="mv3-ev-title">Pinkston · P2</span></div></div></div>
+    </div>
+    <div class="mv3-row weekend">
+      <div class="mv3-cell other"><div class="mv3-head"><span class="mv3-day">Fri</span><span class="mv3-num">1</span></div></div>
+      <div class="mv3-cell other"><div class="mv3-head"><span class="mv3-day">Sat</span><span class="mv3-num">2</span></div></div>
+      <div class="mv3-cell other"><div class="mv3-head"><span class="mv3-day">Sun</span><span class="mv3-num">3</span></div></div>
+    </div>
+  </div>
+</div>
+`;
 screenData['event'] = `<!-- HERO -->
 <div class="hero">
   <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=85" alt="Kentallen sea kayaking">
@@ -10443,6 +10943,18 @@ screenData['event'] = `<!-- HERO -->
     <div class="participants-meta">
       <div class="spaces-count">4</div>
       <div class="spaces-label">spaces left</div>
+    </div>
+  </div>
+
+  <!-- JOIN BLOCK -->
+  <div class="bottom-bar inline">
+    <div class="bottom-price">
+      <div class="bottom-price-amount">£12</div>
+      <div class="bottom-price-note">per person</div>
+    </div>
+    <div class="bottom-btn-col">
+      <div class="bottom-signup-btn approval">Request to join this trip</div>
+      <div class="bottom-signup-note">Approval required · card held until confirmed</div>
     </div>
   </div>
 
@@ -10611,18 +11123,6 @@ screenData['event'] = `<!-- HERO -->
     </div>
   </div>
 
-</div>
-
-<!-- BOTTOM SIGNUP BAR -->
-<div class="bottom-bar">
-  <div class="bottom-price">
-    <div class="bottom-price-amount">£12</div>
-    <div class="bottom-price-note">per person</div>
-  </div>
-  <div class="bottom-btn-col">
-    <div class="bottom-signup-btn approval">Request to join this trip</div>
-    <div class="bottom-signup-note">Approval required · card held until confirmed</div>
-  </div>
 </div>
 
 <script>
@@ -11513,7 +12013,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+  <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -11915,7 +12415,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+  <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -12573,7 +13073,7 @@ screenData['levels'] = `<!-- TOP BAR -->
 
 <!-- INTRO -->
 <div class="intro">
-  <div class="intro-title">The DCKC progression system</div>
+  <div class="intro-title">From Frog to Selkie — your paddling journey</div>
   <div class="intro-text">Levels reflect your experience and help leaders make good decisions about who is ready for which trips. They are not badges or rewards — they are a shared language for safety and trust within the club.</div>
 </div>
 
@@ -14223,7 +14723,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+  <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15001,7 +15501,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark">Otter<span>Pool</span> <span class="version">v1.2.19</span></div>
+  <div class="wordmark"><span class="version">v1.2.19</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -16199,21 +16699,19 @@ function closeMemberSheet(e) {
 
 window.runInit_levels = function() {
   try {
-    function scrollTo(id) {
-  // Update active nav chip
-  document.querySelectorAll('.lnav-chip').forEach(c => c.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-
-  // Scroll to level card
-  const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
-
-// Highlight nav chip as user scrolls
-const cards = ['frog','duck','otter','dolphin','selkie'];
-const chips = document.querySelectorAll('.lnav-chip');
+    // Wire chip clicks → scroll to matching level card (overrides broken inline onclick)
+    const cards = ['frog','duck','otter','dolphin','selkie'];
+    const chips = document.querySelectorAll('.lnav-chip');
+    chips.forEach((chip, i) => {
+      const id = cards[i];
+      chip.onclick = (e) => {
+        e.preventDefault();
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
 
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
