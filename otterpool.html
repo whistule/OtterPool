@@ -8646,6 +8646,10 @@
     color: var(--stone);
     margin-top: 0.1rem;
   }
+  .admin-meta .lapsed {
+    color: var(--red);
+    font-weight: 600;
+  }
 
   .admin-status {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -10244,7 +10248,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">+</div>' : ''}
@@ -10329,7 +10333,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -12214,7 +12218,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12616,7 +12620,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -14924,7 +14928,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15331,7 +15335,7 @@ screenData['admin'] = `<!-- TOP BAR -->
     <div class="admin-av">👩</div>
     <div class="admin-info">
       <div class="admin-name">Sarah Kerr</div>
-      <div class="admin-meta">🦭 Selkie · SKL · Leader · 6 years · PVG · CPWS · First aid</div>
+      <div class="admin-meta">🦭 Selkie · SKL · Leader · 6 years · PVG · <span class="lapsed">CPWS lapsed</span> · First aid</div>
     </div>
     <div class="admin-status active">Active</div>
   </div>
@@ -15340,7 +15344,7 @@ screenData['admin'] = `<!-- TOP BAR -->
     <div class="admin-av">👴</div>
     <div class="admin-info">
       <div class="admin-name">Gordon MacPhail</div>
-      <div class="admin-meta">🦭 Selkie · Advanced SKL · Leader · 12 years · PVG · CPWS · First aid</div>
+      <div class="admin-meta">🦭 Selkie · Advanced SKL · Leader · 12 years · PVG · CPWS · <span class="lapsed">First aid lapsed</span></div>
     </div>
     <div class="admin-status active">Active</div>
   </div>
@@ -15723,7 +15727,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
