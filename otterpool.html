@@ -7534,6 +7534,18 @@
     min-width: 0;
   }
 
+  .status-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-right: 0.45rem;
+    vertical-align: baseline;
+    flex-shrink: 0;
+  }
+  .status-dot.ok { background: #2a9d4a; }
+  .status-dot.warn { background: #d4a017; }
+  .status-dot.err { background: var(--red); }
+
   .profile-row-toggle .row-label-col {
     flex: 1;
     display: flex;
@@ -10232,7 +10244,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">+</div>' : ''}
@@ -10317,7 +10329,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -12202,7 +12214,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12604,7 +12616,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -14912,7 +14924,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15037,7 +15049,7 @@ screenData['profile'] = `<!-- TOP BAR -->
   </div>
   <div class="profile-row">
     <div class="row-label">Status</div>
-    <div class="row-value" style="color:var(--green); font-weight:600;">Active</div>
+    <div class="row-value" style="color:var(--green); font-weight:600;"><span class="status-dot ok"></span>Active</div>
   </div>
   <div class="profile-row">
     <div class="row-label">Type</div>
@@ -15062,15 +15074,15 @@ screenData['profile'] = `<!-- TOP BAR -->
   </div>
   <div class="profile-row">
     <div class="row-label">PVG</div>
-    <div class="row-value">Valid until Nov 2027</div>
+    <div class="row-value"><span class="status-dot ok"></span>Valid until Nov 2027</div>
   </div>
   <div class="profile-row">
     <div class="row-label">CPWS trained</div>
-    <div class="row-value">Until Jun 2027</div>
+    <div class="row-value"><span class="status-dot ok"></span>Until Jun 2027</div>
   </div>
   <div class="profile-row">
     <div class="row-label">First aid</div>
-    <div class="row-value">Trained until Feb 2028</div>
+    <div class="row-value"><span class="status-dot ok"></span>Trained until Feb 2028</div>
   </div>
 </div>
 
@@ -15711,7 +15723,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.8</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.9</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
