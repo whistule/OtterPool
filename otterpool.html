@@ -3150,6 +3150,52 @@
     margin-top: 0.75rem;
   }
 
+  .kit-download-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+  }
+  .kit-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 6px;
+    background: var(--forest-pale);
+    color: var(--forest);
+    border: 1px solid var(--forest-lt, #cfd9cf);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .kit-download-btn:active { background: rgba(44,74,46,0.15); }
+  .kit-download-icon { font-size: 0.95rem; }
+
+  /* Only shown when the PDF is being rendered */
+  .kit-pdf-heading { display: none; }
+  .pdf-rendering .kit-pdf-heading {
+    display: block;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--peat);
+  }
+  .pdf-rendering .kit-pdf-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--peat);
+  }
+  .pdf-rendering .kit-pdf-sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--stone);
+    margin-top: 0.2rem;
+  }
+  .pdf-rendering .kit-download-row { display: none; }
+
   .kit-item {
     display: flex;
     align-items: center;
@@ -9605,6 +9651,7 @@
   .month-name { cursor: pointer; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -10166,7 +10213,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">＋</div>' : ''}
@@ -10251,7 +10298,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -11038,6 +11085,17 @@ screenData['event'] = `<!-- HERO -->
       </div>
       <div class="accordion-body">
         <div class="accordion-body-text">
+          <div class="kit-download-row">
+            <div class="kit-download-btn" onclick="downloadKitList()">
+              <span class="kit-download-icon">⬇</span>
+              <span>Download kit list (PDF)</span>
+            </div>
+          </div>
+          <div id="kentallen-kit-body">
+          <div class="kit-pdf-heading">
+            <div class="kit-pdf-title">Kentallen — Castle Stalker &amp; Shuna</div>
+            <div class="kit-pdf-sub">Sat 19 April — Mon 21 April · Sea C · 2-night sea kayak expedition</div>
+          </div>
           <div class="kit-section-title">Overnight kit</div>
           <div class="kit-list">
             <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Tent + poles & pegs</div></div>
@@ -11096,6 +11154,7 @@ screenData['event'] = `<!-- HERO -->
           </div>
 
           <div class="kit-note">Items may be hired from the club @ £1 per item up to £5. Everything must fit through kayak hatches — use small dry bags (&lt;20L). Pack heavy items (water, food) towards the middle of the boat.</div>
+          </div><!-- /#kentallen-kit-body -->
         </div>
       </div>
     </div>
@@ -11242,6 +11301,29 @@ screenData['event'] = `<!-- HERO -->
 function toggleAccordion(id) {
   const item = document.getElementById(id);
   item.classList.toggle('open');
+}
+
+function downloadKitList() {
+  const el = document.getElementById('kentallen-kit-body');
+  if (!el) return;
+  if (typeof html2pdf === 'undefined') {
+    alert('Download library is still loading — try again in a moment.');
+    return;
+  }
+  document.body.classList.add('pdf-rendering');
+  const opts = {
+    margin: [14, 12, 14, 12],
+    filename: 'Kentallen-kit-list.pdf',
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+  html2pdf().set(opts).from(el).save().then(() => {
+    document.body.classList.remove('pdf-rendering');
+  }).catch(() => {
+    document.body.classList.remove('pdf-rendering');
+  });
 }
 <\/script>`;
 screenData['create'] = `<!-- TOP BAR -->
@@ -12138,7 +12220,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12540,7 +12622,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -14848,7 +14930,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15626,7 +15708,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 

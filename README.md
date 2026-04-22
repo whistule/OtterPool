@@ -1,4 +1,4 @@
-# OtterPool v1.3.2
+# OtterPool v1.3.3
 
 A kayak club management app prototype for [DCKC](https://dckc.co.uk) — Drumchapel and Clydebank Kayak Club, Glasgow.
 
@@ -130,7 +130,7 @@ Open `otterpool.html` directly in any browser. No server required.
 
 ## Status
 
-Prototype v1.3.2 — HTML/CSS/JS, no backend. All data is illustrative.
+Prototype v1.3.3 — HTML/CSS/JS, no backend. All data is illustrative.
 
 **Screens complete:** 14 screens built and linked.
 
