@@ -248,10 +248,14 @@
     border-radius: 50%;
     background: rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.35rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 300;
+    line-height: 1;
     color: white;
     cursor: pointer;
     transition: background 0.15s;
+    padding-bottom: 2px;  /* optical nudge: '+' glyph bias */
   }
   .create-btn:active { background: rgba(255,255,255,0.25); }
 
@@ -9894,7 +9898,7 @@ function wireNavigation(wrapper, screenId) {
           const btn = document.createElement('div');
           btn.className = 'create-btn';
           btn.title = 'Create event';
-          btn.textContent = '＋';
+          btn.textContent = '+';
           btn.onclick = () => navigate('create');
           topRight.insertBefore(btn, topRight.firstChild);
         }
@@ -10213,10 +10217,10 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
-          ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">＋</div>' : ''}
+          ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">+</div>' : ''}
           <div class="topbar-avatar" onclick="navigate(\'profile\')">🦦</div>
         </div>
       </div>
@@ -10298,7 +10302,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -11192,43 +11196,6 @@ screenData['event'] = `<!-- HERO -->
             <div class="carshare-detail">Needs a lift from Glasgow</div>
           </div>
           <div class="carshare-btn">Offer</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Previous trips -->
-    <div class="accordion-item" id="acc-previous">
-      <div class="accordion-header" onclick="toggleAccordion('acc-previous')">
-        <div class="accordion-left">
-          <div class="accordion-icon">🗺️</div>
-          <div class="accordion-title">Previous trips on this route</div>
-        </div>
-        <div class="accordion-chevron">▼</div>
-      </div>
-      <div class="accordion-body">
-        <div class="prev-trip-row">
-          <div class="prev-trip-av">🧑</div>
-          <div class="prev-trip-info">
-            <div class="prev-trip-name">Iain Mackintosh</div>
-            <div class="prev-trip-detail">Paddled this route · Sep 2023</div>
-          </div>
-          <div class="prev-trip-emoji">😁</div>
-        </div>
-        <div class="prev-trip-row">
-          <div class="prev-trip-av">👩</div>
-          <div class="prev-trip-info">
-            <div class="prev-trip-name">Sarah Kerr</div>
-            <div class="prev-trip-detail">Paddled this route · Aug 2022</div>
-          </div>
-          <div class="prev-trip-emoji">🙂</div>
-        </div>
-        <div class="prev-trip-row">
-          <div class="prev-trip-av">👴</div>
-          <div class="prev-trip-info">
-            <div class="prev-trip-name">Gordon MacPhail</div>
-            <div class="prev-trip-detail">Paddled this route · Jul 2021</div>
-          </div>
-          <div class="prev-trip-emoji">😁</div>
         </div>
       </div>
     </div>
@@ -12220,7 +12187,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12622,7 +12589,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -14930,7 +14897,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15708,7 +15675,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.3</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.4</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
