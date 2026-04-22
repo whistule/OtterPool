@@ -4258,6 +4258,25 @@
     font-style: italic;
   }
 
+  /* Leadership pathway card — lighter, sea-toned variant */
+  .level-card.leader-card {
+    background: linear-gradient(135deg, #e4eff1 0%, #d0e2e6 100%);
+    border: 1px solid #bed6db;
+  }
+  .level-card.leader-card::before { background: rgba(0,90,110,0.04); }
+  .level-card.leader-card::after  { background: rgba(0,90,110,0.03); }
+  .level-card.leader-card .level-label {
+    color: var(--sea-c);
+    font-weight: 600;
+  }
+  .level-card.leader-card .level-name {
+    color: var(--sea-c);
+  }
+  .level-card.leader-card .level-meta {
+    color: var(--sea-b);
+    font-style: italic;
+  }
+
   .level-since {
     position: absolute;
     top: 1.25rem;
@@ -10248,7 +10267,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">+</div>' : ''}
@@ -10333,7 +10352,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -12218,7 +12237,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12620,7 +12639,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -13026,7 +13045,7 @@ screenData['progress'] = `<!-- TOP BAR -->
 <div class="tab-panel" id="tab-leadership">
 
   <!-- No qualifications yet card -->
-  <div class="level-card" style="background: var(--topbar);">
+  <div class="level-card leader-card">
     <div class="level-label">Leadership pathway</div>
     <div class="level-animal">🦭</div>
     <div class="level-name">Selkie</div>
@@ -14928,7 +14947,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15727,7 +15746,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.10</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.11</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
