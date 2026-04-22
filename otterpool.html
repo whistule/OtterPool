@@ -3126,6 +3126,30 @@
     margin-bottom: 0.5rem;
   }
 
+  .kit-section-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin: 1rem 0 0.25rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .kit-section-title:first-child { margin-top: 0.25rem; }
+
+  .kit-note {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--stone);
+    font-style: italic;
+    background: var(--forest-pale);
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    margin-top: 0.75rem;
+  }
+
   .kit-item {
     display: flex;
     align-items: center;
@@ -10142,7 +10166,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">＋</div>' : ''}
@@ -10227,7 +10251,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -11014,7 +11038,64 @@ screenData['event'] = `<!-- HERO -->
       </div>
       <div class="accordion-body">
         <div class="accordion-body-text">
-          <p>Full kit list will be added by the leader closer to the trip. Check back here or watch the group thread.</p>
+          <div class="kit-section-title">Overnight kit</div>
+          <div class="kit-list">
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Tent + poles & pegs</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Sleeping bag (ideally 3/4 season)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Sleeping mat</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Dry bags (for dry clothes and sleeping bag)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Cooking stove + fuel + lighter</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Cutlery + cooking utensils</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Pot/pan</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Mug + plastic plate/bowl</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Breakfast / dinner · tea / coffee / milk / snacks</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Headtorch + spare batteries</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Change of clothes for off water + warm jacket</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Waterproof jacket + trainers/boots for off water</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Toiletries / toilet paper / hand sanitiser</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Midge net + repellent (seasonal)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Water — min 2L per night + paddling water</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Personal first aid + medical supplies</div></div>
+          </div>
+
+          <div class="kit-section-title">Kayaking kit</div>
+          <div class="kit-list">
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Kayak (check skeg)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Paddle (+ spare if you have)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Pump</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Drysuit / cag + wetsuit / cag + dry trousers</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Buoyancy aid</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Spraydeck</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Warm hat + cap for paddling</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Paddling thermals (extra layer for winter)</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Wetboots / kayaking shoes</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Pogies / paddling gloves</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Water bottle/bladder + flask</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Lunch + snacks + emergency food</div></div>
+          </div>
+
+          <div class="kit-section-title">Optional</div>
+          <div class="kit-list">
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Phone / waterproof bag</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Camera / memory card / batteries</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Towline</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">VHF Marine Radio</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Map / compass / map case</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Repair kit · paddle float · flares</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Emergency whistle</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Trowel for toileting</div></div>
+          </div>
+
+          <div class="kit-section-title">Group equipment (carried by leader)</div>
+          <div class="kit-list">
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Spare spray deck · spare warm clothes</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Group first aid kit + emergency shelter</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Emergency distress beacon</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Spare paddles + map / compass</div></div>
+            <div class="kit-item"><div class="kit-checkbox"></div><div class="kit-item-text">Kayak repair kit · flares</div></div>
+          </div>
+
+          <div class="kit-note">Items may be hired from the club @ £1 per item up to £5. Everything must fit through kayak hatches — use small dry bags (&lt;20L). Pack heavy items (water, food) towards the middle of the boat.</div>
         </div>
       </div>
     </div>
@@ -12057,7 +12138,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12459,7 +12540,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -14767,7 +14848,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15545,7 +15626,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.2</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
