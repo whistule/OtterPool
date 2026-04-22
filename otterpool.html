@@ -1489,10 +1489,10 @@
 
   .dt-sub {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.05rem;
-    color: var(--stone);
-    margin-top: 0.1rem;
-    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--stone-lt);
+    margin-top: 0.15rem;
+    font-style: normal;
   }
 
   /* Meeting point row */
@@ -2797,6 +2797,34 @@
     text-align: center;
     cursor: pointer;
   }
+
+  .btn-draft {
+    padding: 0.75rem 0.9rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--amber);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    color: var(--amber);
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    flex-shrink: 0;
+  }
+
+  .btn-cancel-create {
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--stone-lt);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+  }
+  .btn-cancel-create:active { background: rgba(255,255,255,0.08); }
 
   /* spacer for fixed bottom bar */
   .bottom-spacer { height: 5rem; }
@@ -10114,7 +10142,7 @@ function renderHome() {
               </g>
             </g>
           </svg>
-          <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+          <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
         </div>
         <div class="topbar-actions">
           ${isLeader ? '<div class="create-btn" onclick="navigate(\'create\')" title="Create event">＋</div>' : ''}
@@ -10199,7 +10227,7 @@ screenData['calendar'] = `<!-- MODAL -->
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+    <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
     <div class="topbar-right">
       <div class="icon-btn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -10505,7 +10533,7 @@ screenData['calendar'] = `<!-- MODAL -->
         <span class="rtag rt-stone">Sat 19 · 8:00am</span>
         <span class="rtag rt-stone">2 nights</span>
         <span class="row-spacer"></span>
-        <span class="row-price">£12</span>
+        <span class="row-price">£5</span>
       </div>
     </div>
     <div class="feat-crew">
@@ -10565,7 +10593,7 @@ screenData['calendar'] = `<!-- MODAL -->
         <span class="rtag rt-stone">🦦 Otter min</span>
         <span class="rtag rt-stone">Approval req.</span>
         <span class="row-spacer"></span>
-        <span class="row-price">£8</span>
+        <span class="row-price">£5</span>
       </div>
     </div>
     <div class="feat-crew">
@@ -10953,7 +10981,7 @@ screenData['event'] = `<!-- HERO -->
   <!-- JOIN BLOCK -->
   <div class="bottom-bar inline">
     <div class="bottom-price">
-      <div class="bottom-price-amount">£12</div>
+      <div class="bottom-price-amount">£5</div>
       <div class="bottom-price-note">per person</div>
     </div>
     <div class="bottom-btn-col">
@@ -11141,7 +11169,7 @@ screenData['create'] = `<!-- TOP BAR -->
     <div class="topbar-back">←</div>
     <div class="topbar-title">New Event</div>
   </div>
-  <div class="draft-badge">Draft</div>
+  <div class="btn-cancel-create" onclick="cancelEvent()">Cancel</div>
 </div>
 
 <!-- PROGRESS STEPS -->
@@ -11683,7 +11711,7 @@ screenData['create'] = `<!-- TOP BAR -->
     <div class="review-row">
       <div class="review-icon">👥</div>
       <div>
-        <div class="review-text">10 places · £12 per person</div>
+        <div class="review-text">10 places · £5 per person</div>
         <div class="review-sub">Approval required · Payment held until confirmed</div>
       </div>
     </div>
@@ -11724,6 +11752,7 @@ screenData['create'] = `<!-- TOP BAR -->
 <!-- BOTTOM NAV BAR -->
 <div class="bottom-nav" id="bottomNav">
   <div class="btn-back" onclick="prevStep()">← Back</div>
+  <div class="btn-draft" onclick="saveDraft()">Save draft</div>
   <div class="btn-next" id="nextBtn" onclick="nextStep()">Next →</div>
 </div>
 
@@ -11798,6 +11827,17 @@ function updateNav() {
 
 function publishEvent() {
   alert('Event published! 🎉');
+}
+
+function saveDraft() {
+  alert('Draft saved. Only you will see this event (as a faded card) until you publish it.');
+  navigate('calendar');
+}
+
+function cancelEvent() {
+  if (confirm('Discard this event? Any unsaved changes will be lost.')) {
+    navigate('calendar');
+  }
 }
 
 function selectCat(el, type) {
@@ -12017,7 +12057,7 @@ updateNav();
 <\/script>`;
 screenData['mytrips'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
   <div class="topbar-right">
     <div class="avatar">🦦</div>
   </div>
@@ -12079,7 +12119,7 @@ screenData['mytrips'] = `<!-- TOP BAR -->
         </div>
       </div>
       <div class="trip-actions">
-        <div class="cancel-btn" onclick="showCancel('Kentallen — Castle Stalker & Shuna', '£6', '£12')">Cancel my place</div>
+        <div class="cancel-btn" onclick="showCancel('Kentallen — Castle Stalker & Shuna', '£6', '£5')">Cancel my place</div>
       </div>
     </div>
 
@@ -12419,7 +12459,7 @@ function confirmCancel() {
 <\/script>`;
 screenData['progress'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -13697,7 +13737,7 @@ screenData['approval'] = `<!-- TOP BAR -->
     <div class="sheet-handle"></div>
     <div class="confirm-body">
       <div class="confirm-title" id="confirmTitle">Approve Duncan Reid?</div>
-      <div class="confirm-sub" id="confirmSub">Their card will be charged £12 and they'll be added to the trip. You can still remove them later if needed.</div>
+      <div class="confirm-sub" id="confirmSub">Their card will be charged £5 and they'll be added to the trip. You can still remove them later if needed.</div>
       <div class="optional-msg">
         <div class="optional-msg-label">Optional message to Duncan</div>
         <textarea class="optional-msg-input" placeholder="e.g. Great to have you along — make sure you're comfortable in the tidal sections…"></textarea>
@@ -13796,7 +13836,7 @@ function showConfirm(action) {
 
   if (action === 'approve') {
     title.textContent = \`Approve \${m.name.split(' ')[0]}?\`;
-    sub.textContent = \`Their card will be charged £12 and they'll be added to the trip. You can still remove them later if needed.\`;
+    sub.textContent = \`Their card will be charged £5 and they'll be added to the trip. You can still remove them later if needed.\`;
     btns.innerHTML = \`
       <div class="confirm-yes-approve" onclick="finalDecision('approved')">Yes, approve</div>
       <div class="confirm-cancel" onclick="closeSheet(null, 'confirmSheet')">Cancel</div>
@@ -14727,7 +14767,7 @@ function showThankyou(from) {
 <\/script>`;
 screenData['profile'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
 </div>
 
 <!-- PROFILE HEADER -->
@@ -15505,7 +15545,7 @@ window.filterSmMembers = function(query) {
 
 screenData['notifications'] = `<!-- TOP BAR -->
 <div class="topbar">
-  <div class="wordmark"><span class="version">v1.3.0</span> Otter<span>Pool</span></div>
+  <div class="wordmark"><span class="version">v1.3.1</span> Otter<span>Pool</span></div>
   <div class="avatar">🦦</div>
 </div>
 
@@ -15837,7 +15877,7 @@ screenData['signup'] = `<!-- ═════════════════
       </div>
       <div class="event-detail-row">
         <div class="event-detail-label">Cost</div>
-        <div class="event-detail-value">£12 — card held, charged on approval</div>
+        <div class="event-detail-value">£5 — card held, charged on approval</div>
       </div>
       <div class="event-detail-row">
         <div class="event-detail-label">Spaces</div>
@@ -16815,7 +16855,7 @@ function showConfirm(action) {
 
   if (action === 'approve') {
     title.textContent = `Approve ${m.name.split(' ')[0]}?`;
-    sub.textContent = `Their card will be charged £12 and they'll be added to the trip. You can still remove them later if needed.`;
+    sub.textContent = `Their card will be charged £5 and they'll be added to the trip. You can still remove them later if needed.`;
     btns.innerHTML = `
       <div class="confirm-yes-approve" onclick="finalDecision('approved')">Yes, approve</div>
       <div class="confirm-cancel" onclick="closeSheet(null, 'confirmSheet')">Cancel</div>
