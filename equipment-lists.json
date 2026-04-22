@@ -1,0 +1,159 @@
+{
+  "tuesday_pool": {
+    "label": "Tuesday Evening — Pool",
+    "personal": [
+      "Swimming attire",
+      "T-shirt (worn over swimwear)",
+      "Towel",
+      "Goggles"
+    ],
+    "available_to_borrow": [
+      "Club boats",
+      "Paddles",
+      "Spray decks"
+    ]
+  },
+
+  "tuesday_loch": {
+    "label": "Tuesday Evening — Loch",
+    "personal": [
+      "Shoes suitable for water",
+      "Large towel",
+      "Swimwear"
+    ],
+    "available_to_borrow": [
+      "Wetsuits",
+      "Kayaks/boats",
+      "Paddles",
+      "Spray decks",
+      "Buoyancy aids"
+    ]
+  },
+
+  "sea_day_trip": {
+    "label": "Sea Kayak Day Trip",
+    "personal": [
+      "Drinking water, bottles and/or bag",
+      "Hot drink (flask)",
+      "Lunch / snack bars / sweets",
+      "Dry bag with change of clothes, towel, footwear",
+      "Dry bag for keys/phone",
+      "Waterproof jacket/cag top, dry trousers or wet/dry suit",
+      "Non-slip water-sure footwear — boots/booties/old trainers",
+      "Hats — one wind/waterproof and one sun-proof",
+      "Gloves & pogies",
+      "Camera (waterproof)",
+      "Watch (waterproof)",
+      "Midge net",
+      "Sun cream",
+      "Rubbish bag",
+      "Wipes & tissues",
+      "Spare dry bags",
+      "Cash £20 + £5 in change",
+      "Large strong waterproof carry bags"
+    ],
+    "safety": [
+      "Spray deck",
+      "Buoyancy aid",
+      "Strobe light",
+      "Tow rope",
+      "Flares & light-sticks",
+      "Whistle",
+      "Compass",
+      "Maps & map case",
+      "VHF radio",
+      "PLB (Personal Location Beacon)",
+      "Paddle float",
+      "Repair kit",
+      "Knife",
+      "Split spare paddles",
+      "Hand pump",
+      "Head-torch + spare batteries",
+      "First aid kit",
+      "Small tool kit & cable ties",
+      "Emergency shelter",
+      "Paddle leash"
+    ]
+  },
+
+  "sea_weekend_expedition": {
+    "label": "Weekend Sea Kayak Expedition",
+    "overnight": [
+      "Tent + poles & pegs",
+      "Sleeping bag (ideally 3/4 season)",
+      "Sleeping mat",
+      "Dry bags (for dry clothes and sleeping bag)",
+      "Cooking stove + fuel + lighter",
+      "Cutlery + cooking utensils",
+      "Pot/pan",
+      "Mug + plastic plate/bowl",
+      "Washing liquid + scrubber",
+      "Cooking extras (salt, pepper, oil)",
+      "Breakfast / Dinner",
+      "Tea / coffee / milk / snacks",
+      "Torch (headtorch) + spare batteries",
+      "Change of clothes for off water",
+      "Warm jacket",
+      "Waterproof jacket",
+      "Trainers/boots for off water",
+      "Toiletries / toilet paper / hand sanitiser",
+      "Midge net + repellent (seasonal)",
+      "Thin gloves + warm hat for off water",
+      "Water — min 2L per night + water for paddling",
+      "Suncream / sunglasses (seasonal)",
+      "Small personal first aid kit",
+      "Personal medical supplies (inhaler/epipen — tell 2 people where stored)",
+      "Bin bag / spare plastic bag"
+    ],
+    "kayaking": [
+      "Kayak (check skeg)",
+      "Paddle (+ spare if you have)",
+      "Pump",
+      "Drysuit / cag + wetsuit / cag + dry trousers",
+      "Buoyancy aid",
+      "Spraydeck",
+      "Warm hat + cap for paddling",
+      "Paddling thermals (extra layer for winter)",
+      "Wetboots / kayaking shoes",
+      "Pogies / paddling gloves",
+      "Water bottle/bladder + flask",
+      "Lunch + snacks + emergency food"
+    ],
+    "optional": [
+      "Phone / waterproof bag",
+      "Camera / memory card / batteries",
+      "Battery pack",
+      "Towline",
+      "VHF Marine Radio",
+      "Map / compass / map case",
+      "Repair kit",
+      "Paddle float",
+      "Flares",
+      "Trowel for toileting",
+      "Penknife / repair tool",
+      "Emergency whistle",
+      "Foldable seat for carry mat",
+      "Tea towel"
+    ],
+    "group_equipment": [
+      "Spare spray deck",
+      "Spare warm clothes",
+      "Group first aid kit",
+      "Emergency group shelter",
+      "Emergency distress beacon",
+      "Spare paddles",
+      "Spare map / compass",
+      "Kayak repair kit",
+      "Emergency flares"
+    ],
+    "group_optional": [
+      "Water carrier",
+      "Firelighters",
+      "Kindling",
+      "Coal",
+      "Saw / axe"
+    ],
+    "hire_note": "Items may be hired from club @ £1 per item up to £5",
+    "packing_tips": "Everything must fit through kayak hatches. Use small dry bags (<20L). Separate tent poles from tent. Heavy items (water, food) pack towards the middle of the boat."
+  }
+}
