@@ -14974,7 +14974,6 @@ screenData['profile'] = `<!-- TOP BAR -->
       <div class="profile-level-text">Otter</div>
     </div>
     <div class="profile-tenure">Member since 2022 · 3 years</div>
-    <div class="profile-bc">BC number: 1042891</div>
   </div>
 </div>
 
@@ -15052,10 +15051,6 @@ screenData['profile'] = `<!-- TOP BAR -->
     <div class="row-label">Date of birth</div>
     <div class="row-value">14 March 1988</div>
   </div>
-  <div class="profile-row">
-    <div class="row-label">BC number</div>
-    <div class="row-value">1042891</div>
-  </div>
 </div>
 
 <!-- BC QUALIFICATIONS -->
@@ -15079,7 +15074,7 @@ screenData['profile'] = `<!-- TOP BAR -->
 <!-- MEMBERSHIP -->
 <div class="section">
   <div class="section-header">
-    <div class="section-title">Membership</div>
+    <div class="section-title">DCKC membership</div>
   </div>
   <div class="profile-row">
     <div class="row-label">Status</div>
@@ -15105,6 +15100,14 @@ screenData['profile'] = `<!-- TOP BAR -->
     <div class="toggle-switch on" onclick="this.classList.toggle('on')">
       <div class="toggle-knob"></div>
     </div>
+  </div>
+  <div class="profile-row">
+    <div class="row-label">SCA number</div>
+    <div class="row-value">#54321</div>
+  </div>
+  <div class="profile-row">
+    <div class="row-label">SCA renewal</div>
+    <div class="row-value"><span class="status-dot ok"></span>31 March 2027</div>
   </div>
   <div class="profile-row">
     <div class="row-label">PVG</div>
@@ -17225,6 +17228,33 @@ window.addEventListener('popstate', () => {
   }
 });
 
+</script>
+<style>
+  /* Auto-hide bottom nav on scroll down, show on scroll up */
+  #bottomNav { transition: transform 0.3s ease; }
+  #bottomNav.nav-hidden { transform: translate(-50%, 140%) !important; }
+
+  /* Hide any legacy prototype nav bars — only the real #bottomNav stays */
+  .bottom-nav:not(#bottomNav),
+  .tab-bar { display: none !important; }
+</style>
+<script>
+  (function () {
+    const nav = document.getElementById('bottomNav');
+    const scroller = document.getElementById('screen-container');
+    if (!nav || !scroller) return;
+    let lastY = 0;
+    const threshold = 8;
+    scroller.addEventListener('scroll', () => {
+      const y = scroller.scrollTop;
+      if (y <= 20) { nav.classList.remove('nav-hidden'); lastY = y; return; }
+      const dy = y - lastY;
+      if (Math.abs(dy) < threshold) return;
+      if (dy > 0) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastY = y;
+    }, { passive: true });
+  })();
 </script>
 </body>
 </html>
