@@ -4,10 +4,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card, GreyBox, Pill, Row, Screen, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
-const FIELDS = [
-  { label: 'Full name', value: 'Robert Plant' },
-  { label: 'Email', value: 'robert@example.co.uk' },
+const STATIC_FIELDS = [
   { label: 'Phone', value: '07700 900123' },
   { label: 'Date of birth', value: '14 Jul 1985' },
   { label: 'BC membership', value: '12345678' },
@@ -26,6 +26,12 @@ const LEAVING = [
 
 export default function ProfileScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const { session } = useAuth();
+  const email = session?.user?.email ?? '—';
+  const fields = [
+    { label: 'Email', value: email },
+    ...STATIC_FIELDS,
+  ];
 
   return (
     <Screen>
@@ -35,7 +41,7 @@ export default function ProfileScreen() {
         <Row style={{ gap: 14 }}>
           <GreyBox height={64} style={{ width: 64, borderRadius: 32 }} label="🦦" />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.name, { color: palette.text }]}>Robert Plant</Text>
+            <Text style={[styles.name, { color: palette.text }]}>{email}</Text>
             <Row style={{ gap: 6, marginTop: 4 }}>
               <Pill label="🦦 Otter" color={OtterPalette.slateNavy} />
               <Pill label="Full member" color={OtterPalette.forest} />
@@ -46,12 +52,12 @@ export default function ProfileScreen() {
 
       <SectionTitle>Personal details</SectionTitle>
       <Card>
-        {FIELDS.map((f, i) => (
+        {fields.map((f, i) => (
           <View
             key={f.label}
             style={[
               styles.fieldRow,
-              i < FIELDS.length - 1 && { borderBottomWidth: 1, borderBottomColor: palette.border },
+              i < fields.length - 1 && { borderBottomWidth: 1, borderBottomColor: palette.border },
             ]}>
             <Text style={[styles.fieldLabel, { color: palette.muted }]}>{f.label}</Text>
             <Text style={[styles.fieldValue, { color: palette.text }]}>{f.value}</Text>
@@ -103,6 +109,13 @@ export default function ProfileScreen() {
           </Card>
         </Pressable>
       ))}
+
+      <SectionTitle>Session</SectionTitle>
+      <Pressable onPress={() => supabase.auth.signOut()}>
+        <Card>
+          <Text style={[styles.leavingLabel, { color: OtterPalette.ice }]}>Sign out</Text>
+        </Card>
+      </Pressable>
     </Screen>
   );
 }
