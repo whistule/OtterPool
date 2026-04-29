@@ -2,6 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -40,6 +42,13 @@ type Signup = {
   id: string;
   status: string;
   signed_up_at: string;
+  payment_status?: string | null;
+};
+
+type SignUpResponse = {
+  signup: Signup;
+  message: string;
+  payment?: { checkout_url: string; amount_pence: number };
 };
 
 const LEVEL_EMOJI: Record<string, string> = {
@@ -52,6 +61,7 @@ const LEVEL_EMOJI: Record<string, string> = {
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   confirmed: { label: '✅ Confirmed', color: OtterPalette.forest },
+  pending_payment: { label: '💳 Awaiting payment', color: OtterPalette.burntOrange },
   pending_review: { label: '⚠️ Pending leader review', color: OtterPalette.burntOrange },
   waitlisted: { label: '⏳ On waitlist', color: OtterPalette.lochPool },
   declined: { label: '✖️ Declined', color: OtterPalette.ice },
@@ -88,7 +98,11 @@ async function readErrorMessage(error: unknown): Promise<string> {
 }
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, paid, cancelled } = useLocalSearchParams<{
+    id: string;
+    paid?: string;
+    cancelled?: string;
+  }>();
   const palette = Colors[useColorScheme() ?? 'light'];
   const { session } = useAuth();
 
@@ -111,7 +125,7 @@ export default function EventDetailScreen() {
       session
         ? supabase
             .from('event_signups')
-            .select('id, status, signed_up_at')
+            .select('id, status, signed_up_at, payment_status')
             .eq('event_id', id)
             .eq('member_id', session.user.id)
             .maybeSingle()
@@ -127,20 +141,59 @@ export default function EventDetailScreen() {
     load();
   }, [load]);
 
+  // Returning from Stripe Checkout — poll briefly while the webhook flips the row.
+  useEffect(() => {
+    if (paid !== '1') return;
+    setFeedback({ type: 'ok', msg: 'Payment received — confirming your sign-up…' });
+    let stopped = false;
+    (async () => {
+      for (let i = 0; i < 8 && !stopped; i++) {
+        await new Promise((r) => setTimeout(r, 700));
+        await load();
+      }
+    })();
+    return () => {
+      stopped = true;
+    };
+  }, [paid, load]);
+
+  useEffect(() => {
+    if (cancelled === '1') {
+      setFeedback({ type: 'err', msg: 'Payment cancelled. You can try again.' });
+    }
+  }, [cancelled]);
+
   const handleSignUp = async () => {
     if (!id) return;
     setBusy(true);
     setFeedback(null);
-    const { data, error } = await supabase.functions.invoke('sign-up', {
-      body: { event_id: id },
+
+    const returnUrl =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? `${window.location.origin}/event/${id}`
+        : `otterpool://event/${id}`;
+
+    const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
+      body: { event_id: id, return_url: returnUrl },
     });
     if (error) {
       const msg = await readErrorMessage(error);
       setFeedback({ type: 'err', msg });
-    } else {
-      setFeedback({ type: 'ok', msg: data?.message ?? 'Signed up' });
-      await load();
+      setBusy(false);
+      return;
     }
+
+    if (data?.payment?.checkout_url) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.href = data.payment.checkout_url;
+      } else {
+        await Linking.openURL(data.payment.checkout_url);
+      }
+      return; // user is leaving the screen; don't clear busy
+    }
+
+    setFeedback({ type: 'ok', msg: data?.message ?? 'Signed up' });
+    await load();
     setBusy(false);
   };
 
@@ -171,8 +224,9 @@ export default function EventDetailScreen() {
   const statusInfo = signup ? STATUS_LABEL[signup.status] : null;
   const isPaid = Number(event.cost) > 0;
 
+  const isPending = signup?.status === 'pending_payment';
   const canSignUp =
-    !signup &&
+    (!signup || isPending) &&
     !busy &&
     (event.status === 'open' || event.status === 'full');
 
@@ -181,6 +235,7 @@ export default function EventDetailScreen() {
   if (event.status === 'cancelled') primaryLabel = 'Cancelled';
   if (event.status === 'closed') primaryLabel = 'Closed';
   if (event.status === 'draft') primaryLabel = 'Not yet open';
+  if (isPending) primaryLabel = `Pay £${Number(event.cost).toFixed(0)}`;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -284,7 +339,12 @@ export default function EventDetailScreen() {
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Payment will be wired up next (Stripe).
+                  Payment received · £{Number(event.cost).toFixed(0)}
+                </Text>
+              ) : null}
+              {signup.status === 'pending_payment' ? (
+                <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
+                  Tap "Sign up" again to resume payment if the sheet was dismissed.
                 </Text>
               ) : null}
             </Card>
@@ -307,7 +367,7 @@ export default function EventDetailScreen() {
           </Card>
         ) : null}
 
-        {!signup ? (
+        {!signup || isPending ? (
           <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
             <Pressable
               onPress={canSignUp ? handleSignUp : undefined}
@@ -325,9 +385,9 @@ export default function EventDetailScreen() {
                 <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
               )}
             </Pressable>
-            {isPaid ? (
+            {isPaid && !isPending ? (
               <Text style={[styles.payNote, { color: palette.muted }]}>
-                Payment of £{Number(event.cost).toFixed(0)} will be requested when Stripe is wired up.
+                Card payment of £{Number(event.cost).toFixed(0)} taken on sign-up.
               </Text>
             ) : null}
           </View>

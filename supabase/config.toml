@@ -368,6 +368,11 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Stripe webhooks are unauthenticated — Stripe doesn't carry a Supabase JWT.
+# Authenticity is enforced via the Stripe-Signature header inside the function.
+[functions.stripe-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
