@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
         status: targetStatus,
         payment_status: "paid",
         amount_paid_pence: pi.amount,
+        payment_intent_id: pi.id,
       })
       .eq("id", signupId)
       .select("event_id")
