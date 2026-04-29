@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
@@ -83,6 +85,8 @@ function formatCost(cost: number): string {
 
 export default function CalendarScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const { profile } = useAuth();
+  const canCreate = profile?.level === 'selkie';
   const [active, setActive] = useState<Discipline>('All');
   const [rows, setRows] = useState<CalendarRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +125,13 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
+      {canCreate ? (
+        <Pressable
+          onPress={() => router.push('/event/new')}
+          style={[styles.fab, { backgroundColor: OtterPalette.slateNavy }]}>
+          <Text style={styles.fabText}>＋ Create event</Text>
+        </Pressable>
+      ) : null}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
@@ -176,42 +187,44 @@ export default function CalendarScreen() {
             const pill = pillForCategory(ev);
             const levelEmoji = LEVEL_EMOJI[ev.min_level] ?? '🦆';
             return (
-              <Card key={ev.id}>
-                <Row style={{ marginBottom: 10 }}>
-                  <GreyBox height={56} style={{ width: 56, borderRadius: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.evTitle, { color: palette.text }]} numberOfLines={2}>
-                      {ev.title}
-                    </Text>
-                    <Text style={[styles.evDate, { color: palette.muted }]}>
-                      {formatDate(ev.starts_at)}
-                    </Text>
-                  </View>
-                </Row>
+              <Pressable key={ev.id} onPress={() => router.push(`/event/${ev.id}`)}>
+                <Card>
+                  <Row style={{ marginBottom: 10 }}>
+                    <GreyBox height={56} style={{ width: 56, borderRadius: 10 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.evTitle, { color: palette.text }]} numberOfLines={2}>
+                        {ev.title}
+                      </Text>
+                      <Text style={[styles.evDate, { color: palette.muted }]}>
+                        {formatDate(ev.starts_at)}
+                      </Text>
+                    </View>
+                  </Row>
 
-                <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  <Pill label={pill.label} color={pill.color} />
-                  <Pill
-                    label={`${levelEmoji} ${ev.min_level}`}
-                    color="#e3e1dc"
-                    textStyle={{ color: '#2a2f33' }}
-                  />
-                  <Pill
-                    label={formatCost(ev.cost)}
-                    color={palette.surface}
-                    textStyle={{ color: palette.text }}
-                  />
-                </Row>
+                  <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    <Pill label={pill.label} color={pill.color} />
+                    <Pill
+                      label={`${levelEmoji} ${ev.min_level}`}
+                      color="#e3e1dc"
+                      textStyle={{ color: '#2a2f33' }}
+                    />
+                    <Pill
+                      label={formatCost(ev.cost)}
+                      color={palette.surface}
+                      textStyle={{ color: palette.text }}
+                    />
+                  </Row>
 
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text style={[styles.evMeta, { color: palette.muted }]}>
-                    Leader · {ev.leader_name ?? '—'}
-                  </Text>
-                  <Text style={[styles.evMeta, { color: palette.text, fontWeight: '700' }]}>
-                    {formatPlaces(ev)}
-                  </Text>
-                </Row>
-              </Card>
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text style={[styles.evMeta, { color: palette.muted }]}>
+                      Leader · {ev.leader_name ?? '—'}
+                    </Text>
+                    <Text style={[styles.evMeta, { color: palette.text, fontWeight: '700' }]}>
+                      {formatPlaces(ev)}
+                    </Text>
+                  </Row>
+                </Card>
+              </Pressable>
             );
           })
         )}
@@ -242,4 +255,19 @@ const styles = StyleSheet.create({
   errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   errBody: { fontSize: 12 },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  fabText: { color: 'white', fontWeight: '700', fontSize: 14 },
 });

@@ -1,0 +1,386 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Card, GreyBox, Pill, Row, SectionTitle } from '@/components/wireframe';
+import { Colors, OtterPalette } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+
+type EventRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  category_id: number | null;
+  grade_advertised: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  location: string | null;
+  meeting_point: string | null;
+  min_level: string;
+  max_participants: number | null;
+  cost: number;
+  status: string;
+  approval_mode: string;
+  leader_id: string;
+  category?: { name: string } | null;
+  leader?: { display_name: string | null; full_name: string | null; level: string } | null;
+};
+
+type Signup = {
+  id: string;
+  status: string;
+  signed_up_at: string;
+};
+
+const LEVEL_EMOJI: Record<string, string> = {
+  frog: '🐸',
+  duck: '🦆',
+  otter: '🦦',
+  dolphin: '🐬',
+  selkie: '🦭',
+};
+
+const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  confirmed: { label: '✅ Confirmed', color: OtterPalette.forest },
+  pending_review: { label: '⚠️ Pending leader review', color: OtterPalette.burntOrange },
+  waitlisted: { label: '⏳ On waitlist', color: OtterPalette.lochPool },
+  declined: { label: '✖️ Declined', color: OtterPalette.ice },
+  withdrawn: { label: '↩️ Withdrawn', color: OtterPalette.lochPool },
+};
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
+async function readErrorMessage(error: unknown): Promise<string> {
+  const fallback = error instanceof Error ? error.message : String(error);
+  if (
+    error &&
+    typeof error === 'object' &&
+    'context' in error &&
+    (error as { context?: unknown }).context instanceof Response
+  ) {
+    try {
+      const body = await (error as { context: Response }).context.clone().json();
+      return body?.error ?? body?.message ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+export default function EventDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const palette = Colors[useColorScheme() ?? 'light'];
+  const { session } = useAuth();
+
+  const [event, setEvent] = useState<EventRow | null>(null);
+  const [signup, setSignup] = useState<Signup | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    const [eventRes, signupRes] = await Promise.all([
+      supabase
+        .from('events')
+        .select(
+          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level)'
+        )
+        .eq('id', id)
+        .maybeSingle(),
+      session
+        ? supabase
+            .from('event_signups')
+            .select('id, status, signed_up_at')
+            .eq('event_id', id)
+            .eq('member_id', session.user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+
+    if (!eventRes.error) setEvent((eventRes.data as unknown as EventRow) ?? null);
+    if (!signupRes.error) setSignup((signupRes.data as Signup) ?? null);
+    setLoading(false);
+  }, [id, session]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleSignUp = async () => {
+    if (!id) return;
+    setBusy(true);
+    setFeedback(null);
+    const { data, error } = await supabase.functions.invoke('sign-up', {
+      body: { event_id: id },
+    });
+    if (error) {
+      const msg = await readErrorMessage(error);
+      setFeedback({ type: 'err', msg });
+    } else {
+      setFeedback({ type: 'ok', msg: data?.message ?? 'Signed up' });
+      await load();
+    }
+    setBusy(false);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator color={palette.tint} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!event) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+        <Header onBack={() => router.back()} />
+        <Card>
+          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
+        </Card>
+      </SafeAreaView>
+    );
+  }
+
+  const leaderName =
+    event.leader?.display_name ?? event.leader?.full_name ?? '—';
+  const levelEmoji = LEVEL_EMOJI[event.min_level] ?? '🦆';
+  const statusInfo = signup ? STATUS_LABEL[signup.status] : null;
+  const isPaid = Number(event.cost) > 0;
+
+  const canSignUp =
+    !signup &&
+    !busy &&
+    (event.status === 'open' || event.status === 'full');
+
+  let primaryLabel = 'Sign up';
+  if (event.status === 'full') primaryLabel = 'Join waitlist';
+  if (event.status === 'cancelled') primaryLabel = 'Cancelled';
+  if (event.status === 'closed') primaryLabel = 'Closed';
+  if (event.status === 'draft') primaryLabel = 'Not yet open';
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+        <Header onBack={() => router.back()} />
+
+        <View style={styles.heroWrap}>
+          <GreyBox height={140} style={styles.hero} label="event photo" />
+        </View>
+
+        <View style={{ paddingHorizontal: 20 }}>
+          <Text style={[styles.title, { color: palette.text }]}>{event.title}</Text>
+          {event.category?.name ? (
+            <Text style={[styles.category, { color: palette.muted }]}>
+              {event.category.name}
+            </Text>
+          ) : null}
+
+          <Row style={{ flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+            {event.grade_advertised ? (
+              <Pill label={event.grade_advertised} color={OtterPalette.slateNavy} />
+            ) : null}
+            <Pill
+              label={`${levelEmoji} ${event.min_level} min`}
+              color="#e3e1dc"
+              textStyle={{ color: '#2a2f33' }}
+            />
+            <Pill
+              label={isPaid ? `£${Number(event.cost).toFixed(0)}` : 'Free'}
+              color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
+            />
+            <Pill
+              label={event.approval_mode === 'manual_all' ? 'Manual review' : 'Auto-approve'}
+              color={palette.surface}
+              textStyle={{ color: palette.text }}
+            />
+          </Row>
+        </View>
+
+        <SectionTitle>When</SectionTitle>
+        <Card>
+          <Text style={[styles.value, { color: palette.text }]}>
+            {formatDateTime(event.starts_at)}
+          </Text>
+          {event.ends_at ? (
+            <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+              Ends {formatDateTime(event.ends_at)}
+            </Text>
+          ) : null}
+        </Card>
+
+        {event.location || event.meeting_point ? (
+          <>
+            <SectionTitle>Where</SectionTitle>
+            <Card>
+              {event.location ? (
+                <Text style={[styles.value, { color: palette.text }]}>{event.location}</Text>
+              ) : null}
+              {event.meeting_point ? (
+                <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+                  Meet at {event.meeting_point}
+                </Text>
+              ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        <SectionTitle>Leader</SectionTitle>
+        <Card>
+          <Row style={{ gap: 12 }}>
+            <GreyBox height={44} style={{ width: 44, borderRadius: 22 }} />
+            <View>
+              <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
+              {event.leader?.level ? (
+                <Text style={[styles.muted, { color: palette.muted }]}>
+                  {LEVEL_EMOJI[event.leader.level] ?? ''} {event.leader.level}
+                </Text>
+              ) : null}
+            </View>
+          </Row>
+        </Card>
+
+        {event.description ? (
+          <>
+            <SectionTitle>Description</SectionTitle>
+            <Card>
+              <Text style={[styles.body, { color: palette.text }]}>{event.description}</Text>
+            </Card>
+          </>
+        ) : null}
+
+        {signup && statusInfo ? (
+          <>
+            <SectionTitle>Your status</SectionTitle>
+            <Card style={{ borderColor: statusInfo.color, borderWidth: 1.5 }}>
+              <Text style={[styles.value, { color: statusInfo.color }]}>
+                {statusInfo.label}
+              </Text>
+              <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+                Signed up {formatDateTime(signup.signed_up_at)}
+              </Text>
+              {isPaid && signup.status === 'confirmed' ? (
+                <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
+                  Payment will be wired up next (Stripe).
+                </Text>
+              ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        {feedback ? (
+          <Card
+            style={{
+              borderWidth: 1.5,
+              borderColor: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice,
+            }}>
+            <Text
+              style={[
+                styles.body,
+                { color: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice },
+              ]}>
+              {feedback.msg}
+            </Text>
+          </Card>
+        ) : null}
+
+        {!signup ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+            <Pressable
+              onPress={canSignUp ? handleSignUp : undefined}
+              disabled={!canSignUp}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: canSignUp ? OtterPalette.slateNavy : '#9aa3ac',
+                  opacity: busy ? 0.7 : 1,
+                },
+              ]}>
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
+              )}
+            </Pressable>
+            {isPaid ? (
+              <Text style={[styles.payNote, { color: palette.muted }]}>
+                Payment of £{Number(event.cost).toFixed(0)} will be requested when Stripe is wired up.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Header({ onBack }: { onBack: () => void }) {
+  const palette = Colors[useColorScheme() ?? 'light'];
+  return (
+    <View
+      style={[
+        styles.header,
+        { backgroundColor: OtterPalette.slateNavy },
+      ]}>
+      <Pressable onPress={onBack} style={styles.backBtn}>
+        <Text style={styles.backText}>‹ Back</Text>
+      </Pressable>
+      <Text style={styles.headerWordmark}>OtterPool</Text>
+      <View style={styles.backBtn} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
+  heroWrap: { paddingHorizontal: 16, marginBottom: 4 },
+  hero: { width: '100%', borderRadius: 14 },
+  title: { fontSize: 22, fontWeight: '700', marginTop: 16 },
+  category: { fontSize: 13, marginTop: 4 },
+  value: { fontSize: 15, fontWeight: '600' },
+  muted: { fontSize: 12 },
+  body: { fontSize: 14, lineHeight: 20 },
+  errTitle: { fontSize: 14, fontWeight: '700' },
+  primaryBtn: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
+});
