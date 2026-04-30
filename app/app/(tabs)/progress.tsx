@@ -1,145 +1,151 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, Pill, Row, Screen, SectionTitle, Stat, TopBar } from '@/components/wireframe';
+import {
+  Ceiling,
+  CeilingsCard,
+  CurrentLevelCard,
+  GradeSection,
+  JourneyLadder,
+  StatRow,
+} from '@/components/progress-blocks';
+import { Card, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
+import { ProgressionLevel, tallyTotals, Track } from '@/lib/progress';
+import { supabase } from '@/lib/supabase';
 
-const LADDER = [
-  { emoji: '🐸', label: 'Frog', achieved: true },
-  { emoji: '🦆', label: 'Duck', achieved: true },
-  { emoji: '🦦', label: 'Otter', achieved: true, current: true },
-  { emoji: '🐬', label: 'Dolphin', achieved: false },
-  { emoji: '🦭', label: 'Selkie', achieved: false },
-];
+type TallyRow = { bucket: string; count: number };
+type ApprovalRow = { track: Track; ceiling: string };
 
 export default function ProgressScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const { session, profile } = useAuth();
+
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [tally, setTally] = useState<TallyRow[] | null>(null);
+  const [ceilings, setCeilings] = useState<Ceiling[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!session) return;
+    setError(null);
+    const [profRes, tallyRes, ceilRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', session.user.id)
+        .maybeSingle(),
+      supabase.from('my_trip_tally').select('bucket, count'),
+      supabase
+        .from('member_approvals')
+        .select('track, ceiling')
+        .eq('member_id', session.user.id),
+    ]);
+    if (profRes.error) setError(profRes.error.message);
+    setCreatedAt((profRes.data as { created_at: string } | null)?.created_at ?? null);
+    setTally(((tallyRes.data ?? []) as TallyRow[]) ?? []);
+    setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
+  }, [session]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const level: ProgressionLevel = profile?.level ?? 'frog';
+  const isAdmin = !!profile?.is_admin;
+  const counts: Record<string, number> = {};
+  for (const t of tally ?? []) counts[t.bucket] = t.count;
+  const totals = tallyTotals(tally ?? []);
+
+  const isLoading = tally == null;
 
   return (
-    <Screen>
-      <TopBar title="Progress" subtitle="Your journey" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <TopBar title="Progress" subtitle="Your journey" />
 
-      <Card>
-        <Text style={[styles.kicker, { color: palette.muted }]}>Current level</Text>
-        <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-          <Row style={{ gap: 12 }}>
-            <Text style={{ fontSize: 44 }}>🦦</Text>
-            <View>
-              <Text style={[styles.levelName, { color: palette.text }]}>Otter</Text>
-              <Text style={[styles.levelDesc, { color: palette.muted }]}>
-                Reliable on-water rescue
-              </Text>
-            </View>
-          </Row>
-          <Pill label="Level 3 of 4" color={OtterPalette.slateNavy} />
-        </Row>
-      </Card>
+        {isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={palette.tint} />
+          </View>
+        ) : error ? (
+          <Card>
+            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
+              Couldn&apos;t load progress
+            </Text>
+            <Text style={[styles.muted, { color: palette.muted }]}>{error}</Text>
+          </Card>
+        ) : (
+          <>
+            {isAdmin ? (
+              <Pressable
+                onPress={() => router.push('/members')}
+                testID="admin-manage-members">
+                <Card style={styles.adminCard}>
+                  <Text style={styles.adminKicker}>Admin</Text>
+                  <Text style={styles.adminAction}>Manage members ›</Text>
+                </Card>
+              </Pressable>
+            ) : null}
 
-      <SectionTitle>Journey ladder</SectionTitle>
-      <Card>
-        <Row style={{ justifyContent: 'space-between' }}>
-          {LADDER.map((step, i) => (
-            <View key={i} style={styles.ladderStep}>
-              <View
-                style={[
-                  styles.ladderCircle,
-                  {
-                    backgroundColor: step.current
-                      ? OtterPalette.slateNavy
-                      : step.achieved
-                      ? '#d6e2ed'
-                      : '#ececec',
-                    opacity: step.achieved || step.current ? 1 : 0.5,
-                  },
-                ]}>
-                <Text style={{ fontSize: 22 }}>{step.emoji}</Text>
-              </View>
-              <Text
-                style={[
-                  styles.ladderLabel,
-                  {
-                    color: step.current ? OtterPalette.slateNavy : palette.muted,
-                    fontWeight: step.current ? '700' : '500',
-                  },
-                ]}>
-                {step.label}
-              </Text>
-            </View>
-          ))}
-        </Row>
-      </Card>
+            <CurrentLevelCard level={level} createdAt={createdAt} />
+            <StatRow {...totals} />
 
-      <SectionTitle>Stats</SectionTitle>
-      <Card>
-        <Row>
-          <Stat value="18" label="Trips" />
-          <Stat value="2y" label="Member" />
-          <Stat value="4" label="Tracks" />
-        </Row>
-      </Card>
+            <GradeSection track="sea" counts={counts} />
+            <GradeSection track="river" counts={counts} />
+            <GradeSection track="pinkston" counts={counts} />
 
-      <SectionTitle>Sea grades</SectionTitle>
-      <Card>
-        <Row style={{ flexWrap: 'wrap', gap: 8 }}>
-          <Pill label="Sea A · 3" color={OtterPalette.seaTeal[0]} />
-          <Pill label="Sea B · 1" color={OtterPalette.seaTeal[1]} />
-          <Pill label="Sea C · –" color="#e3e1dc" textStyle={{ color: '#6b7178' }} />
-        </Row>
-      </Card>
+            <SectionTitle>Approval ceiling</SectionTitle>
+            <CeilingsCard ceilings={ceilings} />
 
-      <SectionTitle>River grades</SectionTitle>
-      <Card>
-        <Row style={{ flexWrap: 'wrap', gap: 8 }}>
-          <Pill label="G1 · 2" color={OtterPalette.riverGreen[0]} />
-          <Pill label="G1/2 · 4" color={OtterPalette.riverGreen[0]} />
-          <Pill label="G2 · 1" color={OtterPalette.riverGreen[1]} />
-          <Pill label="G3 · –" color="#e3e1dc" textStyle={{ color: '#6b7178' }} />
-        </Row>
-      </Card>
-
-      <SectionTitle>Pinkston pumps</SectionTitle>
-      <Card>
-        <Row style={{ flexWrap: 'wrap', gap: 8 }}>
-          <Pill label="P1 · 6" color={OtterPalette.pinkstonOrange[0]} />
-          <Pill label="P2 · 2" color={OtterPalette.pinkstonOrange[1]} />
-          <Pill label="P3 · –" color="#e3e1dc" textStyle={{ color: '#6b7178' }} />
-        </Row>
-      </Card>
-
-      <SectionTitle>Approval ceiling</SectionTitle>
-      <Card>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Text style={[styles.muted, { color: palette.muted }]}>Sea</Text>
-          <Text style={[styles.value, { color: palette.text }]}>Up to Sea B</Text>
-        </Row>
-        <Row style={{ justifyContent: 'space-between', marginTop: 8 }}>
-          <Text style={[styles.muted, { color: palette.muted }]}>River</Text>
-          <Text style={[styles.value, { color: palette.text }]}>Up to G2</Text>
-        </Row>
-        <Row style={{ justifyContent: 'space-between', marginTop: 8 }}>
-          <Text style={[styles.muted, { color: palette.muted }]}>Pinkston</Text>
-          <Text style={[styles.value, { color: palette.text }]}>Up to P2</Text>
-        </Row>
-      </Card>
-    </Screen>
+            <SectionTitle>The journey</SectionTitle>
+            <JourneyLadder level={level} />
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  kicker: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-  levelName: { fontSize: 22, fontWeight: '700' },
-  levelDesc: { fontSize: 12, marginTop: 2 },
-  ladderStep: { alignItems: 'center', flex: 1 },
-  ladderCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
+  center: { padding: 32, alignItems: 'center' },
+  muted: { fontSize: 12 },
+  errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
+  adminKicker: {
+    color: '#ffffff',
+    opacity: 0.7,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
-  ladderLabel: { fontSize: 11 },
-  muted: { fontSize: 13 },
-  value: { fontSize: 13, fontWeight: '600' },
+  adminAction: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 4,
+  },
 });

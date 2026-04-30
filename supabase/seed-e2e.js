@@ -23,6 +23,7 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 const FIXTURE_EVENT_TITLE = "E2E Manual Review Trip";
+const FIXTURE_SELKIE_TITLE = "E2E Selkie Only Trip";
 
 const E2E_USERS = [
   {
@@ -32,6 +33,7 @@ const E2E_USERS = [
     display_name: "E2E Leader",
     level: "selkie",
     status: "active",
+    is_admin: true,
   },
   {
     email: "e2e-member@test.com",
@@ -40,6 +42,7 @@ const E2E_USERS = [
     display_name: "E2E Member",
     level: "duck",
     status: "active",
+    is_admin: false,
   },
 ];
 
@@ -69,6 +72,7 @@ async function ensureUser(spec) {
       display_name: spec.display_name,
       level: spec.level,
       status: spec.status,
+      is_admin: spec.is_admin ?? false,
     })
     .eq("id", user.id);
   if (updErr) throw updErr;
@@ -82,7 +86,7 @@ async function resetFixtureEvent(leader) {
   const { error: delErr } = await admin
     .from("events")
     .delete()
-    .eq("title", FIXTURE_EVENT_TITLE);
+    .in("title", [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE]);
   if (delErr) throw delErr;
 
   const startsAt = new Date();
@@ -111,7 +115,33 @@ async function resetFixtureEvent(leader) {
     .single();
   if (error) throw error;
 
+  // Selkie-only fixture used by the calendar-filter spec to verify that
+  // "Open to me" hides events the signed-in member can't attend.
+  const selkieStartsAt = new Date(startsAt);
+  selkieStartsAt.setDate(selkieStartsAt.getDate() + 1);
+  const selkieEndsAt = new Date(selkieStartsAt);
+  selkieEndsAt.setHours(selkieStartsAt.getHours() + 3);
+
+  const { error: selkieErr } = await admin
+    .from("events")
+    .insert({
+      title: FIXTURE_SELKIE_TITLE,
+      category_id: 7,
+      starts_at: selkieStartsAt.toISOString(),
+      ends_at: selkieEndsAt.toISOString(),
+      location: "E2E selkie only",
+      meeting_point: "Reception",
+      min_level: "selkie",
+      max_participants: 6,
+      cost: 0,
+      status: "open",
+      approval_mode: "auto",
+      leader_id: leader.id,
+    });
+  if (selkieErr) throw selkieErr;
+
   console.log(`  + fixture event ${FIXTURE_EVENT_TITLE} (${data.id})`);
+  console.log(`  + fixture event ${FIXTURE_SELKIE_TITLE}`);
   return data.id;
 }
 
@@ -123,6 +153,15 @@ async function clearSignups(eventId, memberIds) {
     .in("member_id", memberIds);
   if (error) throw error;
   console.log(`  · cleared signups for ${memberIds.length} member(s)`);
+}
+
+async function clearApprovals(memberIds) {
+  const { error } = await admin
+    .from("member_approvals")
+    .delete()
+    .in("member_id", memberIds);
+  if (error) throw error;
+  console.log(`  · cleared approval ceilings for ${memberIds.length} member(s)`);
 }
 
 async function main() {
@@ -137,10 +176,9 @@ async function main() {
   if (!leader) throw new Error("e2e-leader user missing after seed");
 
   const eventId = await resetFixtureEvent(leader);
-  await clearSignups(
-    eventId,
-    users.map((u) => u.id),
-  );
+  const memberIds = users.map((u) => u.id);
+  await clearSignups(eventId, memberIds);
+  await clearApprovals(memberIds);
 
   console.log("\n--- e2e fixtures ready ---");
   console.log(`  fixture event id: ${eventId}`);

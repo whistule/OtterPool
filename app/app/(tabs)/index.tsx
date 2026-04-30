@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
@@ -35,6 +35,14 @@ const LEVEL_EMOJI: Record<string, string> = {
   otter: '🦦',
   dolphin: '🐬',
   selkie: '🦭',
+};
+
+const LEVEL_RANK: Record<string, number> = {
+  frog: 1,
+  duck: 2,
+  otter: 3,
+  dolphin: 4,
+  selkie: 5,
 };
 
 function categoryToDiscipline(category: string): Discipline {
@@ -88,9 +96,13 @@ export default function CalendarScreen() {
   const { profile } = useAuth();
   const canCreate = profile?.level === 'selkie';
   const [active, setActive] = useState<Discipline>('All');
+  const [query, setQuery] = useState('');
+  const [openToMe, setOpenToMe] = useState(false);
   const [rows, setRows] = useState<CalendarRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const myRank = profile?.level ? LEVEL_RANK[profile.level] : undefined;
 
   const load = React.useCallback(async () => {
     setError(null);
@@ -113,9 +125,20 @@ export default function CalendarScreen() {
 
   const filtered = useMemo(() => {
     if (!rows) return null;
-    if (active === 'All') return rows;
-    return rows.filter((r) => categoryToDiscipline(r.category) === active);
-  }, [rows, active]);
+    const q = query.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (active !== 'All' && categoryToDiscipline(r.category) !== active) return false;
+      if (openToMe && myRank !== undefined) {
+        const need = LEVEL_RANK[r.min_level] ?? 0;
+        if (need > myRank) return false;
+      }
+      if (q.length > 0) {
+        const hay = `${r.title} ${r.location ?? ''} ${r.leader_name ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [rows, active, query, openToMe, myRank]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -137,6 +160,21 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <TopBar title="Calendar" subtitle="Upcoming club events" />
+
+        <View style={styles.searchWrap}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search title, location or leader"
+            placeholderTextColor={palette.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[
+              styles.search,
+              { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface },
+            ]}
+          />
+        </View>
 
         <View style={styles.disciplineRow}>
           {DISCIPLINES.map((d) => {
@@ -161,6 +199,28 @@ export default function CalendarScreen() {
           })}
         </View>
 
+        {myRank !== undefined ? (
+          <View style={styles.toggleRow}>
+            <Pressable
+              onPress={() => setOpenToMe((v) => !v)}
+              style={[
+                styles.togglePill,
+                {
+                  backgroundColor: openToMe ? OtterPalette.slateNavy : palette.surface,
+                  borderColor: openToMe ? OtterPalette.slateNavy : palette.border,
+                },
+              ]}>
+              <Text
+                style={[
+                  styles.toggleText,
+                  { color: openToMe ? 'white' : palette.muted },
+                ]}>
+                {openToMe ? '✓ Open to me' : 'Open to me'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <SectionTitle>Upcoming</SectionTitle>
 
         {rows == null ? (
@@ -179,7 +239,7 @@ export default function CalendarScreen() {
             <Text style={[styles.empty, { color: palette.muted }]}>
               {rows.length === 0
                 ? 'No upcoming events yet. Add some in the Supabase dashboard.'
-                : `No upcoming ${active} events.`}
+                : 'No events match your filters.'}
             </Text>
           </Card>
         ) : (
@@ -234,6 +294,30 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  search: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  togglePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  toggleText: { fontSize: 12, fontWeight: '600' },
   disciplineRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,

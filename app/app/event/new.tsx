@@ -65,6 +65,7 @@ export default function NewEventScreen() {
   const [location, setLocation] = useState('');
   const [meetingPoint, setMeetingPoint] = useState('');
   const [minLevel, setMinLevel] = useState<'frog' | 'duck' | 'otter' | 'dolphin'>('frog');
+  const [minLevelTouched, setMinLevelTouched] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('12');
   const [cost, setCost] = useState('0');
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
@@ -74,12 +75,24 @@ export default function NewEventScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
     supabase
       .from('event_categories')
       .select('id, name, default_min_level, default_cost')
       .order('id')
-      .then(({ data }) => setCategories((data ?? []) as Category[]));
-  }, []);
+      .then(({ data, error: fetchErr }) => {
+        if (cancelled) return;
+        if (fetchErr) {
+          setError(`Couldn't load categories: ${fetchErr.message}`);
+          return;
+        }
+        setCategories((data ?? []) as Category[]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
@@ -88,7 +101,9 @@ export default function NewEventScreen() {
 
   const onPickCategory = (c: Category) => {
     setCategoryId(c.id);
-    setMinLevel(c.default_min_level === 'selkie' ? 'dolphin' : c.default_min_level);
+    if (!minLevelTouched) {
+      setMinLevel(c.default_min_level === 'selkie' ? 'dolphin' : c.default_min_level);
+    }
     setCost(String(c.default_cost ?? 0));
   };
 
@@ -292,7 +307,10 @@ export default function NewEventScreen() {
                 return (
                   <Pressable
                     key={lv}
-                    onPress={() => setMinLevel(lv)}
+                    onPress={() => {
+                      setMinLevel(lv);
+                      setMinLevelTouched(true);
+                    }}
                     style={[
                       styles.chip,
                       {
