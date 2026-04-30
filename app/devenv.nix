@@ -1,6 +1,8 @@
 { pkgs, ... }:
 
 {
+  cachix.enable = false;
+
   packages = [
     pkgs.nodejs_22
     pkgs.playwright-driver.browsers
