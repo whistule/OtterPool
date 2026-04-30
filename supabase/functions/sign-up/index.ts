@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
 
     if (!event) return err("Event not found", 404);
     if (event.status !== "open") return err(`Event is ${event.status} — sign-ups are closed`, 409);
+    if (event.leader_id === user.id) {
+      return err("You're the leader of this event — no sign-up needed", 409);
+    }
 
     // Fetch member profile
     const { data: profile } = await admin
@@ -85,8 +88,16 @@ Deno.serve(async (req) => {
       message = "You're in! Sign-up confirmed";
     }
 
-    // Paid + not waitlisted → create Stripe Checkout session and hold seat as pending_payment
-    if (isPaid && targetStatus !== "waitlisted") {
+    // Paid + already approved → Stripe Checkout. "Approved" here means either
+    // the auto-approve path (targetStatus === confirmed) or a pending_payment
+    // row left by leader approval. The webhook flips pending_payment → confirmed
+    // on payment_intent.succeeded; we don't need to encode that in metadata.
+    // Manual_all + paid stops short on first signup (pending_review, no Stripe).
+    const needsCheckout =
+      isPaid &&
+      (targetStatus === "confirmed" || existing?.status === "pending_payment");
+
+    if (needsCheckout) {
       if (!return_url) return err("return_url is required for paid events", 400);
 
       // Reuse the existing pending row, or create one
@@ -128,7 +139,6 @@ Deno.serve(async (req) => {
             signup_id: signupId,
             event_id: event.id,
             member_id: user.id,
-            target_status: targetStatus,
           },
         },
         metadata: {
@@ -148,7 +158,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Free event (or paid + waitlist) — apply target status directly
+    // No checkout step needed yet — apply target status directly.
+    // Covers: free events (auto or manual_all), waitlisted seats, and the
+    // first hop of a paid manual_all sign-up (pending_review until the leader
+    // confirms — payment happens on a follow-up sign-up call after that).
     const { data: signup, error: signupError } = await admin
       .from("event_signups")
       .insert({ event_id, member_id: user.id, status: targetStatus })

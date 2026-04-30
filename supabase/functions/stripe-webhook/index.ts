@@ -40,18 +40,23 @@ Deno.serve(async (req) => {
   if (event.type === "payment_intent.succeeded") {
     const pi = event.data.object as Stripe.PaymentIntent;
     const signupId = pi.metadata?.signup_id;
-    const targetStatus = pi.metadata?.target_status ?? "confirmed";
     if (!signupId) return new Response("no signup_id in metadata", { status: 200 });
 
+    // A successful payment always confirms the seat. By the time payment goes
+    // through, the seat has already been approved (auto for open events, or
+    // by the leader for manual_all events) and moved to pending_payment.
+    // We only flip pending_payment rows so we don't clobber a row that was
+    // since cancelled or refunded.
     const { data: updated, error: updateErr } = await admin
       .from("event_signups")
       .update({
-        status: targetStatus,
+        status: "confirmed",
         payment_status: "paid",
         amount_paid_pence: pi.amount,
         payment_intent_id: pi.id,
       })
       .eq("id", signupId)
+      .eq("status", "pending_payment")
       .select("event_id")
       .maybeSingle();
 
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
     }
 
     // If this confirmation just filled the event, mark it full
-    if (updated && targetStatus === "confirmed") {
+    if (updated) {
       const { data: ev } = await admin
         .from("events")
         .select("max_participants, status")

@@ -45,6 +45,14 @@ type Signup = {
   payment_status?: string | null;
 };
 
+type Participant = {
+  member_id: string;
+  display_name: string | null;
+  full_name: string | null;
+  level: string;
+  signed_up_at: string;
+};
+
 type SignUpResponse = {
   signup: Signup;
   message: string;
@@ -108,13 +116,15 @@ export default function EventDetailScreen() {
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [signup, setSignup] = useState<Signup | null>(null);
+  const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [eventRes, signupRes] = await Promise.all([
+    const [eventRes, signupRes, pendingRes, participantsRes] = await Promise.all([
       supabase
         .from('events')
         .select(
@@ -130,10 +140,25 @@ export default function EventDetailScreen() {
             .eq('member_id', session.user.id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      session
+        ? supabase
+            .from('event_signups')
+            .select('id', { count: 'exact', head: true })
+            .eq('event_id', id)
+            .eq('status', 'pending_review')
+        : Promise.resolve({ count: 0, error: null }),
+      supabase
+        .from('event_participants')
+        .select('member_id, display_name, full_name, level, signed_up_at')
+        .eq('event_id', id)
+        .order('signed_up_at', { ascending: true }),
     ]);
 
     if (!eventRes.error) setEvent((eventRes.data as unknown as EventRow) ?? null);
     if (!signupRes.error) setSignup((signupRes.data as Signup) ?? null);
+    if (!pendingRes.error) setPendingReviewCount(pendingRes.count ?? 0);
+    if (!participantsRes.error)
+      setParticipants((participantsRes.data as Participant[]) ?? []);
     setLoading(false);
   }, [id, session]);
 
@@ -221,10 +246,21 @@ export default function EventDetailScreen() {
   const leaderName =
     event.leader?.display_name ?? event.leader?.full_name ?? '—';
   const levelEmoji = LEVEL_EMOJI[event.min_level] ?? '🦆';
-  const statusInfo = signup ? STATUS_LABEL[signup.status] : null;
   const isPaid = Number(event.cost) > 0;
+  const isLeader = !!session && session.user.id === event.leader_id;
 
   const isPending = signup?.status === 'pending_payment';
+  const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
+
+  const statusInfo = signup
+    ? isLeaderApproved
+      ? {
+          label: `✅ Approved — pay £${Number(event.cost).toFixed(0)} to confirm`,
+          color: OtterPalette.forest,
+        }
+      : STATUS_LABEL[signup.status]
+    : null;
+
   const canSignUp =
     (!signup || isPending) &&
     !busy &&
@@ -235,7 +271,11 @@ export default function EventDetailScreen() {
   if (event.status === 'cancelled') primaryLabel = 'Cancelled';
   if (event.status === 'closed') primaryLabel = 'Closed';
   if (event.status === 'draft') primaryLabel = 'Not yet open';
-  if (isPending) primaryLabel = `Pay £${Number(event.cost).toFixed(0)}`;
+  if (isPending) {
+    primaryLabel = isLeaderApproved
+      ? `Pay £${Number(event.cost).toFixed(0)} to confirm`
+      : `Pay £${Number(event.cost).toFixed(0)}`;
+  }
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -304,19 +344,64 @@ export default function EventDetailScreen() {
         ) : null}
 
         <SectionTitle>Leader</SectionTitle>
-        <Card>
-          <Row style={{ gap: 12 }}>
-            <GreyBox height={44} style={{ width: 44, borderRadius: 22 }} />
-            <View>
-              <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
-              {event.leader?.level ? (
-                <Text style={[styles.muted, { color: palette.muted }]}>
-                  {LEVEL_EMOJI[event.leader.level] ?? ''} {event.leader.level}
-                </Text>
-              ) : null}
-            </View>
-          </Row>
-        </Card>
+        <Pressable onPress={() => router.push(`/profile/${event.leader_id}`)}>
+          <Card>
+            <Row style={{ gap: 12 }}>
+              <GreyBox height={44} style={{ width: 44, borderRadius: 22 }} />
+              <View>
+                <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
+                {event.leader?.level ? (
+                  <Text style={[styles.muted, { color: palette.muted }]}>
+                    {LEVEL_EMOJI[event.leader.level] ?? ''} {event.leader.level}
+                  </Text>
+                ) : null}
+              </View>
+            </Row>
+          </Card>
+        </Pressable>
+
+        <SectionTitle>
+          {`Going${
+            event.max_participants
+              ? ` · ${participants.length}/${event.max_participants}`
+              : participants.length > 0
+                ? ` · ${participants.length}`
+                : ''
+          }`}
+        </SectionTitle>
+        {participants.length === 0 ? (
+          <Card>
+            <Text style={[styles.muted, { color: palette.muted }]}>
+              No one confirmed yet — be the first.
+            </Text>
+          </Card>
+        ) : (
+          participants.map((p) => {
+            const name = p.display_name ?? p.full_name ?? 'Member';
+            const emoji = LEVEL_EMOJI[p.level] ?? '🦦';
+            return (
+              <Pressable
+                key={p.member_id}
+                onPress={() => router.push(`/profile/${p.member_id}`)}>
+                <Card>
+                  <Row style={{ gap: 12 }}>
+                    <GreyBox
+                      height={36}
+                      style={{ width: 36, borderRadius: 18 }}
+                      label={emoji}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.value, { color: palette.text }]}>{name}</Text>
+                      <Text style={[styles.muted, { color: palette.muted }]}>
+                        {emoji} {p.level}
+                      </Text>
+                    </View>
+                  </Row>
+                </Card>
+              </Pressable>
+            );
+          })
+        )}
 
         {event.description ? (
           <>
@@ -324,6 +409,31 @@ export default function EventDetailScreen() {
             <Card>
               <Text style={[styles.body, { color: palette.text }]}>{event.description}</Text>
             </Card>
+          </>
+        ) : null}
+
+        {isLeader ? (
+          <>
+            <SectionTitle>Leader tools</SectionTitle>
+            <Pressable onPress={() => router.push(`/event/${id}/review`)}>
+              <Card style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[styles.value, { color: palette.text }]}>
+                      Review sign-ups
+                    </Text>
+                    <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+                      {pendingReviewCount === 0
+                        ? 'No one waiting for review'
+                        : `${pendingReviewCount} ${
+                            pendingReviewCount === 1 ? 'person' : 'people'
+                          } waiting for review`}
+                    </Text>
+                  </View>
+                  <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>›</Text>
+                </Row>
+              </Card>
+            </Pressable>
           </>
         ) : null}
 
@@ -344,7 +454,9 @@ export default function EventDetailScreen() {
               ) : null}
               {signup.status === 'pending_payment' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Tap "Sign up" again to resume payment if the sheet was dismissed.
+                  {isLeaderApproved
+                    ? `The leader has approved your sign-up. Pay £${Number(event.cost).toFixed(0)} below to lock in your spot.`
+                    : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
             </Card>
@@ -367,7 +479,7 @@ export default function EventDetailScreen() {
           </Card>
         ) : null}
 
-        {!signup || isPending ? (
+        {!isLeader && (!signup || isPending) ? (
           <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
             <Pressable
               onPress={canSignUp ? handleSignUp : undefined}
@@ -387,7 +499,9 @@ export default function EventDetailScreen() {
             </Pressable>
             {isPaid && !isPending ? (
               <Text style={[styles.payNote, { color: palette.muted }]}>
-                Card payment of £{Number(event.cost).toFixed(0)} taken on sign-up.
+                {event.approval_mode === 'manual_all'
+                  ? `£${Number(event.cost).toFixed(0)} payment taken after the leader confirms your spot.`
+                  : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
               </Text>
             ) : null}
           </View>
