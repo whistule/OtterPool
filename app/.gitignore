@@ -41,3 +41,14 @@ app-example
 # generated native folders
 /ios
 /android
+
+# playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
+
+# devenv / direnv
+.devenv/
+.devenv.flake.nix
+.direnv/
+devenv.local.nix

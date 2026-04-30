@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "setup": "node setup-test-users.js"
+    "setup": "node setup-test-users.js",
+    "seed:e2e": "node seed-e2e.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1"
