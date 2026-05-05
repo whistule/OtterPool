@@ -10,6 +10,11 @@ export type Profile = {
   level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
   status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
   is_admin: boolean;
+  phone: string | null;
+  dob: string | null;
+  bc_membership_no: string | null;
+  medical_notes: string | null;
+  photo_url: string | null;
 };
 
 type AuthContextValue = {
@@ -34,7 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, display_name, level, status, is_admin')
+      .select(
+        'id, full_name, display_name, level, status, is_admin, phone, dob, bc_membership_no, medical_notes, photo_url',
+      )
       .eq('id', userId)
       .maybeSingle();
     if (!error) setProfile((data as Profile) ?? null);

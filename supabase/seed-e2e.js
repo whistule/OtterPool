@@ -73,9 +73,23 @@ async function ensureUser(spec) {
       level: spec.level,
       status: spec.status,
       is_admin: spec.is_admin ?? false,
+      // Reset the round-two profile fields so e2e specs see a known empty
+      // baseline.
+      phone: null,
+      dob: null,
+      bc_membership_no: null,
+      medical_notes: null,
+      photo_url: null,
     })
     .eq("id", user.id);
   if (updErr) throw updErr;
+
+  // Clear any emergency contacts left over from previous runs.
+  const { error: ecErr } = await admin
+    .from("emergency_contacts")
+    .delete()
+    .eq("member_id", user.id);
+  if (ecErr) throw ecErr;
 
   return { ...spec, id: user.id };
 }
