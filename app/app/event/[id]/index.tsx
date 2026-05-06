@@ -522,7 +522,7 @@ function Header({ onBack }: { onBack: () => void }) {
         styles.header,
         { backgroundColor: OtterPalette.slateNavy },
       ]}>
-      <Pressable onPress={onBack} style={styles.backBtn}>
+      <Pressable testID="event-back" onPress={onBack} style={styles.backBtn}>
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.headerWordmark}>OtterPool</Text>

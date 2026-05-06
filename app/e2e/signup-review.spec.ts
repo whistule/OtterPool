@@ -29,7 +29,12 @@ async function openFixtureFromCalendar(page: Page) {
     .filter({ hasText: FIXTURE_TITLE });
   await expect(card.first()).toBeAttached({ timeout: 15_000 });
   await card.first().click();
-  await expect(page.getByText('Manual review').first()).toBeAttached({ timeout: 15_000 });
+  // The route change is the most reliable signal that the detail screen is
+  // mounting; wait for it before the next interaction.
+  await page.waitForURL(/\/event\/[0-9a-f-]{36}/, { timeout: 15_000 });
+  await expect(page.locator('[data-testid="event-back"]:visible')).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 test.describe('manual_all sign-up + leader review + my-trips', () => {
@@ -50,7 +55,7 @@ test.describe('manual_all sign-up + leader review + my-trips', () => {
     // event/[id] is its own stack screen; pop back to the (tabs) layout via
     // the in-app Back button rather than goto('/my-trips'), which forces a
     // full reload and races AuthGate.
-    await page.getByText('‹ Back').first().click();
+    await page.locator('[data-testid="event-back"]:visible').click();
     await page.locator('a[href="/my-trips"]:visible').first().click();
     await expect(
       page.locator(`text=${FIXTURE_TITLE}`).locator('visible=true').first(),
