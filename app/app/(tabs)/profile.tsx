@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -317,6 +318,17 @@ export default function ProfileScreen() {
             <Card>
               <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>{error}</Text>
             </Card>
+          ) : null}
+
+          {profile.is_admin ? (
+            <Pressable
+              onPress={() => router.push('/members')}
+              testID="admin-manage-members">
+              <Card style={styles.adminCard}>
+                <Text style={styles.adminKicker}>Admin</Text>
+                <Text style={styles.adminAction}>Manage members ›</Text>
+              </Card>
+            </Pressable>
           ) : null}
 
           <SectionTitle>Personal details</SectionTitle>
@@ -702,6 +714,16 @@ const styles = StyleSheet.create({
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
   errTitle: { fontSize: 14, fontWeight: '700' },
+  adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
+  adminKicker: {
+    color: '#ffffff',
+    opacity: 0.7,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  adminAction: { color: '#ffffff', fontSize: 16, fontWeight: '700', marginTop: 4 },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   input: {
     borderWidth: 1,

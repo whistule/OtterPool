@@ -1,7 +1,11 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClients } from "../_shared/supabase.ts";
 import { ok, err } from "../_shared/response.ts";
-import { meetsLevel } from "../_shared/progression.ts";
+import {
+  gradeWithinCeiling,
+  meetsLevel,
+  trackForCategory,
+} from "../_shared/progression.ts";
 import { getStripe } from "../_shared/stripe.ts";
 
 Deno.serve(async (req) => {
@@ -22,7 +26,9 @@ Deno.serve(async (req) => {
     // Fetch event
     const { data: event } = await admin
       .from("events")
-      .select("id, title, min_level, max_participants, approval_mode, status, leader_id, cost")
+      .select(
+        "id, title, min_level, max_participants, approval_mode, status, leader_id, cost, grade_advertised, category:event_categories(name)",
+      )
       .eq("id", event_id)
       .single();
 
@@ -84,8 +90,33 @@ Deno.serve(async (req) => {
       targetStatus = "pending_review";
       message = "Sign-up submitted — the leader will review your request";
     } else {
-      targetStatus = "confirmed";
-      message = "You're in! Sign-up confirmed";
+      // Auto-approve mode: confirm if the event's grade is within the
+      // member's per-track ceiling, otherwise route to leader review.
+      // No grade or non-graded category (e.g. Tuesday, Skills) → confirm.
+      const categoryName = (event as { category?: { name: string } | null }).category?.name ?? null;
+      const track = trackForCategory(categoryName);
+      const eventGrade = event.grade_advertised ?? null;
+
+      let aboveCeiling = false;
+      if (track && eventGrade) {
+        const { data: approval } = await admin
+          .from("member_approvals")
+          .select("ceiling")
+          .eq("member_id", user.id)
+          .eq("track", track)
+          .maybeSingle();
+        const ceiling = approval?.ceiling ?? null;
+        aboveCeiling = !ceiling || !gradeWithinCeiling(track, ceiling, eventGrade);
+      }
+
+      if (aboveCeiling) {
+        targetStatus = "pending_review";
+        message =
+          "Sign-up submitted — this trip is above your approval ceiling, the leader will review";
+      } else {
+        targetStatus = "confirmed";
+        message = "You're in! Sign-up confirmed";
+      }
     }
 
     // Paid + already approved → Stripe Checkout. "Approved" here means either

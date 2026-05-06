@@ -48,6 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="progress"
         options={{
+          href: null,
           title: 'Progress',
           tabBarIcon: ({ focused }) => <EmojiIcon emoji="🦦" focused={focused} />,
         }}
