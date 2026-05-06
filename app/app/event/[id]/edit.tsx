@@ -1,4 +1,6 @@
-import { router } from 'expo-router';
+import { Image } from 'expo-image';
+import type * as ImagePicker from 'expo-image-picker';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,13 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Image } from 'expo-image';
-import type * as ImagePicker from 'expo-image-picker';
+import { EventPhoto } from '@/components/photo';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
-import { pickImage, uploadPhoto } from '@/lib/photos';
+import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
 
 type Category = {
@@ -27,6 +28,25 @@ type Category = {
   name: string;
   default_min_level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
   default_cost: number;
+};
+
+type EventRow = {
+  id: string;
+  title: string;
+  category_id: number;
+  description: string | null;
+  grade_advertised: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  location: string | null;
+  meeting_point: string | null;
+  min_level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
+  max_participants: number | null;
+  cost: number;
+  approval_mode: 'auto' | 'manual_all';
+  status: 'draft' | 'open' | 'full' | 'closed' | 'cancelled';
+  leader_id: string;
+  photo_path: string | null;
 };
 
 const LEVELS: Array<'frog' | 'duck' | 'otter' | 'dolphin'> = [
@@ -43,76 +63,120 @@ const LEVEL_EMOJI: Record<string, string> = {
   dolphin: '🐬',
 };
 
-function defaultStartIso(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  d.setHours(18, 30, 0, 0);
-  return toLocalIsoMinutes(d);
-}
+const STATUS_OPTIONS: Array<{
+  value: 'draft' | 'open' | 'closed' | 'cancelled';
+  label: string;
+  color: string;
+}> = [
+  { value: 'draft', label: 'Draft', color: OtterPalette.slateNavy },
+  { value: 'open', label: 'Open', color: OtterPalette.forest },
+  { value: 'closed', label: 'Closed', color: OtterPalette.lochPool },
+  { value: 'cancelled', label: 'Cancelled', color: OtterPalette.ice },
+];
 
 function toLocalIsoMinutes(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function NewEventScreen() {
+function durationHoursBetween(startIso: string, endIso: string | null): string {
+  if (!endIso) return '';
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (!isFinite(ms) || ms <= 0) return '';
+  const hours = ms / (1000 * 60 * 60);
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(2);
+}
+
+export default function EditEventScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const palette = Colors[useColorScheme() ?? 'light'];
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
+
+  const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
+  const [originalPhotoPath, setOriginalPhotoPath] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [grade, setGrade] = useState('');
-  const [startsAt, setStartsAt] = useState(defaultStartIso());
-  const [durationHours, setDurationHours] = useState('2');
+  const [startsAt, setStartsAt] = useState('');
+  const [durationHours, setDurationHours] = useState('');
   const [location, setLocation] = useState('');
   const [meetingPoint, setMeetingPoint] = useState('');
   const [minLevel, setMinLevel] = useState<'frog' | 'duck' | 'otter' | 'dolphin'>('frog');
-  const [minLevelTouched, setMinLevelTouched] = useState(false);
-  const [maxParticipants, setMaxParticipants] = useState('12');
+  const [maxParticipants, setMaxParticipants] = useState('');
   const [cost, setCost] = useState('0');
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
-  const [status, setStatus] = useState<'draft' | 'open'>('open');
+  const [status, setStatus] = useState<'draft' | 'open' | 'full' | 'closed' | 'cancelled'>('open');
   const [description, setDescription] = useState('');
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !id) return;
     let cancelled = false;
-    supabase
-      .from('event_categories')
-      .select('id, name, default_min_level, default_cost')
-      .order('id')
-      .then(({ data, error: fetchErr }) => {
-        if (cancelled) return;
-        if (fetchErr) {
-          setError(`Couldn't load categories: ${fetchErr.message}`);
-          return;
-        }
-        setCategories((data ?? []) as Category[]);
-      });
+    (async () => {
+      const [catRes, evRes] = await Promise.all([
+        supabase
+          .from('event_categories')
+          .select('id, name, default_min_level, default_cost')
+          .order('id'),
+        supabase
+          .from('events')
+          .select(
+            'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path',
+          )
+          .eq('id', id)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      if (catRes.error) {
+        setError(`Couldn't load categories: ${catRes.error.message}`);
+      } else {
+        setCategories((catRes.data ?? []) as Category[]);
+      }
+      if (evRes.error || !evRes.data) {
+        setError(evRes.error?.message ?? 'Event not found');
+        setLoading(false);
+        return;
+      }
+      const ev = evRes.data as EventRow;
+      if (ev.leader_id !== session.user.id) {
+        setForbidden(true);
+        setLoading(false);
+        return;
+      }
+      setCategoryId(ev.category_id);
+      setTitle(ev.title);
+      setGrade(ev.grade_advertised ?? '');
+      setStartsAt(toLocalIsoMinutes(new Date(ev.starts_at)));
+      setDurationHours(durationHoursBetween(ev.starts_at, ev.ends_at));
+      setLocation(ev.location ?? '');
+      setMeetingPoint(ev.meeting_point ?? '');
+      setMinLevel(ev.min_level === 'selkie' ? 'dolphin' : ev.min_level);
+      setMaxParticipants(ev.max_participants == null ? '' : String(ev.max_participants));
+      setCost(String(Number(ev.cost ?? 0)));
+      setApprovalMode(ev.approval_mode);
+      setStatus(ev.status);
+      setDescription(ev.description ?? '');
+      setOriginalPhotoPath(ev.photo_path);
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [session, id]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
-    [categories, categoryId]
+    [categories, categoryId],
   );
 
-  const onPickCategory = (c: Category) => {
-    setCategoryId(c.id);
-    if (!minLevelTouched) {
-      setMinLevel(c.default_min_level === 'selkie' ? 'dolphin' : c.default_min_level);
-    }
-    setCost(String(c.default_cost ?? 0));
-  };
-
   const submit = async () => {
-    if (!session) return;
+    if (!session || !id) return;
     setError(null);
     if (!title.trim()) return setError('Title is required');
     if (!categoryId) return setError('Pick a category');
@@ -123,7 +187,9 @@ export default function NewEventScreen() {
     }
     const dur = Number(durationHours);
     const endDate =
-      dur > 0 ? new Date(startDate.getTime() + dur * 60 * 60 * 1000) : null;
+      durationHours.trim() && dur > 0
+        ? new Date(startDate.getTime() + dur * 60 * 60 * 1000)
+        : null;
 
     const maxP = maxParticipants.trim() ? Number(maxParticipants) : null;
     if (maxP !== null && (isNaN(maxP) || maxP < 1)) {
@@ -135,70 +201,98 @@ export default function NewEventScreen() {
     }
 
     setBusy(true);
-    const { data, error: insertError } = await supabase
+
+    // Upload new photo first so we can include the path in a single update.
+    let newPath: string | null | undefined = undefined; // undefined = no change
+    if (removePhotoFlag) newPath = null;
+    if (photoAsset) {
+      const result = await uploadPhoto('event-photos', id, photoAsset);
+      if ('error' in result) {
+        setError(`Photo upload failed: ${result.error}`);
+        setBusy(false);
+        return;
+      }
+      newPath = result.path;
+    }
+
+    const update: Record<string, unknown> = {
+      title: title.trim(),
+      category_id: categoryId,
+      description: description.trim() || null,
+      grade_advertised: grade.trim() || null,
+      starts_at: startDate.toISOString(),
+      ends_at: endDate ? endDate.toISOString() : null,
+      location: location.trim() || null,
+      meeting_point: meetingPoint.trim() || null,
+      min_level: minLevel,
+      max_participants: maxP,
+      cost: costNum,
+      approval_mode: approvalMode,
+      status,
+    };
+    if (newPath !== undefined) update.photo_path = newPath;
+
+    const { error: updateError } = await supabase
       .from('events')
-      .insert({
-        title: title.trim(),
-        category_id: categoryId,
-        description: description.trim() || null,
-        grade_advertised: grade.trim() || null,
-        starts_at: startDate.toISOString(),
-        ends_at: endDate ? endDate.toISOString() : null,
-        location: location.trim() || null,
-        meeting_point: meetingPoint.trim() || null,
-        min_level: minLevel,
-        max_participants: maxP,
-        cost: costNum,
-        approval_mode: approvalMode,
-        status,
-        leader_id: session.user.id,
-      })
-      .select('id')
-      .single();
+      .update(update)
+      .eq('id', id);
     setBusy(false);
 
-    if (insertError) {
-      setError(insertError.message);
+    if (updateError) {
+      setError(updateError.message);
       return;
     }
-    if (data?.id && photoAsset) {
-      const result = await uploadPhoto('event-photos', data.id, photoAsset);
-      if ('error' in result) {
-        // Event is created — surface the photo failure but still navigate.
-        setError(`Event created, but photo upload failed: ${result.error}`);
-      } else {
-        await supabase.from('events').update({ photo_path: result.path }).eq('id', data.id);
-      }
+
+    // Best-effort: delete the old photo if it was replaced or cleared.
+    if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
+      await removePhoto('event-photos', originalPhotoPath);
     }
-    if (data?.id) {
-      router.replace(`/event/${data.id}`);
-    } else {
-      router.back();
-    }
+
+    router.replace(`/event/${id}`);
   };
 
   const onPickPhoto = async () => {
     const asset = await pickImage();
-    if (asset) setPhotoAsset(asset);
+    if (asset) {
+      setPhotoAsset(asset);
+      setRemovePhotoFlag(false);
+    }
   };
 
-  if (profile && profile.level !== 'selkie') {
+  const onClearPhoto = () => {
+    setPhotoAsset(null);
+    setRemovePhotoFlag(true);
+  };
+
+  if (loading) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
         edges={['top']}>
-        <Header onBack={() => router.back()} title="Create event" />
+        <Header onBack={() => router.back()} title="Edit event" />
+        <View style={styles.center}>
+          <ActivityIndicator color={palette.tint} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}>
+        <Header onBack={() => router.back()} title="Edit event" />
         <Card style={{ marginTop: 16 }}>
           <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-            Selkies only
-          </Text>
-          <Text style={[styles.body, { color: palette.muted, marginTop: 6 }]}>
-            Only Selkies can create events. You're currently a {profile.level}.
+            Only the event leader can edit this event.
           </Text>
         </Card>
       </SafeAreaView>
     );
   }
+
+  const showExistingPhoto = !photoAsset && !removePhotoFlag && originalPhotoPath;
 
   return (
     <SafeAreaView
@@ -207,11 +301,11 @@ export default function NewEventScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Header onBack={() => router.back()} title="Create event" />
+        <Header onBack={() => router.back()} title="Edit event" />
         <ScrollView
           contentContainerStyle={{ paddingBottom: 60 }}
           keyboardShouldPersistTaps="handled">
-          <SectionTitle>Photo (optional)</SectionTitle>
+          <SectionTitle>Photo</SectionTitle>
           <Card>
             {photoAsset ? (
               <Image
@@ -219,13 +313,12 @@ export default function NewEventScreen() {
                 style={styles.photoPreview}
                 contentFit="cover"
               />
-            ) : null}
-            {photoAsset ? (
-              <Row style={{ gap: 8, marginBottom: 6 }}>
-                <Text style={[styles.hint, { color: palette.muted, flex: 1 }]} numberOfLines={1}>
-                  Selected: {photoAsset.fileName ?? 'image'}
-                </Text>
-              </Row>
+            ) : showExistingPhoto ? (
+              <EventPhoto
+                path={originalPhotoPath}
+                height={140}
+                style={{ marginBottom: 10 }}
+              />
             ) : null}
             <Row style={{ gap: 8 }}>
               <Pressable
@@ -236,12 +329,12 @@ export default function NewEventScreen() {
                   { backgroundColor: palette.surface, borderColor: palette.border },
                 ]}>
                 <Text style={[styles.chipText, { color: palette.text }]}>
-                  {photoAsset ? 'Change photo' : 'Pick photo'}
+                  {photoAsset || originalPhotoPath ? 'Change photo' : 'Pick photo'}
                 </Text>
               </Pressable>
-              {photoAsset ? (
+              {photoAsset || (originalPhotoPath && !removePhotoFlag) ? (
                 <Pressable
-                  onPress={() => setPhotoAsset(null)}
+                  onPress={onClearPhoto}
                   style={[
                     styles.chip,
                     { backgroundColor: palette.surface, borderColor: palette.border },
@@ -257,7 +350,6 @@ export default function NewEventScreen() {
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="e.g. Sea Kayak — Cumbrae circumnavigation"
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
@@ -272,7 +364,7 @@ export default function NewEventScreen() {
                   <Pressable
                     key={c.id}
                     testID={`category-chip-${c.id}`}
-                    onPress={() => onPickCategory(c)}
+                    onPress={() => setCategoryId(c.id)}
                     style={[
                       styles.chip,
                       {
@@ -320,9 +412,6 @@ export default function NewEventScreen() {
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
-            <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
-              Local time. Datetime picker comes later.
-            </Text>
           </Card>
 
           <SectionTitle>Duration (hours)</SectionTitle>
@@ -331,7 +420,7 @@ export default function NewEventScreen() {
               value={durationHours}
               onChangeText={setDurationHours}
               keyboardType="decimal-pad"
-              placeholder="2"
+              placeholder="leave blank for no end time"
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
@@ -342,7 +431,6 @@ export default function NewEventScreen() {
             <TextInput
               value={location}
               onChangeText={setLocation}
-              placeholder="e.g. Loch Lomond, Balmaha"
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
@@ -353,7 +441,6 @@ export default function NewEventScreen() {
             <TextInput
               value={meetingPoint}
               onChangeText={setMeetingPoint}
-              placeholder="e.g. Balmaha car park"
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
@@ -367,10 +454,7 @@ export default function NewEventScreen() {
                 return (
                   <Pressable
                     key={lv}
-                    onPress={() => {
-                      setMinLevel(lv);
-                      setMinLevelTouched(true);
-                    }}
+                    onPress={() => setMinLevel(lv)}
                     style={[
                       styles.chip,
                       {
@@ -409,7 +493,6 @@ export default function NewEventScreen() {
               value={cost}
               onChangeText={setCost}
               keyboardType="decimal-pad"
-              placeholder="0"
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
@@ -446,26 +529,18 @@ export default function NewEventScreen() {
 
           <SectionTitle>Status</SectionTitle>
           <Card>
-            <Row style={{ gap: 8 }}>
-              {(['draft', 'open'] as const).map((s) => {
-                const isActive = s === status;
+            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+              {STATUS_OPTIONS.map((opt) => {
+                const isActive = opt.value === status;
                 return (
                   <Pressable
-                    key={s}
-                    onPress={() => setStatus(s)}
+                    key={opt.value}
+                    onPress={() => setStatus(opt.value)}
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: isActive
-                          ? s === 'open'
-                            ? OtterPalette.forest
-                            : OtterPalette.slateNavy
-                          : palette.surface,
-                        borderColor: isActive
-                          ? s === 'open'
-                            ? OtterPalette.forest
-                            : OtterPalette.slateNavy
-                          : palette.border,
+                        backgroundColor: isActive ? opt.color : palette.surface,
+                        borderColor: isActive ? opt.color : palette.border,
                       },
                     ]}>
                     <Text
@@ -473,15 +548,18 @@ export default function NewEventScreen() {
                         styles.chipText,
                         { color: isActive ? '#fff' : palette.text },
                       ]}>
-                      {s === 'draft' ? 'Save as draft' : 'Publish open'}
+                      {opt.label}
                     </Text>
                   </Pressable>
                 );
               })}
             </Row>
-            <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-              Drafts won't appear on the calendar.
-            </Text>
+            {status === 'full' ? (
+              <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
+                Status was auto-set to "Full" by sign-ups. Change it to Closed if you want to
+                stop further sign-ups manually.
+              </Text>
+            ) : null}
           </Card>
 
           <SectionTitle>Description (optional)</SectionTitle>
@@ -491,7 +569,6 @@ export default function NewEventScreen() {
               onChangeText={setDescription}
               multiline
               numberOfLines={4}
-              placeholder="What members should know"
               placeholderTextColor={palette.muted}
               style={[
                 styles.input,
@@ -513,7 +590,7 @@ export default function NewEventScreen() {
 
           <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
             <Pressable
-              testID="event-create-submit"
+              testID="event-edit-submit"
               onPress={busy ? undefined : submit}
               disabled={busy}
               style={[
@@ -523,7 +600,7 @@ export default function NewEventScreen() {
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.primaryBtnText}>Create event</Text>
+                <Text style={styles.primaryBtnText}>Save changes</Text>
               )}
             </Pressable>
           </View>
@@ -547,6 +624,7 @@ function Header({ onBack, title }: { onBack: () => void; title: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -579,7 +657,6 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, fontWeight: '600' },
   hint: { fontSize: 11, fontStyle: 'italic' },
   errTitle: { fontSize: 14, fontWeight: '700' },
-  body: { fontSize: 13 },
   primaryBtn: {
     paddingVertical: 16,
     borderRadius: 12,

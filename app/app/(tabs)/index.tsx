@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
+import { EventPhoto } from '@/components/photo';
+import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +27,8 @@ type CalendarRow = {
   status: string;
   leader_id: string;
   leader_name: string | null;
+  leader_avatar_path: string | null;
+  photo_path: string | null;
   confirmed_count: number;
 };
 
@@ -254,7 +257,7 @@ export default function CalendarScreen() {
                 onPress={() => router.push(`/event/${ev.id}`)}>
                 <Card>
                   <Row style={{ marginBottom: 10 }}>
-                    <GreyBox height={56} style={{ width: 56, borderRadius: 10 }} />
+                    <EventPhoto path={ev.photo_path} height={56} thumb />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.evTitle, { color: palette.text }]} numberOfLines={2}>
                         {ev.title}

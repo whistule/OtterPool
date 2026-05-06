@@ -79,7 +79,7 @@ async function ensureUser(spec) {
       dob: null,
       bc_membership_no: null,
       medical_notes: null,
-      photo_url: null,
+      avatar_path: null,
     })
     .eq("id", user.id);
   if (updErr) throw updErr;

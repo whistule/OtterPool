@@ -17,7 +17,8 @@ import {
   CurrentLevelCard,
   JourneyLadder,
 } from '@/components/progress-blocks';
-import { Card, GreyBox, Pill, Row, SectionTitle } from '@/components/wireframe';
+import { Avatar } from '@/components/photo';
+import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -39,6 +40,7 @@ type ProfileRow = {
   level: ProgressionLevel;
   status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
   created_at: string;
+  avatar_path: string | null;
 };
 
 type ApprovalRow = { track: Track; ceiling: string };
@@ -70,7 +72,7 @@ export default function MemberProfileScreen() {
     const [profRes, ceilRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, display_name, level, status, created_at')
+        .select('id, full_name, display_name, level, status, created_at, avatar_path')
         .eq('id', id)
         .maybeSingle(),
       supabase.from('member_approvals').select('track, ceiling').eq('member_id', id),
@@ -171,7 +173,7 @@ export default function MemberProfileScreen() {
 
         <Card>
           <Row style={{ gap: 14 }}>
-            <GreyBox height={64} style={{ width: 64, borderRadius: 32 }} label={levelEmoji} />
+            <Avatar path={profile.avatar_path} size={64} fallback={levelEmoji} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.name, { color: palette.text }]}>{name}</Text>
               {profile.full_name &&

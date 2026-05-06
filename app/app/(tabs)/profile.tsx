@@ -15,10 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
+import { Avatar } from '@/components/photo';
+import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -68,6 +70,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ProfileFields | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -145,6 +148,36 @@ export default function ProfileScreen() {
     setRefreshing(true);
     await Promise.all([refreshProfile(), loadContacts()]);
     setRefreshing(false);
+  };
+
+  const onChangeAvatar = async () => {
+    if (!session) return;
+    const asset = await pickImage();
+    if (!asset) return;
+    setError(null);
+    setUploadingAvatar(true);
+    const previousPath = profile?.avatar_path ?? null;
+    const result = await uploadPhoto('avatars', session.user.id, asset);
+    if ('error' in result) {
+      setError(`Avatar upload failed: ${result.error}`);
+      setUploadingAvatar(false);
+      return;
+    }
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ avatar_path: result.path })
+      .eq('id', session.user.id);
+    if (updateErr) {
+      setError(updateErr.message);
+      await removePhoto('avatars', result.path);
+      setUploadingAvatar(false);
+      return;
+    }
+    if (previousPath && previousPath !== result.path) {
+      await removePhoto('avatars', previousPath);
+    }
+    await refreshProfile();
+    setUploadingAvatar(false);
   };
 
   const beginEdit = () => {
@@ -295,7 +328,19 @@ export default function ProfileScreen() {
 
           <Card>
             <Row style={{ gap: 14 }}>
-              <GreyBox height={64} style={{ width: 64, borderRadius: 32 }} label={levelEmoji} />
+              <Pressable
+                onPress={uploadingAvatar ? undefined : onChangeAvatar}
+                testID="profile-change-avatar"
+                style={{ position: 'relative' }}>
+                <Avatar path={profile.avatar_path} size={64} fallback={levelEmoji} />
+                <View style={styles.avatarBadge}>
+                  {uploadingAvatar ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.avatarBadgeText}>✎</Text>
+                  )}
+                </View>
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, { color: palette.text }]}>{headlineName}</Text>
                 <Text style={[styles.email, { color: palette.muted }]}>{email}</Text>
@@ -714,6 +759,20 @@ const styles = StyleSheet.create({
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
   errTitle: { fontSize: 14, fontWeight: '700' },
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: OtterPalette.slateNavy,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
   adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
   adminKicker: {
     color: '#ffffff',

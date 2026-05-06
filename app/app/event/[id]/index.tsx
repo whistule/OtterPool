@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, GreyBox, Pill, Row, SectionTitle } from '@/components/wireframe';
+import { Avatar, EventPhoto } from '@/components/photo';
+import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -34,8 +35,14 @@ type EventRow = {
   status: string;
   approval_mode: string;
   leader_id: string;
+  photo_path: string | null;
   category?: { name: string } | null;
-  leader?: { display_name: string | null; full_name: string | null; level: string } | null;
+  leader?: {
+    display_name: string | null;
+    full_name: string | null;
+    level: string;
+    avatar_path: string | null;
+  } | null;
 };
 
 type Signup = {
@@ -51,6 +58,7 @@ type Participant = {
   full_name: string | null;
   level: string;
   signed_up_at: string;
+  avatar_path: string | null;
 };
 
 type SignUpResponse = {
@@ -128,7 +136,7 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level)'
+          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)'
         )
         .eq('id', id)
         .maybeSingle(),
@@ -149,7 +157,7 @@ export default function EventDetailScreen() {
         : Promise.resolve({ count: 0, error: null }),
       supabase
         .from('event_participants')
-        .select('member_id, display_name, full_name, level, signed_up_at')
+        .select('member_id, display_name, full_name, level, signed_up_at, avatar_path')
         .eq('event_id', id)
         .order('signed_up_at', { ascending: true }),
     ]);
@@ -283,7 +291,7 @@ export default function EventDetailScreen() {
         <Header onBack={() => router.back()} />
 
         <View style={styles.heroWrap}>
-          <GreyBox height={140} style={styles.hero} label="event photo" />
+          <EventPhoto path={event.photo_path} height={140} style={styles.hero} />
         </View>
 
         <View style={{ paddingHorizontal: 20 }}>
@@ -347,7 +355,11 @@ export default function EventDetailScreen() {
         <Pressable onPress={() => router.push(`/profile/${event.leader_id}`)}>
           <Card>
             <Row style={{ gap: 12 }}>
-              <GreyBox height={44} style={{ width: 44, borderRadius: 22 }} />
+              <Avatar
+                path={event.leader?.avatar_path ?? null}
+                size={44}
+                fallback={event.leader?.level ? LEVEL_EMOJI[event.leader.level] : undefined}
+              />
               <View>
                 <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
                 {event.leader?.level ? (
@@ -385,11 +397,7 @@ export default function EventDetailScreen() {
                 onPress={() => router.push(`/profile/${p.member_id}`)}>
                 <Card>
                   <Row style={{ gap: 12 }}>
-                    <GreyBox
-                      height={36}
-                      style={{ width: 36, borderRadius: 18 }}
-                      label={emoji}
-                    />
+                    <Avatar path={p.avatar_path} size={36} fallback={emoji} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.value, { color: palette.text }]}>{name}</Text>
                       <Text style={[styles.muted, { color: palette.muted }]}>
@@ -415,6 +423,23 @@ export default function EventDetailScreen() {
         {isLeader ? (
           <>
             <SectionTitle>Leader tools</SectionTitle>
+            <Pressable
+              testID="event-edit-cta"
+              onPress={() => router.push(`/event/${id}/edit`)}>
+              <Card>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[styles.value, { color: palette.text }]}>
+                      Edit event
+                    </Text>
+                    <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+                      Update details, photo, status or capacity
+                    </Text>
+                  </View>
+                  <Text style={[styles.value, { color: palette.muted }]}>›</Text>
+                </Row>
+              </Card>
+            </Pressable>
             <Pressable
               testID="event-review-cta"
               onPress={() => router.push(`/event/${id}/review`)}>
