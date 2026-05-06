@@ -84,12 +84,18 @@ Witnessing: Members can witness progression steps for others, provided they are 
 
 ```
 OtterPool/
-├── otterpool.html              ← combined single-file app (source of truth)
-├── otter-pool-*.html           ← individual screen files (legacy, pre-combine)
-├── combine.py                  ← build script (legacy)
-├── files.zip                   ← asset archive
-├── supabase/                   ← database config
-├── DCKC-Platform-Spec-v0.9.md  ← platform specification
+├── apps/
+│   └── mobile/                 ← Expo React Native app (iOS / Android / web)
+├── supabase/                   ← Supabase project: migrations, edge functions, seed
+├── docs/
+│   ├── DCKC-Platform-Spec-v0.9.md
+│   ├── otterpool.html          ← combined wireframe (legacy reference)
+│   ├── otter-pool-*.html       ← individual wireframe screens (legacy)
+│   ├── equipment-lists.json
+│   ├── combine.py              ← wireframe build script (legacy)
+│   └── files.zip               ← asset archive
+├── devenv.nix / devenv.yaml    ← repo-wide dev shell (Node, Playwright)
+├── AGENTS.md
 └── README.md
 ```
 
@@ -97,7 +103,14 @@ OtterPool/
 
 ## Running locally
 
-Open `otterpool.html` directly in any browser. No server required.
+The mobile app is the live product:
+
+```sh
+cd apps/mobile
+devenv shell -- npx expo start --web
+```
+
+The legacy wireframes still open standalone — see `docs/otterpool.html`.
 
 ---
 

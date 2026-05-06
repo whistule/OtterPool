@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "@otterpool/mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "pretest:e2e": "npm --prefix ../supabase run seed:e2e",
+    "pretest:e2e": "npm --prefix ../../supabase run seed:e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

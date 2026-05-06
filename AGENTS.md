@@ -3,8 +3,8 @@
 ## Running the Playwright e2e suite
 
 The host is NixOS, so Playwright's bundled Chromium download won't run. Browsers
-come from `pkgs.playwright-driver.browsers` via `app/devenv.nix`, and the
-suite must be invoked inside the devenv shell so `PLAYWRIGHT_BROWSERS_PATH`
+come from `pkgs.playwright-driver.browsers` via the repo-root `devenv.nix`, and
+the suite must be invoked inside the devenv shell so `PLAYWRIGHT_BROWSERS_PATH`
 points at the nix store path.
 
 1. Reseed fixtures (idempotent, requires `supabase/config.secret.js` with the
@@ -19,13 +19,21 @@ points at the nix store path.
    - `e2e-leader@test.com` — selkie, password `e2e-test-password`
    - `e2e-member@test.com` — duck, password `e2e-test-password`
 
-2. Run the suite from `app/`:
+2. Run the suite. `devenv.nix` lives at the repo root, so enter the devenv
+   shell from the root, then cd into the mobile app:
 
    ```sh
-   cd app && devenv shell -- npx playwright test
+   devenv shell -- bash -c 'cd apps/mobile && npx playwright test'
    ```
 
-   Or a single spec: `devenv shell -- npx playwright test e2e/calendar-filter.spec.ts`.
+   If your shell already has `direnv` loaded for the repo, the env is
+   inherited in subdirectories and you can just:
+
+   ```sh
+   cd apps/mobile && npx playwright test
+   ```
+
+   For a single spec, append the path: `npx playwright test e2e/calendar-filter.spec.ts`.
 
    Playwright auto-starts the Expo web server on port 8081 (see
    `playwright.config.ts`) — no need to start it yourself.

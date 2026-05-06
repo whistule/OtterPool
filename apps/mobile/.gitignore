@@ -47,8 +47,4 @@ app-example
 /test-results/
 /playwright/.cache/
 
-# devenv / direnv
-.devenv/
-.devenv.flake.nix
-.direnv/
-devenv.local.nix
+# (devenv / direnv now live at the repo root; see top-level .gitignore)

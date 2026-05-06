@@ -17,7 +17,7 @@
   };
 
   enterShell = ''
-    echo "OtterPool app devshell"
+    echo "OtterPool monorepo devshell"
     echo "  node:       $(node --version)"
     echo "  playwright: browsers at $PLAYWRIGHT_BROWSERS_PATH"
   '';

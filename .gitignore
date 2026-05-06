@@ -1,0 +1,8 @@
+# devenv / direnv
+.devenv/
+.devenv.flake.nix
+.direnv/
+devenv.local.nix
+
+# OS
+.DS_Store
