@@ -50,20 +50,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    // The supabase client occasionally settles into a state where
+    // getSession() never resolves (seen on web after hard-reloads mid-test).
+    // Subscribing to onAuthStateChange is enough on its own — it fires an
+    // INITIAL_SESSION event with the persisted session as soon as we
+    // subscribe. Use getSession only as a kicker; either path flips
+    // `loading` to false on the first signal we get back.
+    const finishLoading = (newSession: Session | null) => {
       if (!active) return;
-      setSession(data.session);
-      if (data.session) await loadProfile(data.session.user.id);
-      setLoading(false);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
-      if (newSession) {
-        await loadProfile(newSession.user.id);
-      } else {
-        setProfile(null);
-      }
+      setLoading(false);
+      if (newSession) loadProfile(newSession.user.id);
+      else setProfile(null);
+    };
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => finishLoading(data.session))
+      .catch(() => finishLoading(null));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      finishLoading(newSession);
     });
 
     return () => {

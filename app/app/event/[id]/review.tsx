@@ -266,6 +266,7 @@ export default function ReviewSignupsScreen() {
 
                 <Row style={{ gap: 10 }}>
                   <Pressable
+                    testID={`review-confirm-${s.id}`}
                     onPress={busy ? undefined : () => review(s.id, 'confirm')}
                     disabled={busy}
                     style={[
@@ -279,6 +280,7 @@ export default function ReviewSignupsScreen() {
                     )}
                   </Pressable>
                   <Pressable
+                    testID={`review-deny-${s.id}`}
                     onPress={busy ? undefined : () => review(s.id, 'deny')}
                     disabled={busy}
                     style={[

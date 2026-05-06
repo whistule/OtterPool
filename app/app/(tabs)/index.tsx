@@ -150,6 +150,7 @@ export default function CalendarScreen() {
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
       {canCreate ? (
         <Pressable
+          testID="calendar-create-event"
           onPress={() => router.push('/event/new')}
           style={[styles.fab, { backgroundColor: OtterPalette.slateNavy }]}>
           <Text style={styles.fabText}>＋ Create event</Text>
@@ -247,7 +248,10 @@ export default function CalendarScreen() {
             const pill = pillForCategory(ev);
             const levelEmoji = LEVEL_EMOJI[ev.min_level] ?? '🦆';
             return (
-              <Pressable key={ev.id} onPress={() => router.push(`/event/${ev.id}`)}>
+              <Pressable
+                key={ev.id}
+                testID={`calendar-event-${ev.id}`}
+                onPress={() => router.push(`/event/${ev.id}`)}>
                 <Card>
                   <Row style={{ marginBottom: 10 }}>
                     <GreyBox height={56} style={{ width: 56, borderRadius: 10 }} />

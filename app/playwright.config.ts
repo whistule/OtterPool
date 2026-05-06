@@ -34,5 +34,8 @@ export default defineConfig({
     timeout: 180_000,
     stdout: 'ignore',
     stderr: 'pipe',
+    // Stop the Expo CLI from auto-opening a browser — on this NixOS box it
+    // falls back to `w3m`, which isn't installed, and the dev server exits.
+    env: { BROWSER: 'none' },
   },
 });

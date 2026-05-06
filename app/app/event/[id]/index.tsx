@@ -415,7 +415,9 @@ export default function EventDetailScreen() {
         {isLeader ? (
           <>
             <SectionTitle>Leader tools</SectionTitle>
-            <Pressable onPress={() => router.push(`/event/${id}/review`)}>
+            <Pressable
+              testID="event-review-cta"
+              onPress={() => router.push(`/event/${id}/review`)}>
               <Card style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
@@ -482,6 +484,7 @@ export default function EventDetailScreen() {
         {!isLeader && (!signup || isPending) ? (
           <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
             <Pressable
+              testID="event-primary-cta"
               onPress={canSignUp ? handleSignUp : undefined}
               disabled={!canSignUp}
               style={[

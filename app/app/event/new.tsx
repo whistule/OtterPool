@@ -212,6 +212,7 @@ export default function NewEventScreen() {
                 return (
                   <Pressable
                     key={c.id}
+                    testID={`category-chip-${c.id}`}
                     onPress={() => onPickCategory(c)}
                     style={[
                       styles.chip,
@@ -453,6 +454,7 @@ export default function NewEventScreen() {
 
           <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
             <Pressable
+              testID="event-create-submit"
               onPress={busy ? undefined : submit}
               disabled={busy}
               style={[

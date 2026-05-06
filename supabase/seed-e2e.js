@@ -103,6 +103,14 @@ async function resetFixtureEvent(leader) {
     .in("title", [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE]);
   if (delErr) throw delErr;
 
+  // Clear any leftover events the create-event spec made on previous runs.
+  // The spec prefixes its title with "[E2E]" so they're easy to find.
+  const { error: prefixErr } = await admin
+    .from("events")
+    .delete()
+    .like("title", "[E2E] %");
+  if (prefixErr) throw prefixErr;
+
   const startsAt = new Date();
   startsAt.setDate(startsAt.getDate() + 14);
   startsAt.setHours(10, 0, 0, 0);
