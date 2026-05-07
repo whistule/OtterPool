@@ -1,7 +1,6 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,9 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -93,7 +94,6 @@ export default function MyTripsScreen() {
   const [past, setPast] = useState<SignupRow[] | null>(null);
   const [tally, setTally] = useState<TallyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!session) {
@@ -154,17 +154,7 @@ export default function MyTripsScreen() {
     }
   }, [session]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
+  const { refreshing, onRefresh } = useLoadOnFocus(load);
 
   const isLoading = upcoming == null || past == null || tally == null;
 
@@ -177,25 +167,14 @@ export default function MyTripsScreen() {
         <TopBar title="My Trips" subtitle="Upcoming and past" />
 
         {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={palette.tint} />
-          </View>
+          <LoadingCenter />
         ) : error ? (
-          <Card>
-            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-              Couldn&apos;t load trips
-            </Text>
-            <Text style={[styles.muted, { color: palette.muted }]}>{error}</Text>
-          </Card>
+          <ErrorCard title="Couldn't load trips" message={error} />
         ) : (
           <>
             <SectionTitle>Upcoming</SectionTitle>
             {upcoming.length === 0 ? (
-              <Card>
-                <Text style={[styles.empty, { color: palette.muted }]}>
-                  Nothing booked. Browse the calendar to find a trip.
-                </Text>
-              </Card>
+              <EmptyCard message="Nothing booked. Browse the calendar to find a trip." />
             ) : (
               upcoming.map((s) => {
                 const ev = s.event!;
@@ -237,11 +216,7 @@ export default function MyTripsScreen() {
 
             <SectionTitle>Past trips</SectionTitle>
             {past.length === 0 ? (
-              <Card>
-                <Text style={[styles.empty, { color: palette.muted }]}>
-                  No past trips yet.
-                </Text>
-              </Card>
+              <EmptyCard message="No past trips yet." />
             ) : (
               past.map((s) => {
                 const ev = s.event!;
@@ -277,8 +252,4 @@ export default function MyTripsScreen() {
 const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   date: { fontSize: 12 },
-  muted: { fontSize: 12 },
-  empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
-  errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  center: { padding: 32, alignItems: 'center' },
 });

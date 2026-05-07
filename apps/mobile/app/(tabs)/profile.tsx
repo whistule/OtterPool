@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,6 +19,7 @@ import { Avatar } from '@/components/photo';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
@@ -72,7 +73,6 @@ export default function ProfileScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   // contactMode: 'closed' = no form; 'new' = adding; { id } = editing existing.
   const [contactMode, setContactMode] = useState<'closed' | 'new' | { id: string }>(
@@ -140,17 +140,11 @@ export default function ProfileScreen() {
     }
   }, [session]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadContacts();
-    }, [loadContacts]),
+  const { refreshing, onRefresh } = useLoadOnFocus(
+    useCallback(async () => {
+      await Promise.all([refreshProfile(), loadContacts()]);
+    }, [refreshProfile, loadContacts]),
   );
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([refreshProfile(), loadContacts()]);
-    setRefreshing(false);
-  };
 
   const onChangeAvatar = async () => {
     if (!session) return;

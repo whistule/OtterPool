@@ -1,7 +1,6 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -18,9 +17,11 @@ import {
   JourneyLadder,
 } from '@/components/progress-blocks';
 import { Avatar } from '@/components/photo';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import {
   LEVEL_EMOJI,
@@ -83,11 +84,7 @@ export default function MemberProfileScreen() {
     setLoading(false);
   }, [id, session]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useLoadOnFocus(load);
 
   const onChangeLevel = async (next: ProgressionLevel) => {
     if (!id) return;
@@ -141,9 +138,7 @@ export default function MemberProfileScreen() {
         style={[styles.screen, { backgroundColor: palette.background }]}
         edges={['top']}>
         <Header onBack={() => router.back()} />
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter />
       </SafeAreaView>
     );
   }
@@ -154,9 +149,7 @@ export default function MemberProfileScreen() {
         style={[styles.screen, { backgroundColor: palette.background }]}
         edges={['top']}>
         <Header onBack={() => router.back()} />
-        <Card>
-          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Member not found</Text>
-        </Card>
+        <ErrorCard title="Member not found" />
       </SafeAreaView>
     );
   }
@@ -199,11 +192,7 @@ export default function MemberProfileScreen() {
           </Row>
         </Card>
 
-        {error ? (
-          <Card>
-            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>{error}</Text>
-          </Card>
-        ) : null}
+        {error ? <ErrorCard title={error} /> : null}
 
         <SectionTitle>Current level</SectionTitle>
         <CurrentLevelCard level={profile.level} createdAt={profile.created_at} />
@@ -384,7 +373,6 @@ function Header({ onBack }: { onBack: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -398,7 +386,6 @@ const styles = StyleSheet.create({
   headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
   name: { fontSize: 20, fontWeight: '700' },
   muted: { fontSize: 12 },
-  errTitle: { fontSize: 14, fontWeight: '700' },
   editCta: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
   editCtaText: { color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center' },
   hint: { fontSize: 12, marginHorizontal: 20, marginTop: -4, fontStyle: 'italic' },

@@ -1,7 +1,6 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,9 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { LEVEL_EMOJI, LEVEL_LABEL, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -41,11 +42,7 @@ export default function MembersScreen() {
     setMembers((data as MemberRow[]) ?? []);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useLoadOnFocus(load);
 
   const filtered = (members ?? []).filter((m) => {
     if (!query) return true;
@@ -72,22 +69,11 @@ export default function MembersScreen() {
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         {members == null ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={palette.tint} />
-          </View>
+          <LoadingCenter />
         ) : error ? (
-          <Card>
-            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-              Couldn&apos;t load members
-            </Text>
-            <Text style={[styles.muted, { color: palette.muted }]}>{error}</Text>
-          </Card>
+          <ErrorCard title="Couldn't load members" message={error} />
         ) : filtered.length === 0 ? (
-          <Card>
-            <Text style={[styles.muted, { color: palette.muted, textAlign: 'center' }]}>
-              {query ? 'No matches' : 'No members'}
-            </Text>
-          </Card>
+          <EmptyCard message={query ? 'No matches' : 'No members'} />
         ) : (
           filtered.map((m) => {
             const name = m.display_name ?? m.full_name ?? 'Member';
@@ -131,7 +117,6 @@ function Header({ onBack, title }: { onBack: () => void; title: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { padding: 32, alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,5 +138,4 @@ const styles = StyleSheet.create({
   search: { fontSize: 14 },
   name: { fontSize: 15, fontWeight: '700' },
   muted: { fontSize: 12, marginTop: 2 },
-  errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
 });

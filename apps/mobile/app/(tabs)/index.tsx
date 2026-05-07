@@ -1,12 +1,14 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventPhoto } from '@/components/photo';
+import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -111,7 +113,6 @@ export default function CalendarScreen() {
   const [openToMe, setOpenToMe] = useState(false);
   const [rows, setRows] = useState<CalendarRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const myRank = profile?.level ? LEVEL_RANK[profile.level] : undefined;
 
@@ -130,11 +131,7 @@ export default function CalendarScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      load();
-    }, [load]),
-  );
+  const { refreshing, onRefresh } = useLoadOnFocus(load);
 
   const filtered = useMemo(() => {
     if (!rows) return null;
@@ -152,12 +149,6 @@ export default function CalendarScreen() {
       return true;
     });
   }, [rows, active, query, openToMe, myRank]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
@@ -238,24 +229,17 @@ export default function CalendarScreen() {
         <SectionTitle>Upcoming</SectionTitle>
 
         {rows == null ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={palette.tint} />
-          </View>
+          <LoadingCenter />
         ) : error ? (
-          <Card>
-            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-              Couldn't load events
-            </Text>
-            <Text style={[styles.errBody, { color: palette.muted }]}>{error}</Text>
-          </Card>
+          <ErrorCard title="Couldn't load events" message={error} />
         ) : (filtered ?? []).length === 0 ? (
-          <Card>
-            <Text style={[styles.empty, { color: palette.muted }]}>
-              {rows.length === 0
+          <EmptyCard
+            message={
+              rows.length === 0
                 ? 'No upcoming events yet. Add some in the Supabase dashboard.'
-                : 'No events match your filters.'}
-            </Text>
-          </Card>
+                : 'No events match your filters.'
+            }
+          />
         ) : (
           (filtered ?? []).map((ev) => {
             const pill = pillForCategory(ev);
@@ -352,10 +336,6 @@ const styles = StyleSheet.create({
   evTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   evDate: { fontSize: 12 },
   evMeta: { fontSize: 12 },
-  center: { padding: 32, alignItems: 'center' },
-  errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  errBody: { fontSize: 12 },
-  empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   fab: {
     position: 'absolute',
     right: 16,

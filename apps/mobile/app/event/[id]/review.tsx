@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -109,11 +111,7 @@ export default function ReviewSignupsScreen() {
     setLoading(false);
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useLoadOnFocus(load);
 
   const review = async (signupId: string, action: 'confirm' | 'deny') => {
     setBusyId(signupId);
@@ -149,9 +147,7 @@ export default function ReviewSignupsScreen() {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
         <Header onBack={() => router.back()} />
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter />
       </SafeAreaView>
     );
   }
@@ -160,9 +156,7 @@ export default function ReviewSignupsScreen() {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
         <Header onBack={() => router.back()} />
-        <Card>
-          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
-        </Card>
+        <ErrorCard title="Event not found" />
       </SafeAreaView>
     );
   }
@@ -171,11 +165,7 @@ export default function ReviewSignupsScreen() {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
         <Header onBack={() => router.back()} />
-        <Card>
-          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-            Only the event leader can review sign-ups.
-          </Text>
-        </Card>
+        <ErrorCard title="Only the event leader can review sign-ups." />
       </SafeAreaView>
     );
   }
@@ -218,11 +208,7 @@ export default function ReviewSignupsScreen() {
         <SectionTitle>Pending</SectionTitle>
 
         {(signups ?? []).length === 0 ? (
-          <Card>
-            <Text style={[styles.empty, { color: palette.muted }]}>
-              No one is waiting for review.
-            </Text>
-          </Card>
+          <EmptyCard message="No one is waiting for review." />
         ) : (
           (signups ?? []).map((s) => {
             const name =
@@ -316,7 +302,6 @@ function Header({ onBack }: { onBack: () => void }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -334,8 +319,6 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 15, fontWeight: '700' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
-  errTitle: { fontSize: 14, fontWeight: '700' },
-  empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   btn: {
     flex: 1,
     paddingVertical: 12,

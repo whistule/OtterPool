@@ -1,13 +1,11 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,9 +17,11 @@ import {
   JourneyLadder,
   StatRow,
 } from '@/components/progress-blocks';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { ProgressionLevel, tallyTotals, Track } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
@@ -37,7 +37,6 @@ export default function ProgressScreen() {
   const [tally, setTally] = useState<TallyRow[] | null>(null);
   const [ceilings, setCeilings] = useState<Ceiling[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -60,17 +59,7 @@ export default function ProgressScreen() {
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
   }, [session]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
+  const { refreshing, onRefresh } = useLoadOnFocus(load);
 
   const level: ProgressionLevel = profile?.level ?? 'frog';
   const isAdmin = !!profile?.is_admin;
@@ -89,16 +78,9 @@ export default function ProgressScreen() {
         <TopBar title="Progress" subtitle="Your journey" />
 
         {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={palette.tint} />
-          </View>
+          <LoadingCenter />
         ) : error ? (
-          <Card>
-            <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
-              Couldn&apos;t load progress
-            </Text>
-            <Text style={[styles.muted, { color: palette.muted }]}>{error}</Text>
-          </Card>
+          <ErrorCard title="Couldn't load progress" message={error} />
         ) : (
           <>
             {isAdmin ? (
@@ -132,9 +114,6 @@ export default function ProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { padding: 32, alignItems: 'center' },
-  muted: { fontSize: 12 },
-  errTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
   adminKicker: {
     color: '#ffffff',
