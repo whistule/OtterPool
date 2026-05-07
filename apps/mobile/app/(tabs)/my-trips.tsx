@@ -16,6 +16,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { formatShortDate, formatShortDateTime } from '@/lib/datetime';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -67,17 +68,6 @@ function colorForBucket(bucket: string): string {
   if (bucket.startsWith('G')) return OtterPalette.riverGreen[1];
   if (bucket === 'Skills' || bucket === 'Training') return OtterPalette.slateNavy;
   return OtterPalette.lochPool;
-}
-
-function formatUpcoming(iso: string): string {
-  const d = new Date(iso);
-  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `${day} · ${time}`;
-}
-
-function formatPast(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 export default function MyTripsScreen() {
@@ -180,7 +170,7 @@ export default function MyTripsScreen() {
                         <View style={{ flex: 1, paddingRight: 8 }}>
                           <Text style={[styles.title, { color: palette.text }]}>{ev.title}</Text>
                           <Text style={[styles.date, { color: palette.muted }]}>
-                            {formatUpcoming(ev.starts_at)}
+                            {formatShortDateTime(ev.starts_at)}
                           </Text>
                         </View>
                         {pill ? <Pill label={pill.shortLabel} color={pill.color} /> : null}
@@ -227,7 +217,7 @@ export default function MyTripsScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.title, { color: palette.text }]}>{ev.title}</Text>
                           <Text style={[styles.date, { color: palette.muted }]}>
-                            {formatPast(ev.starts_at)} · {bucket}
+                            {formatShortDate(ev.starts_at)} · {bucket}
                           </Text>
                         </View>
                       </Row>

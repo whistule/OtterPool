@@ -10,6 +10,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { formatShortDateTime } from '@/lib/datetime';
 import { LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -68,13 +69,6 @@ function pillForCategory(row: CalendarRow): { label: string; color: string } {
     };
   }
   return { label: grade ?? cat, color: OtterPalette.lochPool };
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `${day} · ${time}`;
 }
 
 function formatPlaces(row: CalendarRow): string {
@@ -242,7 +236,7 @@ export default function CalendarScreen() {
                         {ev.title}
                       </Text>
                       <Text style={[styles.evDate, { color: palette.muted }]}>
-                        {formatDate(ev.starts_at)}
+                        {formatShortDateTime(ev.starts_at)}
                       </Text>
                     </View>
                   </Row>

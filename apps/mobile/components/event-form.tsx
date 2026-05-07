@@ -17,13 +17,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import type * as ImagePicker from 'expo-image-picker';
 import { v4 as uuidv4 } from 'uuid';
+import { Header } from '@/components/header';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { EventPhoto } from '@/components/photo';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
-import { LEVEL_EMOJI } from '@/lib/progress';
+import { LEVEL_EMOJI, PINKSTON_GRADES, RIVER_GRADES, SEA_GRADES } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 export type EventFormMode = 'create' | 'edit';
@@ -102,21 +103,6 @@ const CATEGORY_DEFAULTS: Record<
   'Tuesday Evening - All Away': { repeats: { enabled: true, frequency: 'weekly' } },
   Pinkston: { location: 'Pinkston Watersports Centre, Glasgow' },
 };
-
-const SEA_GRADES = ['Sea A', 'Sea B', 'Sea C'] as const;
-const PINKSTON_GRADES = ['P1', 'P2', 'P3'] as const;
-const RIVER_GRADES = [
-  'G1',
-  'G1/2',
-  'G2',
-  'G2/3',
-  'G3',
-  'G3(4)',
-  'G4',
-  'G4(5)',
-  'G4/5',
-  'G5',
-] as const;
 
 function gradeOptionsFor(category: Category | null): readonly string[] | null {
   if (!category) return null;
@@ -1246,32 +1232,9 @@ function DateTimeField({ value, onChange, style, placeholderColor }: DateTimeFie
   );
 }
 
-function Header({ onBack, title }: { onBack: () => void; title: string }) {
-  return (
-    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
-      <Pressable onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
-      <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.backBtn} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 4,
-  },
-  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   input: {
     borderWidth: 1,
     borderRadius: 10,
