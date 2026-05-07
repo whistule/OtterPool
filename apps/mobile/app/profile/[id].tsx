@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -83,9 +83,11 @@ export default function MemberProfileScreen() {
     setLoading(false);
   }, [id, session]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const onChangeLevel = async (next: ProgressionLevel) => {
     if (!id) return;

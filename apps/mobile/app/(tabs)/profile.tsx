@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -140,9 +140,11 @@ export default function ProfileScreen() {
     }
   }, [session]);
 
-  useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
+  useFocusEffect(
+    useCallback(() => {
+      loadContacts();
+    }, [loadContacts]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

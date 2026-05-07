@@ -114,6 +114,7 @@ export default function EditEventScreen() {
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!session || !id) return;
@@ -249,6 +250,27 @@ export default function EditEventScreen() {
     }
 
     router.replace(`/event/${id}`);
+  };
+
+  const onDelete = async () => {
+    if (!session || !id) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: deleteError } = await supabase.from('events').delete().eq('id', id);
+    setBusy(false);
+    if (deleteError) {
+      setConfirmDelete(false);
+      setError(deleteError.message);
+      return;
+    }
+    if (originalPhotoPath) {
+      await removePhoto('event-photos', originalPhotoPath);
+    }
+    router.replace('/');
   };
 
   const onPickPhoto = async () => {
@@ -604,6 +626,41 @@ export default function EditEventScreen() {
               )}
             </Pressable>
           </View>
+
+          <SectionTitle>Danger zone</SectionTitle>
+          <Card style={{ borderColor: OtterPalette.ice, borderWidth: 1.5 }}>
+            <Text style={[styles.hint, { color: palette.muted, marginBottom: 10 }]}>
+              Deleting removes this event and all its sign-ups. Refund any paid sign-ups first.
+            </Text>
+            <Pressable
+              testID="event-delete"
+              onPress={busy ? undefined : onDelete}
+              disabled={busy}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: confirmDelete ? OtterPalette.ice : palette.surface,
+                  borderColor: OtterPalette.ice,
+                  borderWidth: 1.5,
+                  opacity: busy ? 0.7 : 1,
+                },
+              ]}>
+              <Text
+                style={[
+                  styles.primaryBtnText,
+                  { color: confirmDelete ? '#fff' : OtterPalette.ice },
+                ]}>
+                {confirmDelete ? 'Tap again to confirm delete' : 'Delete event'}
+              </Text>
+            </Pressable>
+            {confirmDelete ? (
+              <Pressable
+                onPress={() => setConfirmDelete(false)}
+                style={{ marginTop: 8, alignItems: 'center' }}>
+                <Text style={[styles.hint, { color: palette.muted }]}>Cancel</Text>
+              </Pressable>
+            ) : null}
+          </Card>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

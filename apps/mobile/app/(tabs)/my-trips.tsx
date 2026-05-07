@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -154,9 +154,11 @@ export default function MyTripsScreen() {
     }
   }, [session]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

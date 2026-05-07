@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -109,9 +109,11 @@ export default function ReviewSignupsScreen() {
     setLoading(false);
   }, [id]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const review = async (signupId: string, action: 'confirm' | 'deny') => {
     setBusyId(signupId);

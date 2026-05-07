@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 import type * as ImagePicker from 'expo-image-picker';
+import { v4 as uuidv4 } from 'uuid';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -75,6 +76,9 @@ export default function NewEventScreen() {
   const [status, setStatus] = useState<'draft' | 'open'>('open');
   const [description, setDescription] = useState('');
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatFrequency, setRepeatFrequency] = useState<'weekly' | 'fortnightly'>('weekly');
+  const [repeatCount, setRepeatCount] = useState('4');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,44 +138,70 @@ export default function NewEventScreen() {
       return setError('Cost must be a number');
     }
 
+    let occurrences = 1;
+    let seriesId: string | null = null;
+    if (repeatEnabled) {
+      const n = Number(repeatCount);
+      if (!Number.isInteger(n) || n < 2 || n > 26) {
+        return setError('Repeat count must be a whole number between 2 and 26');
+      }
+      occurrences = n;
+      seriesId = uuidv4();
+    }
+    const stepDays = repeatFrequency === 'fortnightly' ? 14 : 7;
+
+    const baseRow = {
+      title: title.trim(),
+      category_id: categoryId,
+      description: description.trim() || null,
+      grade_advertised: grade.trim() || null,
+      location: location.trim() || null,
+      meeting_point: meetingPoint.trim() || null,
+      min_level: minLevel,
+      max_participants: maxP,
+      cost: costNum,
+      approval_mode: approvalMode,
+      status,
+      leader_id: session.user.id,
+      series_id: seriesId,
+    };
+
+    const rows = Array.from({ length: occurrences }, (_, i) => {
+      const occStart = new Date(startDate.getTime());
+      occStart.setDate(occStart.getDate() + i * stepDays);
+      const occEnd =
+        endDate ? new Date(occStart.getTime() + (endDate.getTime() - startDate.getTime())) : null;
+      return {
+        ...baseRow,
+        starts_at: occStart.toISOString(),
+        ends_at: occEnd ? occEnd.toISOString() : null,
+      };
+    });
+
     setBusy(true);
     const { data, error: insertError } = await supabase
       .from('events')
-      .insert({
-        title: title.trim(),
-        category_id: categoryId,
-        description: description.trim() || null,
-        grade_advertised: grade.trim() || null,
-        starts_at: startDate.toISOString(),
-        ends_at: endDate ? endDate.toISOString() : null,
-        location: location.trim() || null,
-        meeting_point: meetingPoint.trim() || null,
-        min_level: minLevel,
-        max_participants: maxP,
-        cost: costNum,
-        approval_mode: approvalMode,
-        status,
-        leader_id: session.user.id,
-      })
-      .select('id')
-      .single();
+      .insert(rows)
+      .select('id, starts_at')
+      .order('starts_at', { ascending: true });
     setBusy(false);
 
     if (insertError) {
       setError(insertError.message);
       return;
     }
-    if (data?.id && photoAsset) {
-      const result = await uploadPhoto('event-photos', data.id, photoAsset);
+    const firstId = data?.[0]?.id;
+    if (firstId && photoAsset) {
+      const result = await uploadPhoto('event-photos', firstId, photoAsset);
       if ('error' in result) {
-        // Event is created — surface the photo failure but still navigate.
         setError(`Event created, but photo upload failed: ${result.error}`);
       } else {
-        await supabase.from('events').update({ photo_path: result.path }).eq('id', data.id);
+        const ids = (data ?? []).map((r) => r.id);
+        await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
       }
     }
-    if (data?.id) {
-      router.replace(`/event/${data.id}`);
+    if (firstId) {
+      router.replace(`/event/${firstId}`);
     } else {
       router.back();
     }
@@ -335,6 +365,87 @@ export default function NewEventScreen() {
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
+          </Card>
+
+          <SectionTitle>Repeat (optional)</SectionTitle>
+          <Card>
+            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+              {([
+                { value: false, label: 'One-off' },
+                { value: true, label: 'Repeats' },
+              ] as const).map((opt) => {
+                const isActive = opt.value === repeatEnabled;
+                return (
+                  <Pressable
+                    key={String(opt.value)}
+                    testID={`event-repeat-${opt.value ? 'on' : 'off'}`}
+                    onPress={() => setRepeatEnabled(opt.value)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                        borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                      },
+                    ]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: isActive ? '#fff' : palette.text },
+                      ]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Row>
+            {repeatEnabled ? (
+              <>
+                <Row style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {(['weekly', 'fortnightly'] as const).map((freq) => {
+                    const isActive = freq === repeatFrequency;
+                    return (
+                      <Pressable
+                        key={freq}
+                        testID={`event-repeat-${freq}`}
+                        onPress={() => setRepeatFrequency(freq)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                          },
+                        ]}>
+                        <Text
+                          style={[
+                            styles.chipText,
+                            { color: isActive ? '#fff' : palette.text },
+                          ]}>
+                          {freq === 'weekly' ? 'Every week' : 'Every 2 weeks'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </Row>
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 10 }]}>
+                  How many occurrences in total (incl. the first)?
+                </Text>
+                <TextInput
+                  value={repeatCount}
+                  onChangeText={setRepeatCount}
+                  keyboardType="number-pad"
+                  testID="event-repeat-count"
+                  placeholder="4"
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.input,
+                    { color: palette.text, borderColor: palette.border, marginTop: 6 },
+                  ]}
+                />
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
+                  Each occurrence is a separate event with its own sign-ups.
+                </Text>
+              </>
+            ) : null}
           </Card>
 
           <SectionTitle>Location</SectionTitle>

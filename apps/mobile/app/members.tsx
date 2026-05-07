@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -41,9 +41,11 @@ export default function MembersScreen() {
     setMembers((data as MemberRow[]) ?? []);
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const filtered = (members ?? []).filter((m) => {
     if (!query) return true;

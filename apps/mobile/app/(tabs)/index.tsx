@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -122,9 +122,11 @@ export default function CalendarScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    React.useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const filtered = useMemo(() => {
     if (!rows) return null;

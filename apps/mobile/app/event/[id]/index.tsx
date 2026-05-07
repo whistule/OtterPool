@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -170,9 +170,11 @@ export default function EventDetailScreen() {
     setLoading(false);
   }, [id, session]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   // Returning from Stripe Checkout — poll briefly while the webhook flips the row.
   useEffect(() => {
