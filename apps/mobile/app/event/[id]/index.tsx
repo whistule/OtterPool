@@ -401,7 +401,36 @@ export default function EventDetailScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}>
-        <Header onBack={() => router.back()} />
+        <Header
+          onBack={() => router.back()}
+          right={
+            isLeader ? (
+              <Row style={{ gap: 6 }}>
+                <Pressable
+                  testID="event-review-cta"
+                  onPress={() => router.push(`/event/${id}/review`)}
+                  style={[
+                    styles.headerAction,
+                    pendingReviewCount > 0
+                      ? { backgroundColor: OtterPalette.burntOrange }
+                      : null,
+                  ]}>
+                  <Text style={styles.headerActionText}>
+                    {pendingReviewCount > 0
+                      ? `Review sign-ups · ${pendingReviewCount}`
+                      : 'Review sign-ups'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  testID="event-edit-cta"
+                  onPress={() => router.push(`/event/${id}/edit`)}
+                  style={styles.headerAction}>
+                  <Text style={styles.headerActionText}>Edit</Text>
+                </Pressable>
+              </Row>
+            ) : null
+          }
+        />
 
         {/* ---------- Hero with title overlay ---------- */}
         <View style={styles.hero}>
@@ -593,47 +622,6 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
-        {/* ---------- Leader tools ---------- */}
-        {isLeader ? (
-          <>
-            <SectionTitle>Leader tools</SectionTitle>
-            <Pressable
-              testID="event-edit-cta"
-              onPress={() => router.push(`/event/${id}/edit`)}>
-              <Card>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.value, { color: palette.text }]}>Edit event</Text>
-                    <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                      Update details, photo, status or capacity
-                    </Text>
-                  </View>
-                  <Text style={[styles.value, { color: palette.muted }]}>›</Text>
-                </Row>
-              </Card>
-            </Pressable>
-            <Pressable
-              testID="event-review-cta"
-              onPress={() => router.push(`/event/${id}/review`)}>
-              <Card style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.value, { color: palette.text }]}>Review sign-ups</Text>
-                    <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                      {pendingReviewCount === 0
-                        ? 'No one waiting for review'
-                        : `${pendingReviewCount} ${
-                            pendingReviewCount === 1 ? 'person' : 'people'
-                          } waiting for review`}
-                    </Text>
-                  </View>
-                  <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>›</Text>
-                </Row>
-              </Card>
-            </Pressable>
-          </>
-        ) : null}
-
         {/* ---------- Your status ---------- */}
         {signup && statusInfo ? (
           <>
@@ -715,14 +703,24 @@ export default function EventDetailScreen() {
   );
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Header({
+  onBack,
+  right,
+}: {
+  onBack: () => void;
+  right?: React.ReactNode;
+}) {
   return (
     <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
       <Pressable testID="event-back" onPress={onBack} style={styles.backBtn}>
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
-      <Text style={styles.headerWordmark}>OtterPool</Text>
-      <View style={styles.backBtn} />
+      {right ? (
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>{right}</View>
+      ) : (
+        <Text style={styles.headerWordmark}>OtterPool</Text>
+      )}
+      {right ? null : <View style={styles.backBtn} />}
     </View>
   );
 }
@@ -740,6 +738,17 @@ const styles = StyleSheet.create({
   backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
+  headerAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  headerActionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   hero: {
     width: '100%',
     height: 220,
