@@ -81,6 +81,9 @@ test.describe('event recurrence + delete — leader', () => {
     await page.waitForURL((url) => url.pathname === '/' || url.pathname === '', {
       timeout: 15_000,
     });
+    // Force a calendar refresh — focus refetch can be racy when replacing
+    // straight onto the already-mounted root tab.
+    await page.goto('/');
     await expect.poll(
       async () => page.getByText(title).count(),
       { timeout: 15_000 },

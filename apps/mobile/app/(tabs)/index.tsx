@@ -60,17 +60,25 @@ function categoryToDiscipline(category: string): Discipline {
 function pillForCategory(row: CalendarRow): { label: string; color: string } {
   const grade = row.grade_advertised;
   const cat = row.category;
-  if (cat.startsWith('Sea Kayak')) {
-    if (cat.includes('A Trip')) return { label: grade ?? 'Sea A', color: OtterPalette.seaTeal[0] };
-    if (cat.includes('B Trip')) return { label: grade ?? 'Sea B', color: OtterPalette.seaTeal[1] };
-    if (cat.includes('C Trip')) return { label: grade ?? 'Sea C', color: OtterPalette.seaTeal[2] };
-    return { label: grade ?? 'Sea', color: OtterPalette.seaTeal[1] };
+  if (cat === 'Sea Kayak') {
+    const colours: Record<string, string> = {
+      'Sea A': OtterPalette.seaTeal[0],
+      'Sea B': OtterPalette.seaTeal[1],
+      'Sea C': OtterPalette.seaTeal[2],
+    };
+    return { label: grade ?? 'Sea', color: colours[grade ?? ''] ?? OtterPalette.seaTeal[1] };
   }
   if (cat === 'River Trip') return { label: grade ?? 'River', color: OtterPalette.riverGreen[1] };
-  if (cat.startsWith('Pinkston')) {
-    if (cat.includes('1')) return { label: 'P1', color: OtterPalette.pinkstonOrange[0] };
-    if (cat.includes('2')) return { label: 'P2', color: OtterPalette.pinkstonOrange[1] };
-    if (cat.includes('3')) return { label: 'P3', color: OtterPalette.pinkstonOrange[2] };
+  if (cat === 'Pinkston') {
+    const colours: Record<string, string> = {
+      P1: OtterPalette.pinkstonOrange[0],
+      P2: OtterPalette.pinkstonOrange[1],
+      P3: OtterPalette.pinkstonOrange[2],
+    };
+    return {
+      label: grade ?? 'Pinkston',
+      color: colours[grade ?? ''] ?? OtterPalette.pinkstonOrange[1],
+    };
   }
   return { label: grade ?? cat, color: OtterPalette.lochPool };
 }

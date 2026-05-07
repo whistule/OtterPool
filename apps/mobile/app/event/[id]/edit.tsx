@@ -63,12 +63,34 @@ const LEVEL_EMOJI: Record<string, string> = {
   dolphin: '🐬',
 };
 
+const SEA_GRADES = ['Sea A', 'Sea B', 'Sea C'] as const;
+const PINKSTON_GRADES = ['P1', 'P2', 'P3'] as const;
+const RIVER_GRADES = [
+  'G1',
+  'G1/2',
+  'G2',
+  'G2/3',
+  'G3',
+  'G3(4)',
+  'G4',
+  'G4(5)',
+  'G4/5',
+  'G5',
+] as const;
+
+function gradeOptionsForName(name: string | undefined): readonly string[] | null {
+  if (!name) return null;
+  if (name === 'Sea Kayak') return SEA_GRADES;
+  if (name === 'Pinkston') return PINKSTON_GRADES;
+  if (name === 'River Trip') return RIVER_GRADES;
+  return null;
+}
+
 const STATUS_OPTIONS: Array<{
-  value: 'draft' | 'open' | 'closed' | 'cancelled';
+  value: 'open' | 'closed' | 'cancelled';
   label: string;
   color: string;
 }> = [
-  { value: 'draft', label: 'Draft', color: OtterPalette.slateNavy },
   { value: 'open', label: 'Open', color: OtterPalette.forest },
   { value: 'closed', label: 'Closed', color: OtterPalette.lochPool },
   { value: 'cancelled', label: 'Cancelled', color: OtterPalette.ice },
@@ -161,7 +183,8 @@ export default function EditEventScreen() {
       setMaxParticipants(ev.max_participants == null ? '' : String(ev.max_participants));
       setCost(String(Number(ev.cost ?? 0)));
       setApprovalMode(ev.approval_mode);
-      setStatus(ev.status);
+      // Drafts are no longer a supported state — promote on load so the chip row is sensible.
+      setStatus(ev.status === 'draft' ? 'open' : ev.status);
       setDescription(ev.description ?? '');
       setOriginalPhotoPath(ev.photo_path);
       setLoading(false);
@@ -413,16 +436,62 @@ export default function EditEventScreen() {
             ) : null}
           </Card>
 
-          <SectionTitle>Grade / pump level (optional)</SectionTitle>
-          <Card>
-            <TextInput
-              value={grade}
-              onChangeText={setGrade}
-              placeholder="e.g. Sea B, G2/3, P2"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-            />
-          </Card>
+          {(() => {
+            const gradeOpts = gradeOptionsForName(selectedCategory?.name);
+            if (gradeOpts) {
+              return (
+                <>
+                  <SectionTitle>Grade</SectionTitle>
+                  <Card>
+                    <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                      {gradeOpts.map((g) => {
+                        const isActive = g === grade;
+                        return (
+                          <Pressable
+                            key={g}
+                            testID={`grade-chip-${g}`}
+                            onPress={() => setGrade(g)}
+                            style={[
+                              styles.chip,
+                              {
+                                backgroundColor: isActive
+                                  ? OtterPalette.slateNavy
+                                  : palette.surface,
+                                borderColor: isActive
+                                  ? OtterPalette.slateNavy
+                                  : palette.border,
+                              },
+                            ]}>
+                            <Text
+                              style={[
+                                styles.chipText,
+                                { color: isActive ? '#fff' : palette.text },
+                              ]}>
+                              {g}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </Row>
+                  </Card>
+                </>
+              );
+            }
+            return (
+              <>
+                <SectionTitle>Grade (optional)</SectionTitle>
+                <Card>
+                  <TextInput
+                    value={grade}
+                    onChangeText={setGrade}
+                    placeholder="e.g. easy, harder, leader-only"
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                  />
+                </Card>
+              </>
+            );
+          })()}
 
           <SectionTitle>Starts at</SectionTitle>
           <Card>
