@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -36,6 +36,7 @@ type EventRow = {
   approval_mode: string;
   leader_id: string;
   photo_path: string | null;
+  series_id: string | null;
   category?: { name: string } | null;
   leader?: {
     display_name: string | null;
@@ -67,6 +68,8 @@ type SignUpResponse = {
   payment?: { checkout_url: string; amount_pence: number };
 };
 
+type SeriesSibling = { id: string; starts_at: string };
+
 const LEVEL_EMOJI: Record<string, string> = {
   frog: '🐸',
   duck: '🦆',
@@ -84,15 +87,94 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   withdrawn: { label: '↩️ Withdrawn', color: OtterPalette.lochPool },
 };
 
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en-GB', {
-    weekday: 'long',
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function formatDateOnly(d: Date): string {
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short',
     day: 'numeric',
-    month: 'long',
+    month: 'short',
   });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `${date} · ${time}`;
+}
+
+function formatTimeOnly(d: Date): string {
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateTimeFull(d: Date): string {
+  return `${d.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })} · ${formatTimeOnly(d)}`;
+}
+
+function formatRange(startIso: string, endIso: string | null): string {
+  const start = new Date(startIso);
+  if (!endIso) return formatDateTimeFull(start);
+  const end = new Date(endIso);
+  if (sameDay(start, end)) {
+    return `${formatDateOnly(start)} · ${formatTimeOnly(start)}–${formatTimeOnly(end)}`;
+  }
+  return `${formatDateTimeFull(start)} → ${formatDateTimeFull(end)}`;
+}
+
+function buildIcs(ev: EventRow): string {
+  const stamp = (iso: string) =>
+    new Date(iso)
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d+/, '');
+  const escape = (s: string) => s.replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//OtterPool//DCKC//EN',
+    'BEGIN:VEVENT',
+    `UID:${ev.id}@otterpool`,
+    `DTSTAMP:${stamp(new Date().toISOString())}`,
+    `DTSTART:${stamp(ev.starts_at)}`,
+    ev.ends_at ? `DTEND:${stamp(ev.ends_at)}` : null,
+    `SUMMARY:${escape(ev.title)}`,
+    ev.location ? `LOCATION:${escape(ev.location)}` : null,
+    ev.description ? `DESCRIPTION:${escape(ev.description)}` : null,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter((l): l is string => l !== null);
+  return lines.join('\r\n');
+}
+
+function downloadIcs(ev: EventRow) {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  const blob = new Blob([buildIcs(ev)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = window.document.createElement('a');
+  a.href = url;
+  const safe = ev.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.download = `${safe || 'event'}.ics`;
+  window.document.body.appendChild(a);
+  a.click();
+  window.document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function openMaps(query: string) {
+  const encoded = encodeURIComponent(query);
+  const url = Platform.select({
+    ios: `https://maps.apple.com/?q=${encoded}`,
+    default: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+  });
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.open(url, '_blank');
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
 }
 
 async function readErrorMessage(error: unknown): Promise<string> {
@@ -126,6 +208,7 @@ export default function EventDetailScreen() {
   const [signup, setSignup] = useState<Signup | null>(null);
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [series, setSeries] = useState<SeriesSibling[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
@@ -136,7 +219,7 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)'
+          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)'
         )
         .eq('id', id)
         .maybeSingle(),
@@ -162,11 +245,23 @@ export default function EventDetailScreen() {
         .order('signed_up_at', { ascending: true }),
     ]);
 
-    if (!eventRes.error) setEvent((eventRes.data as unknown as EventRow) ?? null);
+    const ev = (eventRes.data as unknown as EventRow) ?? null;
+    if (!eventRes.error) setEvent(ev);
     if (!signupRes.error) setSignup((signupRes.data as Signup) ?? null);
     if (!pendingRes.error) setPendingReviewCount(pendingRes.count ?? 0);
     if (!participantsRes.error)
       setParticipants((participantsRes.data as Participant[]) ?? []);
+
+    if (ev?.series_id) {
+      const { data: siblings } = await supabase
+        .from('events')
+        .select('id, starts_at')
+        .eq('series_id', ev.series_id)
+        .order('starts_at', { ascending: true });
+      setSeries((siblings as SeriesSibling[]) ?? []);
+    } else {
+      setSeries([]);
+    }
     setLoading(false);
   }, [id, session]);
 
@@ -198,6 +293,18 @@ export default function EventDetailScreen() {
     }
   }, [cancelled]);
 
+  const seriesInfo = useMemo(() => {
+    if (!event?.series_id || series.length < 2) return null;
+    const idx = series.findIndex((s) => s.id === event.id);
+    const now = new Date();
+    const next = series.find((s, i) => i > idx && new Date(s.starts_at) > now);
+    return {
+      index: idx + 1,
+      total: series.length,
+      next,
+    };
+  }, [event, series]);
+
   const handleSignUp = async () => {
     if (!id) return;
     setBusy(true);
@@ -224,7 +331,7 @@ export default function EventDetailScreen() {
       } else {
         await Linking.openURL(data.payment.checkout_url);
       }
-      return; // user is leaving the screen; don't clear busy
+      return;
     }
 
     setFeedback({ type: 'ok', msg: data?.message ?? 'Signed up' });
@@ -253,14 +360,14 @@ export default function EventDetailScreen() {
     );
   }
 
-  const leaderName =
-    event.leader?.display_name ?? event.leader?.full_name ?? '—';
+  const leaderName = event.leader?.display_name ?? event.leader?.full_name ?? '—';
   const levelEmoji = LEVEL_EMOJI[event.min_level] ?? '🦆';
   const isPaid = Number(event.cost) > 0;
   const isLeader = !!session && session.user.id === event.leader_id;
 
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
+  const isConfirmed = signup?.status === 'confirmed';
 
   const statusInfo = signup
     ? isLeaderApproved
@@ -287,24 +394,32 @@ export default function EventDetailScreen() {
       : `Pay £${Number(event.cost).toFixed(0)}`;
   }
 
+  const showFooterCta = !isLeader && (!signup || isPending);
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}>
         <Header onBack={() => router.back()} />
 
-        <View style={styles.heroWrap}>
-          <EventPhoto path={event.photo_path} height={140} style={styles.hero} />
+        {/* ---------- Hero with title overlay ---------- */}
+        <View style={styles.hero}>
+          <EventPhoto path={event.photo_path} height={220} style={styles.heroPhoto} />
+          <View style={styles.heroOverlay} pointerEvents="none" />
+          <View style={styles.heroContent} pointerEvents="none">
+            {event.category?.name ? (
+              <Text style={styles.heroCategory}>{event.category.name}</Text>
+            ) : null}
+            <Text style={styles.heroTitle} numberOfLines={3}>
+              {event.title}
+            </Text>
+          </View>
         </View>
 
-        <View style={{ paddingHorizontal: 20 }}>
-          <Text style={[styles.title, { color: palette.text }]}>{event.title}</Text>
-          {event.category?.name ? (
-            <Text style={[styles.category, { color: palette.muted }]}>
-              {event.category.name}
-            </Text>
-          ) : null}
-
-          <Row style={{ flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        {/* ---------- Pills row under hero ---------- */}
+        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+          <Row style={{ flexWrap: 'wrap', gap: 6 }}>
             {event.grade_advertised ? (
               <Pill label={event.grade_advertised} color={OtterPalette.slateNavy} />
             ) : null}
@@ -325,34 +440,88 @@ export default function EventDetailScreen() {
           </Row>
         </View>
 
+        {/* ---------- Series banner ---------- */}
+        {seriesInfo ? (
+          <Pressable
+            disabled={!seriesInfo.next}
+            onPress={() =>
+              seriesInfo.next ? router.push(`/event/${seriesInfo.next.id}`) : undefined
+            }
+            testID="event-series-next">
+            <Card
+              style={{
+                borderColor: OtterPalette.slateNavy,
+                borderWidth: 1.5,
+                backgroundColor: palette.surface,
+              }}>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={[styles.value, { color: palette.text }]}>
+                    Repeats · {seriesInfo.index} of {seriesInfo.total}
+                  </Text>
+                  <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+                    {seriesInfo.next
+                      ? `Next: ${formatDateTimeFull(new Date(seriesInfo.next.starts_at))}`
+                      : 'This is the last occurrence in the series'}
+                  </Text>
+                </View>
+                {seriesInfo.next ? (
+                  <Text style={[styles.value, { color: OtterPalette.slateNavy }]}>›</Text>
+                ) : null}
+              </Row>
+            </Card>
+          </Pressable>
+        ) : null}
+
+        {/* ---------- When ---------- */}
         <SectionTitle>When</SectionTitle>
         <Card>
           <Text style={[styles.value, { color: palette.text }]}>
-            {formatDateTime(event.starts_at)}
+            {formatRange(event.starts_at, event.ends_at)}
           </Text>
-          {event.ends_at ? (
-            <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-              Ends {formatDateTime(event.ends_at)}
-            </Text>
+          {isConfirmed && Platform.OS === 'web' ? (
+            <Pressable
+              testID="event-add-to-calendar"
+              onPress={() => downloadIcs(event)}
+              style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+              <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                + Add to your calendar
+              </Text>
+            </Pressable>
           ) : null}
         </Card>
 
+        {/* ---------- Where ---------- */}
         {event.location || event.meeting_point ? (
           <>
             <SectionTitle>Where</SectionTitle>
             <Card>
               {event.location ? (
-                <Text style={[styles.value, { color: palette.text }]}>{event.location}</Text>
+                <Pressable
+                  onPress={() => openMaps(event.location ?? '')}
+                  testID="event-location">
+                  <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                    {event.location}
+                  </Text>
+                </Pressable>
               ) : null}
               {event.meeting_point ? (
-                <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                  Meet at {event.meeting_point}
-                </Text>
+                <Pressable
+                  onPress={() =>
+                    openMaps(`${event.meeting_point}${event.location ? ', ' + event.location : ''}`)
+                  }
+                  testID="event-meeting-point"
+                  style={{ marginTop: event.location ? 6 : 0 }}>
+                  <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                    Meet at {event.meeting_point} ↗
+                  </Text>
+                </Pressable>
               ) : null}
             </Card>
           </>
         ) : null}
 
+        {/* ---------- Leader ---------- */}
         <SectionTitle>Leader</SectionTitle>
         <Pressable onPress={() => router.push(`/profile/${event.leader_id}`)}>
           <Card>
@@ -374,6 +543,7 @@ export default function EventDetailScreen() {
           </Card>
         </Pressable>
 
+        {/* ---------- Going ---------- */}
         <SectionTitle>
           {`Going${
             event.max_participants
@@ -413,6 +583,7 @@ export default function EventDetailScreen() {
           })
         )}
 
+        {/* ---------- Description ---------- */}
         {event.description ? (
           <>
             <SectionTitle>Description</SectionTitle>
@@ -422,6 +593,7 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
+        {/* ---------- Leader tools ---------- */}
         {isLeader ? (
           <>
             <SectionTitle>Leader tools</SectionTitle>
@@ -431,9 +603,7 @@ export default function EventDetailScreen() {
               <Card>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.value, { color: palette.text }]}>
-                      Edit event
-                    </Text>
+                    <Text style={[styles.value, { color: palette.text }]}>Edit event</Text>
                     <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
                       Update details, photo, status or capacity
                     </Text>
@@ -448,9 +618,7 @@ export default function EventDetailScreen() {
               <Card style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={[styles.value, { color: palette.text }]}>
-                      Review sign-ups
-                    </Text>
+                    <Text style={[styles.value, { color: palette.text }]}>Review sign-ups</Text>
                     <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
                       {pendingReviewCount === 0
                         ? 'No one waiting for review'
@@ -466,6 +634,7 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
+        {/* ---------- Your status ---------- */}
         {signup && statusInfo ? (
           <>
             <SectionTitle>Your status</SectionTitle>
@@ -474,7 +643,7 @@ export default function EventDetailScreen() {
                 {statusInfo.label}
               </Text>
               <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                Signed up {formatDateTime(signup.signed_up_at)}
+                Signed up {formatDateTimeFull(new Date(signup.signed_up_at))}
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
@@ -507,48 +676,48 @@ export default function EventDetailScreen() {
             </Text>
           </Card>
         ) : null}
-
-        {!isLeader && (!signup || isPending) ? (
-          <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-            <Pressable
-              testID="event-primary-cta"
-              onPress={canSignUp ? handleSignUp : undefined}
-              disabled={!canSignUp}
-              style={[
-                styles.primaryBtn,
-                {
-                  backgroundColor: canSignUp ? OtterPalette.slateNavy : '#9aa3ac',
-                  opacity: busy ? 0.7 : 1,
-                },
-              ]}>
-              {busy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
-              )}
-            </Pressable>
-            {isPaid && !isPending ? (
-              <Text style={[styles.payNote, { color: palette.muted }]}>
-                {event.approval_mode === 'manual_all'
-                  ? `£${Number(event.cost).toFixed(0)} payment taken after the leader confirms your spot.`
-                  : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
       </ScrollView>
+
+      {/* ---------- Sticky footer CTA ---------- */}
+      {showFooterCta ? (
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: palette.background, borderTopColor: palette.border },
+          ]}>
+          <Pressable
+            testID="event-primary-cta"
+            onPress={canSignUp ? handleSignUp : undefined}
+            disabled={!canSignUp}
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: canSignUp ? OtterPalette.slateNavy : '#9aa3ac',
+                opacity: busy ? 0.7 : 1,
+              },
+            ]}>
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
+            )}
+          </Pressable>
+          {isPaid && !isPending ? (
+            <Text style={[styles.payNote, { color: palette.muted }]}>
+              {event.approval_mode === 'manual_all'
+                ? `£${Number(event.cost).toFixed(0)} taken after the leader confirms your spot.`
+                : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
 function Header({ onBack }: { onBack: () => void }) {
-  const palette = Colors[useColorScheme() ?? 'light'];
   return (
-    <View
-      style={[
-        styles.header,
-        { backgroundColor: OtterPalette.slateNavy },
-      ]}>
+    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
       <Pressable testID="event-back" onPress={onBack} style={styles.backBtn}>
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
@@ -567,19 +736,65 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 8,
   },
   backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
-  heroWrap: { paddingHorizontal: 16, marginBottom: 4 },
-  hero: { width: '100%', borderRadius: 14 },
-  title: { fontSize: 22, fontWeight: '700', marginTop: 16 },
-  category: { fontSize: 13, marginTop: 4 },
+  hero: {
+    width: '100%',
+    height: 220,
+    backgroundColor: OtterPalette.slateNavy,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroPhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 0,
+  },
+  heroOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    ...(Platform.OS === 'web'
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ({
+          backgroundImage:
+            'linear-gradient(to bottom, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.65) 100%)',
+          backgroundColor: 'transparent',
+        } as any)
+      : null),
+  },
+  heroContent: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 16,
+  },
+  heroCategory: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 28,
+  },
   value: { fontSize: 15, fontWeight: '600' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
   errTitle: { fontSize: 14, fontWeight: '700' },
+  linkText: {
+    textDecorationLine: 'underline',
+  },
   primaryBtn: {
     paddingVertical: 16,
     borderRadius: 12,
@@ -587,4 +802,10 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    borderTopWidth: 1,
+  },
 });
