@@ -19,6 +19,14 @@ export const LEVEL_EMOJI: Record<ProgressionLevel, string> = {
   selkie: '🦭',
 };
 
+export const LEVEL_RANK: Record<ProgressionLevel, number> = {
+  frog: 1,
+  duck: 2,
+  otter: 3,
+  dolphin: 4,
+  selkie: 5,
+};
+
 export const LEVEL_LABEL: Record<ProgressionLevel, string> = {
   frog: 'Frog',
   duck: 'Duck',

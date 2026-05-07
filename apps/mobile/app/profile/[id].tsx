@@ -16,6 +16,7 @@ import {
   CurrentLevelCard,
   JourneyLadder,
 } from '@/components/progress-blocks';
+import { Header } from '@/components/header';
 import { Avatar } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
@@ -23,6 +24,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
   LEVEL_LABEL,
@@ -45,13 +47,6 @@ type ProfileRow = {
 };
 
 type ApprovalRow = { track: Track; ceiling: string };
-
-const STATUS_COLOR: Record<string, string> = {
-  active: OtterPalette.forest,
-  aspirant: OtterPalette.lochPool,
-  lapsed: OtterPalette.burntOrange,
-  suspended: OtterPalette.ice,
-};
 
 export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -185,7 +180,7 @@ export default function MemberProfileScreen() {
                 />
                 <Pill
                   label={profile.status}
-                  color={STATUS_COLOR[profile.status] ?? OtterPalette.lochPool}
+                  color={MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool}
                 />
               </Row>
             </View>
@@ -359,31 +354,8 @@ function CeilingPicker({
   );
 }
 
-function Header({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
-      <Pressable onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
-      <Text style={styles.headerWordmark}>OtterPool</Text>
-      <View style={styles.backBtn} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
-  },
-  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
   name: { fontSize: 20, fontWeight: '700' },
   muted: { fontSize: 12 },
   editCta: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },

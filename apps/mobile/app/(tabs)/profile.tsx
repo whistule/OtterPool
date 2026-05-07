@@ -23,6 +23,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
+import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type EmergencyContact = {
@@ -42,13 +43,6 @@ type ProfileFields = {
   dob: string;
   bc_membership_no: string;
   medical_notes: string;
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  active: OtterPalette.forest,
-  aspirant: OtterPalette.lochPool,
-  lapsed: OtterPalette.burntOrange,
-  suspended: OtterPalette.ice,
 };
 
 function formatDob(iso: string | null): string {
@@ -347,7 +341,7 @@ export default function ProfileScreen() {
                   />
                   <Pill
                     label={profile.status}
-                    color={STATUS_COLOR[profile.status] ?? OtterPalette.lochPool}
+                    color={MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool}
                   />
                   {profile.is_admin ? <Pill label="Admin" color={OtterPalette.burntOrange} /> : null}
                 </Row>

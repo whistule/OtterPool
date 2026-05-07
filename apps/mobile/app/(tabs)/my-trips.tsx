@@ -16,6 +16,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type SignupRow = {
@@ -33,13 +34,6 @@ type SignupRow = {
 };
 
 type TallyRow = { bucket: string; count: number };
-
-const STATUS_PILL: Record<string, { label: string; color: string }> = {
-  confirmed: { label: 'Confirmed', color: OtterPalette.forest },
-  pending_payment: { label: 'Awaiting payment', color: OtterPalette.burntOrange },
-  pending_review: { label: 'Pending review', color: OtterPalette.burntOrange },
-  waitlisted: { label: 'Waitlist', color: OtterPalette.lochPool },
-};
 
 function bucketFor(
   categoryName: string | null | undefined,
@@ -178,7 +172,7 @@ export default function MyTripsScreen() {
             ) : (
               upcoming.map((s) => {
                 const ev = s.event!;
-                const pill = STATUS_PILL[s.status];
+                const pill = SIGNUP_STATUS[s.status as SignupStatus];
                 return (
                   <Pressable key={s.id} onPress={() => router.push(`/event/${ev.id}`)}>
                     <Card>
@@ -189,7 +183,7 @@ export default function MyTripsScreen() {
                             {formatUpcoming(ev.starts_at)}
                           </Text>
                         </View>
-                        {pill ? <Pill label={pill.label} color={pill.color} /> : null}
+                        {pill ? <Pill label={pill.shortLabel} color={pill.color} /> : null}
                       </Row>
                     </Card>
                   </Pressable>

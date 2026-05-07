@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '@/components/header';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 type EventRow = {
@@ -39,14 +41,6 @@ type PendingSignup = {
     level: string;
     status: string;
   } | null;
-};
-
-const LEVEL_EMOJI: Record<string, string> = {
-  frog: '🐸',
-  duck: '🦆',
-  otter: '🦦',
-  dolphin: '🐬',
-  selkie: '🦭',
 };
 
 function formatDateTime(iso: string): string {
@@ -213,7 +207,9 @@ export default function ReviewSignupsScreen() {
           (signups ?? []).map((s) => {
             const name =
               s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
-            const levelEmoji = s.member?.level ? LEVEL_EMOJI[s.member.level] ?? '' : '';
+            const levelEmoji = s.member?.level
+              ? LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? ''
+              : '';
             const busy = busyId === s.id;
             return (
               <Card key={s.id}>
@@ -288,31 +284,8 @@ export default function ReviewSignupsScreen() {
   );
 }
 
-function Header({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
-      <Pressable onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
-      <Text style={styles.headerWordmark}>OtterPool</Text>
-      <View style={styles.backBtn} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
-  },
-  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
   title: { fontSize: 22, fontWeight: '700' },
   subtitle: { fontSize: 13, marginTop: 4 },
   note: { fontSize: 12 },

@@ -10,6 +10,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
+import { LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
@@ -32,22 +33,6 @@ type CalendarRow = {
   leader_avatar_path: string | null;
   photo_path: string | null;
   confirmed_count: number;
-};
-
-const LEVEL_EMOJI: Record<string, string> = {
-  frog: '🐸',
-  duck: '🦆',
-  otter: '🦦',
-  dolphin: '🐬',
-  selkie: '🦭',
-};
-
-const LEVEL_RANK: Record<string, number> = {
-  frog: 1,
-  duck: 2,
-  otter: 3,
-  dolphin: 4,
-  selkie: 5,
 };
 
 function categoryToDiscipline(category: string): Discipline {
@@ -139,7 +124,7 @@ export default function CalendarScreen() {
     return rows.filter((r) => {
       if (active !== 'All' && categoryToDiscipline(r.category) !== active) return false;
       if (openToMe && myRank !== undefined) {
-        const need = LEVEL_RANK[r.min_level] ?? 0;
+        const need = LEVEL_RANK[r.min_level as ProgressionLevel] ?? 0;
         if (need > myRank) return false;
       }
       if (q.length > 0) {
@@ -243,7 +228,7 @@ export default function CalendarScreen() {
         ) : (
           (filtered ?? []).map((ev) => {
             const pill = pillForCategory(ev);
-            const levelEmoji = LEVEL_EMOJI[ev.min_level] ?? '🦆';
+            const levelEmoji = LEVEL_EMOJI[ev.min_level as ProgressionLevel] ?? '🦆';
             return (
               <Pressable
                 key={ev.id}

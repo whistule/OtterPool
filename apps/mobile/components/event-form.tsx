@@ -23,6 +23,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
+import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 export type EventFormMode = 'create' | 'edit';
@@ -70,13 +71,6 @@ const LEVELS: Array<'frog' | 'duck' | 'otter' | 'dolphin'> = [
   'otter',
   'dolphin',
 ];
-
-const LEVEL_EMOJI: Record<string, string> = {
-  frog: '🐸',
-  duck: '🦆',
-  otter: '🦦',
-  dolphin: '🐬',
-};
 
 const STATUS_OPTIONS: Array<{ value: Status; label: string; color: string }> = [
   { value: 'open', label: 'Open', color: OtterPalette.forest },

@@ -12,11 +12,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '@/components/header';
 import { Avatar, EventPhoto } from '@/components/photo';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type EventRow = {
@@ -69,23 +72,6 @@ type SignUpResponse = {
 };
 
 type SeriesSibling = { id: string; starts_at: string };
-
-const LEVEL_EMOJI: Record<string, string> = {
-  frog: '🐸',
-  duck: '🦆',
-  otter: '🦦',
-  dolphin: '🐬',
-  selkie: '🦭',
-};
-
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  confirmed: { label: '✅ Confirmed', color: OtterPalette.forest },
-  pending_payment: { label: '💳 Awaiting payment', color: OtterPalette.burntOrange },
-  pending_review: { label: '⚠️ Pending leader review', color: OtterPalette.burntOrange },
-  waitlisted: { label: '⏳ On waitlist', color: OtterPalette.lochPool },
-  declined: { label: '✖️ Declined', color: OtterPalette.ice },
-  withdrawn: { label: '↩️ Withdrawn', color: OtterPalette.lochPool },
-};
 
 function sameDay(a: Date, b: Date): boolean {
   return (
@@ -352,7 +338,7 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
-        <Header onBack={() => router.back()} />
+        <Header onBack={() => router.back()} backTestID="event-back" />
         <Card>
           <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
         </Card>
@@ -361,7 +347,7 @@ export default function EventDetailScreen() {
   }
 
   const leaderName = event.leader?.display_name ?? event.leader?.full_name ?? '—';
-  const levelEmoji = LEVEL_EMOJI[event.min_level] ?? '🦆';
+  const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
   const isPaid = Number(event.cost) > 0;
   const isLeader = !!session && session.user.id === event.leader_id;
 
@@ -375,7 +361,7 @@ export default function EventDetailScreen() {
           label: `✅ Approved — pay £${Number(event.cost).toFixed(0)} to confirm`,
           color: OtterPalette.forest,
         }
-      : STATUS_LABEL[signup.status]
+      : SIGNUP_STATUS[signup.status as SignupStatus]
     : null;
 
   const canSignUp =
@@ -403,6 +389,7 @@ export default function EventDetailScreen() {
         contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}>
         <Header
           onBack={() => router.back()}
+          backTestID="event-back"
           right={
             isLeader ? (
               <Row style={{ gap: 6 }}>
@@ -558,13 +545,17 @@ export default function EventDetailScreen() {
               <Avatar
                 path={event.leader?.avatar_path ?? null}
                 size={44}
-                fallback={event.leader?.level ? LEVEL_EMOJI[event.leader.level] : undefined}
+                fallback={
+                  event.leader?.level
+                    ? LEVEL_EMOJI[event.leader.level as ProgressionLevel]
+                    : undefined
+                }
               />
               <View>
                 <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
                 {event.leader?.level ? (
                   <Text style={[styles.muted, { color: palette.muted }]}>
-                    {LEVEL_EMOJI[event.leader.level] ?? ''} {event.leader.level}
+                    {LEVEL_EMOJI[event.leader.level as ProgressionLevel] ?? ''} {event.leader.level}
                   </Text>
                 ) : null}
               </View>
@@ -591,7 +582,7 @@ export default function EventDetailScreen() {
         ) : (
           participants.map((p) => {
             const name = p.display_name ?? p.full_name ?? 'Member';
-            const emoji = LEVEL_EMOJI[p.level] ?? '🦦';
+            const emoji = LEVEL_EMOJI[p.level as ProgressionLevel] ?? '🦦';
             return (
               <Pressable
                 key={p.member_id}
@@ -703,41 +694,9 @@ export default function EventDetailScreen() {
   );
 }
 
-function Header({
-  onBack,
-  right,
-}: {
-  onBack: () => void;
-  right?: React.ReactNode;
-}) {
-  return (
-    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
-      <Pressable testID="event-back" onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
-      {right ? (
-        <View style={{ flex: 1, alignItems: 'flex-end' }}>{right}</View>
-      ) : (
-        <Text style={styles.headerWordmark}>OtterPool</Text>
-      )}
-      {right ? null : <View style={styles.backBtn} />}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerWordmark: { color: '#fff', fontSize: 14, fontStyle: 'italic', opacity: 0.85 },
   headerAction: {
     paddingHorizontal: 10,
     paddingVertical: 6,

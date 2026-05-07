@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '@/components/header';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
@@ -103,30 +104,8 @@ export default function MembersScreen() {
   );
 }
 
-function Header({ onBack, title }: { onBack: () => void; title: string }) {
-  return (
-    <View style={[styles.header, { backgroundColor: OtterPalette.slateNavy }]}>
-      <Pressable onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </Pressable>
-      <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.backBtn} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  backBtn: { paddingHorizontal: 8, paddingVertical: 4, minWidth: 56 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   searchWrap: {
     margin: 12,
     paddingHorizontal: 12,
