@@ -1,6 +1,14 @@
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventPhoto } from '@/components/photo';
@@ -37,11 +45,26 @@ type CalendarRow = {
 };
 
 function categoryToDiscipline(category: string): Discipline {
-  if (category.startsWith('Sea Kayak')) return 'Sea';
-  if (category === 'River Trip') return 'River';
-  if (category.startsWith('Pinkston')) return 'Pinkston';
-  if (category.startsWith('Tuesday') || category === 'Pool / Loch Sessions' || category === 'Night Paddle' || category === 'Second Saturday Paddle') return 'Loch/Pool';
-  if (category.startsWith('Skills') || category.startsWith('Training')) return 'Skills';
+  if (category.startsWith('Sea Kayak')) {
+    return 'Sea';
+  }
+  if (category === 'River Trip') {
+    return 'River';
+  }
+  if (category.startsWith('Pinkston')) {
+    return 'Pinkston';
+  }
+  if (
+    category.startsWith('Tuesday') ||
+    category === 'Pool / Loch Sessions' ||
+    category === 'Night Paddle' ||
+    category === 'Second Saturday Paddle'
+  ) {
+    return 'Loch/Pool';
+  }
+  if (category.startsWith('Skills') || category.startsWith('Training')) {
+    return 'Skills';
+  }
   return 'Loch/Pool';
 }
 
@@ -56,7 +79,9 @@ function pillForCategory(row: CalendarRow): { label: string; color: string } {
     };
     return { label: grade ?? 'Sea', color: colours[grade ?? ''] ?? OtterPalette.seaTeal[1] };
   }
-  if (cat === 'River Trip') return { label: grade ?? 'River', color: OtterPalette.riverGreen[1] };
+  if (cat === 'River Trip') {
+    return { label: grade ?? 'River', color: OtterPalette.riverGreen[1] };
+  }
   if (cat === 'Pinkston') {
     const colours: Record<string, string> = {
       P1: OtterPalette.pinkstonOrange[0],
@@ -72,14 +97,20 @@ function pillForCategory(row: CalendarRow): { label: string; color: string } {
 }
 
 function formatPlaces(row: CalendarRow): string {
-  if (row.status === 'full') return 'Waitlist';
-  if (row.max_participants == null) return 'Open';
+  if (row.status === 'full') {
+    return 'Waitlist';
+  }
+  if (row.max_participants == null) {
+    return 'Open';
+  }
   const left = row.max_participants - row.confirmed_count;
   return `${left} of ${row.max_participants} left`;
 }
 
 function formatCost(cost: number): string {
-  if (cost === 0) return 'Free';
+  if (cost === 0) {
+    return 'Free';
+  }
   return `£${Number(cost).toFixed(0)}`;
 }
 
@@ -113,17 +144,25 @@ export default function CalendarScreen() {
   const { refreshing, onRefresh } = useLoadOnFocus(load);
 
   const filtered = useMemo(() => {
-    if (!rows) return null;
+    if (!rows) {
+      return null;
+    }
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (active !== 'All' && categoryToDiscipline(r.category) !== active) return false;
+      if (active !== 'All' && categoryToDiscipline(r.category) !== active) {
+        return false;
+      }
       if (openToMe && myRank !== undefined) {
         const need = LEVEL_RANK[r.min_level as ProgressionLevel] ?? 0;
-        if (need > myRank) return false;
+        if (need > myRank) {
+          return false;
+        }
       }
       if (q.length > 0) {
         const hay = `${r.title} ${r.location ?? ''} ${r.leader_name ?? ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
+        if (!hay.includes(q)) {
+          return false;
+        }
       }
       return true;
     });
@@ -135,14 +174,16 @@ export default function CalendarScreen() {
         <Pressable
           testID="calendar-create-event"
           onPress={() => router.push('/event/new')}
-          style={[styles.fab, { backgroundColor: OtterPalette.slateNavy }]}>
+          style={[styles.fab, { backgroundColor: OtterPalette.slateNavy }]}
+        >
           <Text style={styles.fabText}>＋ Create event</Text>
         </Pressable>
       ) : null}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <TopBar title="Calendar" subtitle="Upcoming club events" />
 
         <View style={styles.searchWrap}>
@@ -155,7 +196,11 @@ export default function CalendarScreen() {
             autoCorrect={false}
             style={[
               styles.search,
-              { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface },
+              {
+                color: palette.text,
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+              },
             ]}
           />
         </View>
@@ -170,12 +215,16 @@ export default function CalendarScreen() {
                     styles.disciplineText,
                     { color: isActive ? OtterPalette.slateNavy : palette.muted },
                     isActive && styles.disciplineTextActive,
-                  ]}>
+                  ]}
+                >
                   {d}
                 </Text>
                 {isActive ? (
                   <View
-                    style={[styles.disciplineUnderline, { backgroundColor: OtterPalette.slateNavy }]}
+                    style={[
+                      styles.disciplineUnderline,
+                      { backgroundColor: OtterPalette.slateNavy },
+                    ]}
                   />
                 ) : null}
               </Pressable>
@@ -193,12 +242,9 @@ export default function CalendarScreen() {
                   backgroundColor: openToMe ? OtterPalette.slateNavy : palette.surface,
                   borderColor: openToMe ? OtterPalette.slateNavy : palette.border,
                 },
-              ]}>
-              <Text
-                style={[
-                  styles.toggleText,
-                  { color: openToMe ? 'white' : palette.muted },
-                ]}>
+              ]}
+            >
+              <Text style={[styles.toggleText, { color: openToMe ? 'white' : palette.muted }]}>
                 {openToMe ? '✓ Open to me' : 'Open to me'}
               </Text>
             </Pressable>
@@ -227,7 +273,8 @@ export default function CalendarScreen() {
               <Pressable
                 key={ev.id}
                 testID={`calendar-event-${ev.id}`}
-                onPress={() => router.push(`/event/${ev.id}`)}>
+                onPress={() => router.push(`/event/${ev.id}`)}
+              >
                 <Card>
                   <Row style={{ marginBottom: 10 }}>
                     <EventPhoto path={ev.photo_path} height={56} thumb />

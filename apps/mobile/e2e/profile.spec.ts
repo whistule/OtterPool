@@ -65,15 +65,11 @@ test.describe('profile — member view', () => {
     });
   });
 
-  test('adds, edits, makes primary, and removes an emergency contact', async ({
-    page,
-  }) => {
+  test('adds, edits, makes primary, and removes an emergency contact', async ({ page }) => {
     // --- add ---
     await page.locator('[data-testid="contact-add"]:visible').click();
     await page.locator('[data-testid="contact-field-name-new"]:visible').fill('Anna Plant');
-    await page
-      .locator('[data-testid="contact-field-phone-new"]:visible')
-      .fill('07700 900456');
+    await page.locator('[data-testid="contact-field-phone-new"]:visible').fill('07700 900456');
     await page.locator('[data-testid="contact-save-new"]:visible').click();
 
     // The new contact row appears with name + phone. Edit button has the
@@ -89,14 +85,10 @@ test.describe('profile — member view', () => {
     // one matching `[data-testid^="contact-edit-"]`.
     await page.locator('[data-testid^="contact-edit-"]:visible').first().click();
     // Form opens prefilled — replace the name and phone.
-    const nameField = page
-      .locator('input[data-testid^="contact-field-name-"]:visible')
-      .first();
+    const nameField = page.locator('input[data-testid^="contact-field-name-"]:visible').first();
     await nameField.fill('');
     await nameField.fill('Anna P. Plant');
-    const phoneField = page
-      .locator('input[data-testid^="contact-field-phone-"]:visible')
-      .first();
+    const phoneField = page.locator('input[data-testid^="contact-field-phone-"]:visible').first();
     await phoneField.fill('');
     await phoneField.fill('07700 900222');
     await page.locator('[data-testid^="contact-save-"]:visible').first().click();
@@ -108,15 +100,10 @@ test.describe('profile — member view', () => {
     await expect(page.getByText('Anna Plant', { exact: true })).toHaveCount(0);
 
     // --- make primary ---
-    await page
-      .locator('[data-testid^="contact-make-primary-"]:visible')
-      .first()
-      .click();
+    await page.locator('[data-testid^="contact-make-primary-"]:visible').first().click();
     await expect(page.getByText('Primary').first()).toBeAttached({ timeout: 15_000 });
     // The Make-primary button is gone now that this contact is primary.
-    await expect(
-      page.locator('[data-testid^="contact-make-primary-"]:visible'),
-    ).toHaveCount(0);
+    await expect(page.locator('[data-testid^="contact-make-primary-"]:visible')).toHaveCount(0);
 
     // --- remove (web confirm()) ---
     page.once('dialog', (d) => d.accept());

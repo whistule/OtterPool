@@ -1,13 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -63,7 +56,9 @@ export default function MemberProfileScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!id || !session) return;
+    if (!id || !session) {
+      return;
+    }
     setError(null);
     const [profRes, ceilRes] = await Promise.all([
       supabase
@@ -73,7 +68,9 @@ export default function MemberProfileScreen() {
         .maybeSingle(),
       supabase.from('member_approvals').select('track, ceiling').eq('member_id', id),
     ]);
-    if (profRes.error) setError(profRes.error.message);
+    if (profRes.error) {
+      setError(profRes.error.message);
+    }
     setProfile((profRes.data as ProfileRow) ?? null);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
     setLoading(false);
@@ -82,12 +79,11 @@ export default function MemberProfileScreen() {
   useLoadOnFocus(load);
 
   const onChangeLevel = async (next: ProgressionLevel) => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     setSavingLevel(true);
-    const { error: err } = await supabase
-      .from('profiles')
-      .update({ level: next })
-      .eq('id', id);
+    const { error: err } = await supabase.from('profiles').update({ level: next }).eq('id', id);
     setSavingLevel(false);
     if (err) {
       setError(err.message);
@@ -98,7 +94,9 @@ export default function MemberProfileScreen() {
   };
 
   const onSetCeiling = async (track: Track, ceiling: string | null) => {
-    if (!id || !session) return;
+    if (!id || !session) {
+      return;
+    }
     setSavingTrack(track);
     if (ceiling == null) {
       const { error: err } = await supabase
@@ -106,8 +104,11 @@ export default function MemberProfileScreen() {
         .delete()
         .eq('member_id', id)
         .eq('track', track);
-      if (err) setError(err.message);
-      else setCeilings((cs) => cs.filter((c) => c.track !== track));
+      if (err) {
+        setError(err.message);
+      } else {
+        setCeilings((cs) => cs.filter((c) => c.track !== track));
+      }
     } else {
       const { error: err } = await supabase.from('member_approvals').upsert({
         member_id: id,
@@ -116,12 +117,14 @@ export default function MemberProfileScreen() {
         set_by: session.user.id,
         set_at: new Date().toISOString(),
       });
-      if (err) setError(err.message);
-      else
+      if (err) {
+        setError(err.message);
+      } else {
         setCeilings((cs) => {
           const others = cs.filter((c) => c.track !== track);
           return [...others, { track, ceiling }];
         });
+      }
     }
     setSavingTrack(null);
     setTrackEdit(null);
@@ -131,7 +134,8 @@ export default function MemberProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
-        edges={['top']}>
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} />
         <LoadingCenter />
       </SafeAreaView>
@@ -142,7 +146,8 @@ export default function MemberProfileScreen() {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
-        edges={['top']}>
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} />
         <ErrorCard title="Member not found" />
       </SafeAreaView>
@@ -155,9 +160,7 @@ export default function MemberProfileScreen() {
   const canEdit = !!viewerProfile?.is_admin && !isSelf;
 
   return (
-    <SafeAreaView
-      style={[styles.screen, { backgroundColor: palette.background }]}
-      edges={['top']}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Header onBack={() => router.back()} />
 
@@ -180,7 +183,9 @@ export default function MemberProfileScreen() {
                 />
                 <Pill
                   label={profile.status}
-                  color={MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool}
+                  color={
+                    MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool
+                  }
                 />
               </Row>
             </View>
@@ -195,7 +200,8 @@ export default function MemberProfileScreen() {
           <Pressable
             onPress={() => setLevelEditOpen(true)}
             disabled={savingLevel}
-            testID="change-level-cta">
+            testID="change-level-cta"
+          >
             <Card style={styles.editCta}>
               <Text style={styles.editCtaText}>
                 {savingLevel ? 'Saving…' : 'Change animal level'}
@@ -255,7 +261,8 @@ function LevelPicker({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable
           style={[styles.modalSheet, { backgroundColor: palette.surface }]}
-          onPress={(e) => e.stopPropagation()}>
+          onPress={(e) => e.stopPropagation()}
+        >
           <Text style={[styles.modalTitle, { color: palette.text }]}>Set animal level</Text>
           {LEVEL_ORDER.map((l) => {
             const selected = l === current;
@@ -268,7 +275,8 @@ function LevelPicker({
                   styles.modalRow,
                   { borderColor: palette.border },
                   selected && { backgroundColor: palette.background },
-                ]}>
+                ]}
+              >
                 <Text style={{ fontSize: 22 }}>{LEVEL_EMOJI[l]}</Text>
                 <Text style={[styles.modalRowLabel, { color: palette.text }]}>
                   {LEVEL_LABEL[l]}
@@ -308,7 +316,8 @@ function CeilingPicker({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable
           style={[styles.modalSheet, { backgroundColor: palette.surface }]}
-          onPress={(e) => e.stopPropagation()}>
+          onPress={(e) => e.stopPropagation()}
+        >
           <Text style={[styles.modalTitle, { color: palette.text }]}>
             {TRACK_LABEL[track]} — set ceiling
           </Text>
@@ -316,7 +325,8 @@ function CeilingPicker({
             <Pressable
               onPress={() => onPick(null)}
               testID="ceiling-pick-clear"
-              style={[styles.modalRow, { borderColor: palette.border }]}>
+              style={[styles.modalRow, { borderColor: palette.border }]}
+            >
               <Text style={{ fontSize: 18 }}>—</Text>
               <Text style={[styles.modalRowLabel, { color: palette.text }]}>Clear ceiling</Text>
               {current == null ? (
@@ -334,7 +344,8 @@ function CeilingPicker({
                     styles.modalRow,
                     { borderColor: palette.border },
                     selected && { backgroundColor: palette.background },
-                  ]}>
+                  ]}
+                >
                   <Text style={[styles.modalRowLabel, { color: palette.text }]}>{g}</Text>
                   {selected ? (
                     <Text style={[styles.modalCurrent, { color: palette.muted }]}>Current</Text>

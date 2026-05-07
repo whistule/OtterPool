@@ -15,40 +15,42 @@
  * Requires SUPABASE_SERVICE_ROLE_KEY in supabase/config.secret.js.
  */
 
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from "./config.secret.js";
+import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './config.secret.js';
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const FIXTURE_EVENT_TITLE = "E2E Manual Review Trip";
-const FIXTURE_SELKIE_TITLE = "E2E Selkie Only Trip";
+const FIXTURE_EVENT_TITLE = 'E2E Manual Review Trip';
+const FIXTURE_SELKIE_TITLE = 'E2E Selkie Only Trip';
 
 const E2E_USERS = [
   {
-    email: "e2e-leader@test.com",
-    password: "e2e-test-password",
-    full_name: "E2E Leader",
-    display_name: "E2E Leader",
-    level: "selkie",
-    status: "active",
+    email: 'e2e-leader@test.com',
+    password: 'e2e-test-password',
+    full_name: 'E2E Leader',
+    display_name: 'E2E Leader',
+    level: 'selkie',
+    status: 'active',
     is_admin: true,
   },
   {
-    email: "e2e-member@test.com",
-    password: "e2e-test-password",
-    full_name: "E2E Member",
-    display_name: "E2E Member",
-    level: "duck",
-    status: "active",
+    email: 'e2e-member@test.com',
+    password: 'e2e-test-password',
+    full_name: 'E2E Member',
+    display_name: 'E2E Member',
+    level: 'duck',
+    status: 'active',
     is_admin: false,
   },
 ];
 
 async function ensureUser(spec) {
   const { data: list, error: listErr } = await admin.auth.admin.listUsers();
-  if (listErr) throw listErr;
+  if (listErr) {
+    throw listErr;
+  }
 
   let user = list.users.find((u) => u.email === spec.email);
 
@@ -58,7 +60,9 @@ async function ensureUser(spec) {
       password: spec.password,
       email_confirm: true,
     });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     user = data.user;
     console.log(`  + created ${spec.email}`);
   } else {
@@ -66,7 +70,7 @@ async function ensureUser(spec) {
   }
 
   const { error: updErr } = await admin
-    .from("profiles")
+    .from('profiles')
     .update({
       full_name: spec.full_name,
       display_name: spec.display_name,
@@ -81,15 +85,16 @@ async function ensureUser(spec) {
       medical_notes: null,
       avatar_path: null,
     })
-    .eq("id", user.id);
-  if (updErr) throw updErr;
+    .eq('id', user.id);
+  if (updErr) {
+    throw updErr;
+  }
 
   // Clear any emergency contacts left over from previous runs.
-  const { error: ecErr } = await admin
-    .from("emergency_contacts")
-    .delete()
-    .eq("member_id", user.id);
-  if (ecErr) throw ecErr;
+  const { error: ecErr } = await admin.from('emergency_contacts').delete().eq('member_id', user.id);
+  if (ecErr) {
+    throw ecErr;
+  }
 
   return { ...spec, id: user.id };
 }
@@ -98,18 +103,19 @@ async function resetFixtureEvent(leader) {
   // Drop any prior fixture events by title — keeps history clean and means
   // we don't accumulate stale rows across runs.
   const { error: delErr } = await admin
-    .from("events")
+    .from('events')
     .delete()
-    .in("title", [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE]);
-  if (delErr) throw delErr;
+    .in('title', [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE]);
+  if (delErr) {
+    throw delErr;
+  }
 
   // Clear any leftover events the create-event spec made on previous runs.
   // The spec prefixes its title with "[E2E]" so they're easy to find.
-  const { error: prefixErr } = await admin
-    .from("events")
-    .delete()
-    .like("title", "[E2E] %");
-  if (prefixErr) throw prefixErr;
+  const { error: prefixErr } = await admin.from('events').delete().like('title', '[E2E] %');
+  if (prefixErr) {
+    throw prefixErr;
+  }
 
   const startsAt = new Date();
   startsAt.setDate(startsAt.getDate() + 14);
@@ -118,24 +124,26 @@ async function resetFixtureEvent(leader) {
   endsAt.setHours(13, 0, 0, 0);
 
   const { data, error } = await admin
-    .from("events")
+    .from('events')
     .insert({
       title: FIXTURE_EVENT_TITLE,
       category_id: 7, // Pool / Loch Sessions — free, frog min level
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
-      location: "E2E test pool",
-      meeting_point: "Reception",
-      min_level: "frog",
+      location: 'E2E test pool',
+      meeting_point: 'Reception',
+      min_level: 'frog',
       max_participants: 6,
       cost: 0,
-      status: "open",
-      approval_mode: "manual_all",
+      status: 'open',
+      approval_mode: 'manual_all',
       leader_id: leader.id,
     })
-    .select("id")
+    .select('id')
     .single();
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   // Selkie-only fixture used by the calendar-filter spec to verify that
   // "Open to me" hides events the signed-in member can't attend.
@@ -144,23 +152,23 @@ async function resetFixtureEvent(leader) {
   const selkieEndsAt = new Date(selkieStartsAt);
   selkieEndsAt.setHours(selkieStartsAt.getHours() + 3);
 
-  const { error: selkieErr } = await admin
-    .from("events")
-    .insert({
-      title: FIXTURE_SELKIE_TITLE,
-      category_id: 7,
-      starts_at: selkieStartsAt.toISOString(),
-      ends_at: selkieEndsAt.toISOString(),
-      location: "E2E selkie only",
-      meeting_point: "Reception",
-      min_level: "selkie",
-      max_participants: 6,
-      cost: 0,
-      status: "open",
-      approval_mode: "auto",
-      leader_id: leader.id,
-    });
-  if (selkieErr) throw selkieErr;
+  const { error: selkieErr } = await admin.from('events').insert({
+    title: FIXTURE_SELKIE_TITLE,
+    category_id: 7,
+    starts_at: selkieStartsAt.toISOString(),
+    ends_at: selkieEndsAt.toISOString(),
+    location: 'E2E selkie only',
+    meeting_point: 'Reception',
+    min_level: 'selkie',
+    max_participants: 6,
+    cost: 0,
+    status: 'open',
+    approval_mode: 'auto',
+    leader_id: leader.id,
+  });
+  if (selkieErr) {
+    throw selkieErr;
+  }
 
   console.log(`  + fixture event ${FIXTURE_EVENT_TITLE} (${data.id})`);
   console.log(`  + fixture event ${FIXTURE_SELKIE_TITLE}`);
@@ -169,42 +177,47 @@ async function resetFixtureEvent(leader) {
 
 async function clearSignups(eventId, memberIds) {
   const { error } = await admin
-    .from("event_signups")
+    .from('event_signups')
     .delete()
-    .eq("event_id", eventId)
-    .in("member_id", memberIds);
-  if (error) throw error;
+    .eq('event_id', eventId)
+    .in('member_id', memberIds);
+  if (error) {
+    throw error;
+  }
   console.log(`  · cleared signups for ${memberIds.length} member(s)`);
 }
 
 async function clearApprovals(memberIds) {
-  const { error } = await admin
-    .from("member_approvals")
-    .delete()
-    .in("member_id", memberIds);
-  if (error) throw error;
+  const { error } = await admin.from('member_approvals').delete().in('member_id', memberIds);
+  if (error) {
+    throw error;
+  }
   console.log(`  · cleared approval ceilings for ${memberIds.length} member(s)`);
 }
 
 async function main() {
-  console.log("Seeding e2e fixtures...\n");
+  console.log('Seeding e2e fixtures...\n');
 
   const users = [];
   for (const spec of E2E_USERS) {
     users.push(await ensureUser(spec));
   }
 
-  const leader = users.find((u) => u.email === "e2e-leader@test.com");
-  if (!leader) throw new Error("e2e-leader user missing after seed");
+  const leader = users.find((u) => u.email === 'e2e-leader@test.com');
+  if (!leader) {
+    throw new Error('e2e-leader user missing after seed');
+  }
 
   const eventId = await resetFixtureEvent(leader);
   const memberIds = users.map((u) => u.id);
   await clearSignups(eventId, memberIds);
   await clearApprovals(memberIds);
 
-  console.log("\n--- e2e fixtures ready ---");
+  console.log('\n--- e2e fixtures ready ---');
   console.log(`  fixture event id: ${eventId}`);
-  for (const u of users) console.log(`  ${u.email.padEnd(22)} ${u.id}`);
+  for (const u of users) {
+    console.log(`  ${u.email.padEnd(22)} ${u.id}`);
+  }
   console.log();
 }
 

@@ -14,18 +14,16 @@ export function FieldLabel({
 }) {
   return (
     <Text
-      style={[
-        { fontSize: 12, fontWeight: '700', marginBottom: 6, color: palette.text },
-        style,
-      ]}>
+      style={[{ fontSize: 12, fontWeight: '700', marginBottom: 6, color: palette.text }, style]}
+    >
       {children}
     </Text>
   );
 }
 
 export function FieldError({ text }: { text?: string }) {
-  if (!text) return null;
-  return (
-    <Text style={{ color: OtterPalette.ice, fontSize: 12, marginTop: 6 }}>{text}</Text>
-  );
+  if (!text) {
+    return null;
+  }
+  return <Text style={{ color: OtterPalette.ice, fontSize: 12, marginTop: 6 }}>{text}</Text>;
 }

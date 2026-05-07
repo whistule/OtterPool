@@ -1,0 +1,11 @@
+{
+  "name": "otterpool",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "format": "biome format --write apps/mobile supabase",
+    "lint": "biome lint apps/mobile supabase",
+    "check": "biome check --write apps/mobile supabase"
+  },
+  "//": "biome is provided by devenv via pkgs.biome — no node_modules at this level"
+}

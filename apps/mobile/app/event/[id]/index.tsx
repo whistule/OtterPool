@@ -103,7 +103,9 @@ function formatDateTimeFull(d: Date): string {
 
 function formatRange(startIso: string, endIso: string | null): string {
   const start = new Date(startIso);
-  if (!endIso) return formatDateTimeFull(start);
+  if (!endIso) {
+    return formatDateTimeFull(start);
+  }
   const end = new Date(endIso);
   if (sameDay(start, end)) {
     return `${formatDateOnly(start)} · ${formatTimeOnly(start)}–${formatTimeOnly(end)}`;
@@ -113,10 +115,7 @@ function formatRange(startIso: string, endIso: string | null): string {
 
 function buildIcs(ev: EventRow): string {
   const stamp = (iso: string) =>
-    new Date(iso)
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d+/, '');
+    new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const escape = (s: string) => s.replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
   const lines = [
     'BEGIN:VCALENDAR',
@@ -137,7 +136,9 @@ function buildIcs(ev: EventRow): string {
 }
 
 function downloadIcs(ev: EventRow) {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return;
+  }
   const blob = new Blob([buildIcs(ev)], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = window.document.createElement('a');
@@ -200,12 +201,14 @@ export default function EventDetailScreen() {
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const [eventRes, signupRes, pendingRes, participantsRes] = await Promise.all([
       supabase
         .from('events')
         .select(
-          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)'
+          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
         )
         .eq('id', id)
         .maybeSingle(),
@@ -232,11 +235,18 @@ export default function EventDetailScreen() {
     ]);
 
     const ev = (eventRes.data as unknown as EventRow) ?? null;
-    if (!eventRes.error) setEvent(ev);
-    if (!signupRes.error) setSignup((signupRes.data as Signup) ?? null);
-    if (!pendingRes.error) setPendingReviewCount(pendingRes.count ?? 0);
-    if (!participantsRes.error)
+    if (!eventRes.error) {
+      setEvent(ev);
+    }
+    if (!signupRes.error) {
+      setSignup((signupRes.data as Signup) ?? null);
+    }
+    if (!pendingRes.error) {
+      setPendingReviewCount(pendingRes.count ?? 0);
+    }
+    if (!participantsRes.error) {
       setParticipants((participantsRes.data as Participant[]) ?? []);
+    }
 
     if (ev?.series_id) {
       const { data: siblings } = await supabase
@@ -259,7 +269,9 @@ export default function EventDetailScreen() {
 
   // Returning from Stripe Checkout — poll briefly while the webhook flips the row.
   useEffect(() => {
-    if (paid !== '1') return;
+    if (paid !== '1') {
+      return;
+    }
     setFeedback({ type: 'ok', msg: 'Payment received — confirming your sign-up…' });
     let stopped = false;
     (async () => {
@@ -280,7 +292,9 @@ export default function EventDetailScreen() {
   }, [cancelled]);
 
   const seriesInfo = useMemo(() => {
-    if (!event?.series_id || series.length < 2) return null;
+    if (!event?.series_id || series.length < 2) {
+      return null;
+    }
     const idx = series.findIndex((s) => s.id === event.id);
     const now = new Date();
     const next = series.find((s, i) => i > idx && new Date(s.starts_at) > now);
@@ -292,7 +306,9 @@ export default function EventDetailScreen() {
   }, [event, series]);
 
   const handleSignUp = async () => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     setBusy(true);
     setFeedback(null);
 
@@ -327,7 +343,10 @@ export default function EventDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <View style={styles.center}>
           <ActivityIndicator color={palette.tint} />
         </View>
@@ -337,7 +356,10 @@ export default function EventDetailScreen() {
 
   if (!event) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} backTestID="event-back" />
         <Card>
           <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
@@ -365,15 +387,21 @@ export default function EventDetailScreen() {
     : null;
 
   const canSignUp =
-    (!signup || isPending) &&
-    !busy &&
-    (event.status === 'open' || event.status === 'full');
+    (!signup || isPending) && !busy && (event.status === 'open' || event.status === 'full');
 
   let primaryLabel = 'Sign up';
-  if (event.status === 'full') primaryLabel = 'Join waitlist';
-  if (event.status === 'cancelled') primaryLabel = 'Cancelled';
-  if (event.status === 'closed') primaryLabel = 'Closed';
-  if (event.status === 'draft') primaryLabel = 'Not yet open';
+  if (event.status === 'full') {
+    primaryLabel = 'Join waitlist';
+  }
+  if (event.status === 'cancelled') {
+    primaryLabel = 'Cancelled';
+  }
+  if (event.status === 'closed') {
+    primaryLabel = 'Closed';
+  }
+  if (event.status === 'draft') {
+    primaryLabel = 'Not yet open';
+  }
   if (isPending) {
     primaryLabel = isLeaderApproved
       ? `Pay £${Number(event.cost).toFixed(0)} to confirm`
@@ -386,7 +414,8 @@ export default function EventDetailScreen() {
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}>
+        contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}
+      >
         <Header
           onBack={() => router.back()}
           backTestID="event-back"
@@ -398,10 +427,9 @@ export default function EventDetailScreen() {
                   onPress={() => router.push(`/event/${id}/review`)}
                   style={[
                     styles.headerAction,
-                    pendingReviewCount > 0
-                      ? { backgroundColor: OtterPalette.burntOrange }
-                      : null,
-                  ]}>
+                    pendingReviewCount > 0 ? { backgroundColor: OtterPalette.burntOrange } : null,
+                  ]}
+                >
                   <Text style={styles.headerActionText}>
                     {pendingReviewCount > 0
                       ? `Review sign-ups · ${pendingReviewCount}`
@@ -411,7 +439,8 @@ export default function EventDetailScreen() {
                 <Pressable
                   testID="event-edit-cta"
                   onPress={() => router.push(`/event/${id}/edit`)}
-                  style={styles.headerAction}>
+                  style={styles.headerAction}
+                >
                   <Text style={styles.headerActionText}>Edit</Text>
                 </Pressable>
               </Row>
@@ -463,13 +492,15 @@ export default function EventDetailScreen() {
             onPress={() =>
               seriesInfo.next ? router.push(`/event/${seriesInfo.next.id}`) : undefined
             }
-            testID="event-series-next">
+            testID="event-series-next"
+          >
             <Card
               style={{
                 borderColor: OtterPalette.slateNavy,
                 borderWidth: 1.5,
                 backgroundColor: palette.surface,
-              }}>
+              }}
+            >
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={[styles.value, { color: palette.text }]}>
@@ -499,7 +530,8 @@ export default function EventDetailScreen() {
             <Pressable
               testID="event-add-to-calendar"
               onPress={() => downloadIcs(event)}
-              style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+              style={{ marginTop: 8, alignSelf: 'flex-start' }}
+            >
               <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
                 + Add to your calendar
               </Text>
@@ -513,9 +545,7 @@ export default function EventDetailScreen() {
             <SectionTitle>Where</SectionTitle>
             <Card>
               {event.location ? (
-                <Pressable
-                  onPress={() => openMaps(event.location ?? '')}
-                  testID="event-location">
+                <Pressable onPress={() => openMaps(event.location ?? '')} testID="event-location">
                   <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
                     {event.location}
                   </Text>
@@ -527,7 +557,8 @@ export default function EventDetailScreen() {
                     openMaps(`${event.meeting_point}${event.location ? ', ' + event.location : ''}`)
                   }
                   testID="event-meeting-point"
-                  style={{ marginTop: event.location ? 6 : 0 }}>
+                  style={{ marginTop: event.location ? 6 : 0 }}
+                >
                   <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
                     Meet at {event.meeting_point} ↗
                   </Text>
@@ -584,9 +615,7 @@ export default function EventDetailScreen() {
             const name = p.display_name ?? p.full_name ?? 'Member';
             const emoji = LEVEL_EMOJI[p.level as ProgressionLevel] ?? '🦦';
             return (
-              <Pressable
-                key={p.member_id}
-                onPress={() => router.push(`/profile/${p.member_id}`)}>
+              <Pressable key={p.member_id} onPress={() => router.push(`/profile/${p.member_id}`)}>
                 <Card>
                   <Row style={{ gap: 12 }}>
                     <Avatar path={p.avatar_path} size={36} fallback={emoji} />
@@ -618,9 +647,7 @@ export default function EventDetailScreen() {
           <>
             <SectionTitle>Your status</SectionTitle>
             <Card style={{ borderColor: statusInfo.color, borderWidth: 1.5 }}>
-              <Text style={[styles.value, { color: statusInfo.color }]}>
-                {statusInfo.label}
-              </Text>
+              <Text style={[styles.value, { color: statusInfo.color }]}>{statusInfo.label}</Text>
               <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
                 Signed up {formatDateTimeFull(new Date(signup.signed_up_at))}
               </Text>
@@ -645,12 +672,14 @@ export default function EventDetailScreen() {
             style={{
               borderWidth: 1.5,
               borderColor: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice,
-            }}>
+            }}
+          >
             <Text
               style={[
                 styles.body,
                 { color: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice },
-              ]}>
+              ]}
+            >
               {feedback.msg}
             </Text>
           </Card>
@@ -663,7 +692,8 @@ export default function EventDetailScreen() {
           style={[
             styles.footer,
             { backgroundColor: palette.background, borderTopColor: palette.border },
-          ]}>
+          ]}
+        >
           <Pressable
             testID="event-primary-cta"
             onPress={canSignUp ? handleSignUp : undefined}
@@ -674,7 +704,8 @@ export default function EventDetailScreen() {
                 backgroundColor: canSignUp ? OtterPalette.slateNavy : '#9aa3ac',
                 opacity: busy ? 0.7 : 1,
               },
-            ]}>
+            ]}
+          >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (

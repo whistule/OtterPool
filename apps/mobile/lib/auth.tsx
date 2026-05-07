@@ -44,7 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
       .eq('id', userId)
       .maybeSingle();
-    if (!error) setProfile((data as Profile) ?? null);
+    if (!error) {
+      setProfile((data as Profile) ?? null);
+    }
   }, []);
 
   useEffect(() => {
@@ -57,11 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // subscribe. Use getSession only as a kicker; either path flips
     // `loading` to false on the first signal we get back.
     const finishLoading = (newSession: Session | null) => {
-      if (!active) return;
+      if (!active) {
+        return;
+      }
       setSession(newSession);
       setLoading(false);
-      if (newSession) loadProfile(newSession.user.id);
-      else setProfile(null);
+      if (newSession) {
+        loadProfile(newSession.user.id);
+      } else {
+        setProfile(null);
+      }
     };
 
     supabase.auth
@@ -80,7 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile]);
 
   const refreshProfile = useCallback(async () => {
-    if (session) await loadProfile(session.user.id);
+    if (session) {
+      await loadProfile(session.user.id);
+    }
   }, [session, loadProfile]);
 
   return (

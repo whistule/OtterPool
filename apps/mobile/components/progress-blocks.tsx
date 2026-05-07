@@ -97,15 +97,8 @@ function GradeGrid({
   );
 }
 
-export function GradeSection({
-  track,
-  counts,
-}: {
-  track: Track;
-  counts: Record<string, number>;
-}) {
-  const grades =
-    track === 'sea' ? SEA_GRADES : track === 'river' ? RIVER_GRADES : PINKSTON_GRADES;
+export function GradeSection({ track, counts }: { track: Track; counts: Record<string, number> }) {
+  const grades = track === 'sea' ? SEA_GRADES : track === 'river' ? RIVER_GRADES : PINKSTON_GRADES;
   return (
     <>
       <SectionTitle>{TRACK_LABEL[track]} grades</SectionTitle>
@@ -134,7 +127,8 @@ export function JourneyLadder({ level }: { level: ProgressionLevel }) {
                 borderBottomWidth: 1,
                 borderBottomColor: palette.border,
               },
-            ]}>
+            ]}
+          >
             <View
               style={[
                 styles.journeyCircle,
@@ -142,11 +136,12 @@ export function JourneyLadder({ level }: { level: ProgressionLevel }) {
                   backgroundColor: current
                     ? OtterPalette.slateNavy
                     : done
-                    ? '#d6e2ed'
-                    : palette.border,
+                      ? '#d6e2ed'
+                      : palette.border,
                   opacity: future ? 0.55 : 1,
                 },
-              ]}>
+              ]}
+            >
               <Text style={{ fontSize: 20 }}>{LEVEL_EMOJI[l]}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -156,9 +151,7 @@ export function JourneyLadder({ level }: { level: ProgressionLevel }) {
               <Text style={[styles.journeySub, { color: palette.muted }]}>{sub}</Text>
             </View>
             {done ? <Text style={[styles.tick, { color: OtterPalette.forest }]}>✓</Text> : null}
-            {current ? (
-              <Pill label="Now" color={OtterPalette.slateNavy} />
-            ) : null}
+            {current ? <Pill label="Now" color={OtterPalette.slateNavy} /> : null}
           </Row>
         );
       })}
@@ -177,7 +170,9 @@ export function CeilingsCard({
 }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   const map: Record<Track, string | null> = { sea: null, river: null, pinkston: null };
-  for (const c of ceilings) map[c.track] = c.ceiling;
+  for (const c of ceilings) {
+    map[c.track] = c.ceiling;
+  }
   const tracks: Track[] = ['sea', 'river', 'pinkston'];
   return (
     <Card>
@@ -192,13 +187,10 @@ export function CeilingsCard({
                 borderBottomWidth: 1,
                 borderBottomColor: palette.border,
               },
-            ]}>
+            ]}
+          >
             <Text style={[styles.ceilingLabel, { color: palette.muted }]}>{TRACK_LABEL[t]}</Text>
-            <Text
-              style={[
-                styles.ceilingValue,
-                { color: ceiling ? palette.text : palette.muted },
-              ]}>
+            <Text style={[styles.ceilingValue, { color: ceiling ? palette.text : palette.muted }]}>
               {value}
             </Text>
             {onPressTrack ? (
@@ -208,10 +200,7 @@ export function CeilingsCard({
         );
         if (onPressTrack) {
           return (
-            <Pressable
-              key={t}
-              onPress={() => onPressTrack(t)}
-              testID={`ceiling-row-${t}`}>
+            <Pressable key={t} onPress={() => onPressTrack(t)} testID={`ceiling-row-${t}`}>
               {row}
             </Pressable>
           );

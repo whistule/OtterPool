@@ -1,0 +1,53 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.expo",
+      "!**/dist",
+      "!**/build",
+      "!**/playwright-report",
+      "!**/test-results",
+      "!**/*.min.js",
+      "!apps/mobile/scripts/reset-project.js",
+      "!supabase/migrations",
+      "!supabase/functions/_shared/deno_runtime.d.ts",
+      "!supabase/test.html",
+      "!supabase/seed.sql",
+      "!**/package-lock.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "style": {
+        "useBlockStatements": "error"
+      }
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "off"
+      }
+    }
+  }
+}

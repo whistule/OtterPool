@@ -23,9 +23,7 @@ async function fillBaseEvent(page: Page, title: string) {
   await page.locator('[data-testid="calendar-create-event"]:visible').click();
   await page.waitForURL(/\/event\/new/, { timeout: 15_000 });
   await page.locator('input[placeholder^="e.g. Sea Kayak"]:visible').fill(title);
-  await page
-    .locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`)
-    .click();
+  await page.locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`).click();
   await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
   await page.locator('input[placeholder^="e.g. Balmaha"]:visible').fill('Reception');
 }
@@ -36,9 +34,7 @@ test.describe('event recurrence + delete — leader', () => {
     await signIn(page, LEADER_EMAIL);
   });
 
-  test('creates a repeating event and produces multiple calendar occurrences', async ({
-    page,
-  }) => {
+  test('creates a repeating event and produces multiple calendar occurrences', async ({ page }) => {
     const title = `[E2E] Repeats ${Date.now()}`;
     await fillBaseEvent(page, title);
 
@@ -52,10 +48,9 @@ test.describe('event recurrence + delete — leader', () => {
 
     await page.goto('/');
     // Three independent events with the same title should now be on the calendar.
-    await expect.poll(
-      async () => page.getByText(title).count(),
-      { timeout: 15_000 },
-    ).toBeGreaterThanOrEqual(3);
+    await expect
+      .poll(async () => page.getByText(title).count(), { timeout: 15_000 })
+      .toBeGreaterThanOrEqual(3);
   });
 
   test('leader can delete an event from the edit screen', async ({ page }) => {
@@ -72,9 +67,9 @@ test.describe('event recurrence + delete — leader', () => {
 
     // Two-tap confirm: first tap arms, second tap deletes.
     await page.locator('[data-testid="event-delete"]:visible').click();
-    await expect(
-      page.getByText('Tap again to confirm delete').first(),
-    ).toBeAttached({ timeout: 5_000 });
+    await expect(page.getByText('Tap again to confirm delete').first()).toBeAttached({
+      timeout: 5_000,
+    });
     await page.locator('[data-testid="event-delete"]:visible').click();
 
     // Should land back on the calendar (root) and the title should be gone.
@@ -84,10 +79,7 @@ test.describe('event recurrence + delete — leader', () => {
     // Force a calendar refresh — focus refetch can be racy when replacing
     // straight onto the already-mounted root tab.
     await page.goto('/');
-    await expect.poll(
-      async () => page.getByText(title).count(),
-      { timeout: 15_000 },
-    ).toBe(0);
+    await expect.poll(async () => page.getByText(title).count(), { timeout: 15_000 }).toBe(0);
 
     // Direct nav to the detail page should now report not found.
     await page.goto(`/event/${eventId}`);

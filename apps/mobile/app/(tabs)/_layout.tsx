@@ -7,11 +7,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function EmojiIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: focused ? 26 : 22, opacity: focused ? 1 : 0.55 }}>
-      {emoji}
-    </Text>
-  );
+  return <Text style={{ fontSize: focused ? 26 : 22, opacity: focused ? 1 : 0.55 }}>{emoji}</Text>;
 }
 
 export default function TabLayout() {
@@ -30,7 +26,8 @@ export default function TabLayout() {
           borderTopColor: palette.border,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{

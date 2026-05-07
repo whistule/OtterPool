@@ -1,13 +1,6 @@
 import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
@@ -39,14 +32,18 @@ export default function MembersScreen() {
       .from('profiles')
       .select('id, full_name, display_name, level, status')
       .order('full_name', { ascending: true });
-    if (err) setError(err.message);
+    if (err) {
+      setError(err.message);
+    }
     setMembers((data as MemberRow[]) ?? []);
   }, []);
 
   useLoadOnFocus(load);
 
   const filtered = (members ?? []).filter((m) => {
-    if (!query) return true;
+    if (!query) {
+      return true;
+    }
     const q = query.toLowerCase();
     return (
       (m.full_name ?? '').toLowerCase().includes(q) ||
@@ -82,7 +79,8 @@ export default function MembersScreen() {
               <Pressable
                 key={m.id}
                 onPress={() => router.push(`/profile/${m.id}`)}
-                testID={`member-row-${m.id}`}>
+                testID={`member-row-${m.id}`}
+              >
                 <Card>
                   <Row style={{ justifyContent: 'space-between' }}>
                     <View style={{ flex: 1, paddingRight: 8 }}>

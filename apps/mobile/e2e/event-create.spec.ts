@@ -37,13 +37,9 @@ test.describe('event create — leader', () => {
     await page.locator('[data-testid="calendar-create-event"]:visible').click();
     await page.waitForURL(/\/event\/new/, { timeout: 15_000 });
 
-    await page
-      .locator('input[placeholder^="e.g. Sea Kayak"]:visible')
-      .fill(title);
+    await page.locator('input[placeholder^="e.g. Sea Kayak"]:visible').fill(title);
 
-    await page
-      .locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`)
-      .click();
+    await page.locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`).click();
 
     await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
     await page.locator('input[placeholder^="e.g. Balmaha"]:visible').fill('Reception');

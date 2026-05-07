@@ -26,9 +26,7 @@ async function signIn(page: Page, email: string) {
 // to a specific row regardless of where else the name might be rendered
 // (e.g. the calendar tab is still mounted under expo-router).
 function memberRow(page: Page, displayName: string) {
-  return page
-    .locator('[data-testid^="member-row-"]:visible')
-    .filter({ hasText: displayName });
+  return page.locator('[data-testid^="member-row-"]:visible').filter({ hasText: displayName });
 }
 
 test.describe('members list — admin', () => {
@@ -57,9 +55,7 @@ test.describe('member profile view — non-admin', () => {
     await signIn(page, MEMBER_EMAIL);
   });
 
-  test('a member visiting another profile sees no admin edit controls', async ({
-    page,
-  }) => {
+  test('a member visiting another profile sees no admin edit controls', async ({ page }) => {
     // Members can reach /members directly even though the admin tile is the
     // only UI link to it. From there, click into the leader's profile.
     await page.goto('/members');
@@ -72,8 +68,6 @@ test.describe('member profile view — non-admin', () => {
 
     // No admin CTAs.
     await expect(page.locator('[data-testid="change-level-cta"]')).toHaveCount(0);
-    await expect(
-      page.getByText('Tap a track to set or clear the ceiling.'),
-    ).toHaveCount(0);
+    await expect(page.getByText('Tap a track to set or clear the ceiling.')).toHaveCount(0);
   });
 });

@@ -31,7 +31,9 @@ export default function SignInScreen() {
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) {
+      setError(error.message);
+    }
   };
 
   const handleSignUp = async () => {
@@ -53,20 +55,20 @@ export default function SignInScreen() {
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}>
+      edges={['top', 'bottom']}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.brand}>
           <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
           <Text style={[styles.tag, { color: palette.muted }]}>DCKC</Text>
         </View>
 
         <View
-          style={[
-            styles.card,
-            { backgroundColor: palette.surface, borderColor: palette.border },
-          ]}>
+          style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        >
           <Text style={[styles.label, { color: palette.muted }]}>Email</Text>
           <TextInput
             value={email}
@@ -89,14 +91,16 @@ export default function SignInScreen() {
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
           />
 
-          {error ? (
-            <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text>
-          ) : null}
+          {error ? <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text> : null}
 
           <Pressable
             onPress={handleSignIn}
             disabled={busy}
-            style={[styles.primaryBtn, { backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.6 : 1 }]}>
+            style={[
+              styles.primaryBtn,
+              { backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.6 : 1 },
+            ]}
+          >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (

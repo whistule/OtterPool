@@ -3,13 +3,7 @@ import { OtterPalette } from '@/constants/theme';
 export type ProgressionLevel = 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
 export type Track = 'sea' | 'river' | 'pinkston';
 
-export const LEVEL_ORDER: ProgressionLevel[] = [
-  'frog',
-  'duck',
-  'otter',
-  'dolphin',
-  'selkie',
-];
+export const LEVEL_ORDER: ProgressionLevel[] = ['frog', 'duck', 'otter', 'dolphin', 'selkie'];
 
 export const LEVEL_EMOJI: Record<ProgressionLevel, string> = {
   frog: '🐸',
@@ -73,12 +67,24 @@ export const TRACK_GRADES: Record<Track, readonly string[]> = {
 };
 
 export function colorForGrade(grade: string): string {
-  if (grade === 'Sea A') return OtterPalette.seaTeal[0];
-  if (grade === 'Sea B') return OtterPalette.seaTeal[1];
-  if (grade === 'Sea C') return OtterPalette.seaTeal[2];
-  if (grade === 'P1') return OtterPalette.pinkstonOrange[0];
-  if (grade === 'P2') return OtterPalette.pinkstonOrange[1];
-  if (grade === 'P3') return OtterPalette.pinkstonOrange[2];
+  if (grade === 'Sea A') {
+    return OtterPalette.seaTeal[0];
+  }
+  if (grade === 'Sea B') {
+    return OtterPalette.seaTeal[1];
+  }
+  if (grade === 'Sea C') {
+    return OtterPalette.seaTeal[2];
+  }
+  if (grade === 'P1') {
+    return OtterPalette.pinkstonOrange[0];
+  }
+  if (grade === 'P2') {
+    return OtterPalette.pinkstonOrange[1];
+  }
+  if (grade === 'P3') {
+    return OtterPalette.pinkstonOrange[2];
+  }
   if (grade.startsWith('G')) {
     if (grade === 'G1' || grade === 'G1/2' || grade === 'G2') {
       return OtterPalette.riverGreen[0];
@@ -101,30 +107,34 @@ export function tallyTotals(rows: { bucket: string; count: number }[]): {
   let river = 0;
   let pinkston = 0;
   for (const r of rows) {
-    if (SEA_GRADES.includes(r.bucket as (typeof SEA_GRADES)[number])) sea += r.count;
-    else if (
-      RIVER_GRADES.includes(r.bucket as (typeof RIVER_GRADES)[number])
-    )
+    if (SEA_GRADES.includes(r.bucket as (typeof SEA_GRADES)[number])) {
+      sea += r.count;
+    } else if (RIVER_GRADES.includes(r.bucket as (typeof RIVER_GRADES)[number])) {
       river += r.count;
-    else if (
-      PINKSTON_GRADES.includes(r.bucket as (typeof PINKSTON_GRADES)[number])
-    )
+    } else if (PINKSTON_GRADES.includes(r.bucket as (typeof PINKSTON_GRADES)[number])) {
       pinkston += r.count;
+    }
   }
   return { trips: sea + river + pinkston, sea, river, pinkston };
 }
 
 export function tenureYears(createdAt: string | null | undefined): number {
-  if (!createdAt) return 0;
+  if (!createdAt) {
+    return 0;
+  }
   const start = new Date(createdAt).getTime();
   const now = Date.now();
   return Math.max(0, Math.floor((now - start) / (365.25 * 24 * 3600 * 1000)));
 }
 
 export function memberSinceLabel(createdAt: string | null | undefined): string {
-  if (!createdAt) return 'New member';
+  if (!createdAt) {
+    return 'New member';
+  }
   const year = new Date(createdAt).getFullYear();
   const yrs = tenureYears(createdAt);
-  if (yrs === 0) return `Member since ${year}`;
+  if (yrs === 0) {
+    return `Member since ${year}`;
+  }
   return `Member since ${year} · ${yrs} ${yrs === 1 ? 'year' : 'years'}`;
 }

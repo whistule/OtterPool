@@ -1,12 +1,6 @@
 import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -39,21 +33,18 @@ export default function ProgressScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
     setError(null);
     const [profRes, tallyRes, ceilRes] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('created_at')
-        .eq('id', session.user.id)
-        .maybeSingle(),
+      supabase.from('profiles').select('created_at').eq('id', session.user.id).maybeSingle(),
       supabase.from('my_trip_tally').select('bucket, count'),
-      supabase
-        .from('member_approvals')
-        .select('track, ceiling')
-        .eq('member_id', session.user.id),
+      supabase.from('member_approvals').select('track, ceiling').eq('member_id', session.user.id),
     ]);
-    if (profRes.error) setError(profRes.error.message);
+    if (profRes.error) {
+      setError(profRes.error.message);
+    }
     setCreatedAt((profRes.data as { created_at: string } | null)?.created_at ?? null);
     setTally(((tallyRes.data ?? []) as TallyRow[]) ?? []);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
@@ -64,7 +55,9 @@ export default function ProgressScreen() {
   const level: ProgressionLevel = profile?.level ?? 'frog';
   const isAdmin = !!profile?.is_admin;
   const counts: Record<string, number> = {};
-  for (const t of tally ?? []) counts[t.bucket] = t.count;
+  for (const t of tally ?? []) {
+    counts[t.bucket] = t.count;
+  }
   const totals = tallyTotals(tally ?? []);
 
   const isLoading = tally == null;
@@ -74,7 +67,8 @@ export default function ProgressScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <TopBar title="Progress" subtitle="Your journey" />
 
         {isLoading ? (
@@ -84,9 +78,7 @@ export default function ProgressScreen() {
         ) : (
           <>
             {isAdmin ? (
-              <Pressable
-                onPress={() => router.push('/members')}
-                testID="admin-manage-members">
+              <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
                 <Card style={styles.adminCard}>
                   <Text style={styles.adminKicker}>Admin</Text>
                   <Text style={styles.adminAction}>Manage members ›</Text>

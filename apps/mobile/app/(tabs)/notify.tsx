@@ -56,8 +56,12 @@ export default function NotifyScreen() {
           <View
             key={t.label}
             style={[
-              i < TRIP_TYPES.length - 1 && { borderBottomWidth: 1, borderBottomColor: palette.border },
-            ]}>
+              i < TRIP_TYPES.length - 1 && {
+                borderBottomWidth: 1,
+                borderBottomColor: palette.border,
+              },
+            ]}
+          >
             <ToggleRow label={t.label} initial={t.defaultOn} />
           </View>
         ))}
@@ -66,8 +70,8 @@ export default function NotifyScreen() {
       <SectionTitle>Always on</SectionTitle>
       <Card>
         <Text style={[styles.caption, { color: palette.muted }]}>
-          You'll always be notified about leader changes, change-of-plan updates,
-          waitlist offers, and approval decisions.
+          You'll always be notified about leader changes, change-of-plan updates, waitlist offers,
+          and approval decisions.
         </Text>
       </Card>
     </Screen>

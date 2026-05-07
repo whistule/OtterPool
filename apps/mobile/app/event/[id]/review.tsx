@@ -1,13 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
@@ -83,7 +76,9 @@ export default function ReviewSignupsScreen() {
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const [eventRes, signupRes] = await Promise.all([
       supabase
         .from('events')
@@ -100,8 +95,12 @@ export default function ReviewSignupsScreen() {
         .order('signed_up_at', { ascending: true }),
     ]);
 
-    if (!eventRes.error) setEvent((eventRes.data as EventRow) ?? null);
-    if (!signupRes.error) setSignups((signupRes.data as unknown as PendingSignup[]) ?? []);
+    if (!eventRes.error) {
+      setEvent((eventRes.data as EventRow) ?? null);
+    }
+    if (!signupRes.error) {
+      setSignups((signupRes.data as unknown as PendingSignup[]) ?? []);
+    }
     setLoading(false);
   }, [id]);
 
@@ -139,7 +138,10 @@ export default function ReviewSignupsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} />
         <LoadingCenter />
       </SafeAreaView>
@@ -148,7 +150,10 @@ export default function ReviewSignupsScreen() {
 
   if (!event) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} />
         <ErrorCard title="Event not found" />
       </SafeAreaView>
@@ -157,7 +162,10 @@ export default function ReviewSignupsScreen() {
 
   if (!session || session.user.id !== event.leader_id) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} />
         <ErrorCard title="Only the event leader can review sign-ups." />
       </SafeAreaView>
@@ -176,8 +184,8 @@ export default function ReviewSignupsScreen() {
           <Text style={[styles.subtitle, { color: palette.muted }]}>{event.title}</Text>
           {isPaid ? (
             <Text style={[styles.note, { color: palette.muted, marginTop: 8 }]}>
-              Confirming a member will prompt them for £{Number(event.cost).toFixed(0)}{' '}
-              payment to complete sign-up.
+              Confirming a member will prompt them for £{Number(event.cost).toFixed(0)} payment to
+              complete sign-up.
             </Text>
           ) : null}
         </View>
@@ -188,12 +196,14 @@ export default function ReviewSignupsScreen() {
               borderWidth: 1.5,
               borderColor: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice,
               marginTop: 16,
-            }}>
+            }}
+          >
             <Text
               style={[
                 styles.body,
                 { color: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice },
-              ]}>
+              ]}
+            >
               {feedback.msg}
             </Text>
           </Card>
@@ -205,17 +215,17 @@ export default function ReviewSignupsScreen() {
           <EmptyCard message="No one is waiting for review." />
         ) : (
           (signups ?? []).map((s) => {
-            const name =
-              s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
+            const name = s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
             const levelEmoji = s.member?.level
-              ? LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? ''
+              ? (LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? '')
               : '';
             const busy = busyId === s.id;
             return (
               <Card key={s.id}>
                 <Pressable
                   onPress={() => router.push(`/profile/${s.member_id}`)}
-                  style={{ marginBottom: 10 }}>
+                  style={{ marginBottom: 10 }}
+                >
                   <Text style={[styles.memberName, { color: palette.text }]}>{name}</Text>
                   <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
                     Signed up {formatDateTime(s.signed_up_at)} · tap to view profile
@@ -234,9 +244,7 @@ export default function ReviewSignupsScreen() {
                     <Pill
                       label={s.member.status}
                       color={
-                        s.member.status === 'active'
-                          ? OtterPalette.forest
-                          : OtterPalette.lochPool
+                        s.member.status === 'active' ? OtterPalette.forest : OtterPalette.lochPool
                       }
                     />
                   ) : null}
@@ -256,7 +264,8 @@ export default function ReviewSignupsScreen() {
                     style={[
                       styles.btn,
                       { backgroundColor: OtterPalette.forest, opacity: busy ? 0.6 : 1 },
-                    ]}>
+                    ]}
+                  >
                     {busy ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
@@ -271,7 +280,8 @@ export default function ReviewSignupsScreen() {
                       styles.btn,
                       styles.btnSecondary,
                       { borderColor: OtterPalette.ice, opacity: busy ? 0.6 : 1 },
-                    ]}>
+                    ]}
+                  >
                     <Text style={[styles.btnText, { color: OtterPalette.ice }]}>Deny</Text>
                   </Pressable>
                 </Row>

@@ -14,13 +14,7 @@ export function LoadingCenter() {
   );
 }
 
-export function ErrorCard({
-  title,
-  message,
-}: {
-  title: string;
-  message?: string | null;
-}) {
+export function ErrorCard({ title, message }: { title: string; message?: string | null }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <Card>

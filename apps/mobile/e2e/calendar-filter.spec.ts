@@ -31,9 +31,7 @@ const expectTitlePresent = async (page: Page, title: string) => {
 };
 
 const expectTitleAbsent = async (page: Page, title: string) => {
-  await expect(
-    page.getByText(title).locator('visible=true'),
-  ).toHaveCount(0);
+  await expect(page.getByText(title).locator('visible=true')).toHaveCount(0);
 };
 
 test.describe('calendar filtering', () => {
@@ -48,27 +46,20 @@ test.describe('calendar filtering', () => {
   test('search box filters by title', async ({ page }) => {
     // expo-router renders both the active and previous tab on web — pick the
     // visible copy of the input.
-    const search = page.locator(
-      'input[placeholder="Search title, location or leader"]:visible',
-    );
+    const search = page.locator('input[placeholder="Search title, location or leader"]:visible');
     await search.fill('selkie only');
 
     await expectTitlePresent(page, FIXTURE_SELKIE_TITLE);
     await expectTitleAbsent(page, FIXTURE_EVENT_TITLE);
 
     await search.fill('zzz-no-such-event');
-    await expect(
-      page.getByText('No events match your filters.').first(),
-    ).toBeAttached();
+    await expect(page.getByText('No events match your filters.').first()).toBeAttached();
   });
 
   test('"Open to me" hides events above the member level', async ({ page }) => {
     // e2e-member is a duck — selkie-only event must disappear once the
     // toggle is on, but the frog-level event must stay.
-    await page
-      .getByText('Open to me', { exact: true })
-      .locator('visible=true')
-      .click();
+    await page.getByText('Open to me', { exact: true }).locator('visible=true').click();
 
     await expectTitleAbsent(page, FIXTURE_SELKIE_TITLE);
     await expectTitlePresent(page, FIXTURE_EVENT_TITLE);

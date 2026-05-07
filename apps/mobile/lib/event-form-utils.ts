@@ -82,10 +82,18 @@ export const CATEGORY_DEFAULTS: Record<
 };
 
 export function gradeOptionsFor(category: Category | null): readonly string[] | null {
-  if (!category) return null;
-  if (category.name === 'Sea Kayak') return SEA_GRADES;
-  if (category.name === 'Pinkston') return PINKSTON_GRADES;
-  if (category.name === 'River Trip') return RIVER_GRADES;
+  if (!category) {
+    return null;
+  }
+  if (category.name === 'Sea Kayak') {
+    return SEA_GRADES;
+  }
+  if (category.name === 'Pinkston') {
+    return PINKSTON_GRADES;
+  }
+  if (category.name === 'River Trip') {
+    return RIVER_GRADES;
+  }
   return null;
 }
 
@@ -102,20 +110,25 @@ export function groupCategories(categories: Category[]): CategoryGroup[] {
   };
 
   for (const c of categories) {
-    if (c.name === 'Sea Kayak') place('Open water', c, 'Sea Kayak');
-    else if (c.name === 'River Trip') place('Open water', c, 'River');
-    else if (c.name === 'Pinkston') place('Pump track', c, 'Pinkston');
-    else if (c.name.startsWith('Tuesday Evening'))
+    if (c.name === 'Sea Kayak') {
+      place('Open water', c, 'Sea Kayak');
+    } else if (c.name === 'River Trip') {
+      place('Open water', c, 'River');
+    } else if (c.name === 'Pinkston') {
+      place('Pump track', c, 'Pinkston');
+    } else if (c.name.startsWith('Tuesday Evening')) {
       place('Tuesday evening', c, c.name.replace('Tuesday Evening - ', ''));
-    else if (
+    } else if (
       c.name === 'Pool / Loch Sessions' ||
       c.name === 'Night Paddle' ||
       c.name === 'Second Saturday Paddle'
-    )
+    ) {
       place('Loch / pool', c, c.name);
-    else if (c.name.startsWith('Skills') || c.name.startsWith('Training'))
+    } else if (c.name.startsWith('Skills') || c.name.startsWith('Training')) {
       place('Skills & training', c, c.name);
-    else place('Other', c, c.name);
+    } else {
+      place('Other', c, c.name);
+    }
   }
 
   return order.map((k) => groups[k]);
@@ -134,9 +147,13 @@ export function defaultStartIso(): string {
 }
 
 export function durationHoursBetween(startIso: string, endIso: string | null): string {
-  if (!endIso) return '';
+  if (!endIso) {
+    return '';
+  }
   const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
-  if (!isFinite(ms) || ms <= 0) return '';
+  if (!isFinite(ms) || ms <= 0) {
+    return '';
+  }
   const hours = ms / (1000 * 60 * 60);
   return Number.isInteger(hours) ? String(hours) : hours.toFixed(2);
 }

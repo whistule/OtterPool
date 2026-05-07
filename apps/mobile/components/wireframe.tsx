@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-  TextStyle,
-  StyleProp,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, OtterPalette } from '@/constants/theme';
@@ -17,9 +9,7 @@ export function Screen({ children }: { children: React.ReactNode }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {children}
       </ScrollView>
     </SafeAreaView>
@@ -55,7 +45,8 @@ export function Card({
         styles.card,
         { backgroundColor: palette.surface, borderColor: palette.border },
         style,
-      ]}>
+      ]}
+    >
       {children}
     </View>
   );
@@ -89,12 +80,7 @@ export function Pill({
   textStyle?: StyleProp<TextStyle>;
 }) {
   return (
-    <View
-      style={[
-        styles.pill,
-        { backgroundColor: color ?? OtterPalette.slateNavy },
-        style,
-      ]}>
+    <View style={[styles.pill, { backgroundColor: color ?? OtterPalette.slateNavy }, style]}>
       <Text style={[styles.pillText, textStyle]}>{label}</Text>
     </View>
   );

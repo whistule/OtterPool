@@ -1,6 +1,6 @@
-import { corsHeaders } from "./cors.ts";
+import { corsHeaders } from './cors.ts';
 
-const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
 /** Return a JSON success response. */
 export function ok(body: Record<string, unknown>, status = 200): Response {

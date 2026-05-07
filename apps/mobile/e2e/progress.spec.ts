@@ -27,18 +27,14 @@ test.describe('progress — member view', () => {
     await signIn(page, MEMBER_EMAIL);
   });
 
-  test('shows the member’s level, all ceilings unset, and no admin CTA', async ({
-    page,
-  }) => {
+  test('shows the member’s level, all ceilings unset, and no admin CTA', async ({ page }) => {
     await page.goto('/progress');
 
     // Duck level rendered (member is seeded as duck).
     await expect(page.getByText('Duck', { exact: true }).first()).toBeAttached({
       timeout: 15_000,
     });
-    await expect(
-      page.getByText('Capsize drill complete').first(),
-    ).toBeAttached();
+    await expect(page.getByText('Capsize drill complete').first()).toBeAttached();
 
     // Each track row shows "Not set" before any ceiling exists.
     for (const track of ['sea', 'river', 'pinkston']) {
@@ -47,9 +43,7 @@ test.describe('progress — member view', () => {
     }
 
     // Members area is admin-only.
-    await expect(
-      page.locator('[data-testid="admin-manage-members"]:visible'),
-    ).toHaveCount(0);
+    await expect(page.locator('[data-testid="admin-manage-members"]:visible')).toHaveCount(0);
   });
 });
 

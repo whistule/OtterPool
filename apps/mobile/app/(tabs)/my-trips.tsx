@@ -1,13 +1,6 @@
 import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
@@ -42,31 +35,73 @@ function bucketFor(
   gradeActual: string | null,
 ): string {
   const name = categoryName ?? '';
-  if (name === 'Sea Kayak - A Trip') return 'Sea A';
-  if (name === 'Sea Kayak - B Trip') return 'Sea B';
-  if (name === 'Sea Kayak - C Trip') return 'Sea C';
-  if (name === 'River Trip') return gradeActual ?? gradeAdvertised ?? 'River';
-  if (name === 'Pinkston - 1 Pump') return 'P1';
-  if (name === 'Pinkston - 2 Pumps') return 'P2';
-  if (name === 'Pinkston - 3 Pumps') return 'P3';
-  if (name.startsWith('Tuesday Evening')) return 'Tuesday';
-  if (name === 'Pool / Loch Sessions') return 'Loch';
-  if (name === 'Night Paddle') return 'Night';
-  if (name === 'Second Saturday Paddle') return '2nd Sat';
-  if (name.startsWith('Skills')) return 'Skills';
-  if (name.startsWith('Training')) return 'Training';
+  if (name === 'Sea Kayak - A Trip') {
+    return 'Sea A';
+  }
+  if (name === 'Sea Kayak - B Trip') {
+    return 'Sea B';
+  }
+  if (name === 'Sea Kayak - C Trip') {
+    return 'Sea C';
+  }
+  if (name === 'River Trip') {
+    return gradeActual ?? gradeAdvertised ?? 'River';
+  }
+  if (name === 'Pinkston - 1 Pump') {
+    return 'P1';
+  }
+  if (name === 'Pinkston - 2 Pumps') {
+    return 'P2';
+  }
+  if (name === 'Pinkston - 3 Pumps') {
+    return 'P3';
+  }
+  if (name.startsWith('Tuesday Evening')) {
+    return 'Tuesday';
+  }
+  if (name === 'Pool / Loch Sessions') {
+    return 'Loch';
+  }
+  if (name === 'Night Paddle') {
+    return 'Night';
+  }
+  if (name === 'Second Saturday Paddle') {
+    return '2nd Sat';
+  }
+  if (name.startsWith('Skills')) {
+    return 'Skills';
+  }
+  if (name.startsWith('Training')) {
+    return 'Training';
+  }
   return name || '—';
 }
 
 function colorForBucket(bucket: string): string {
-  if (bucket === 'Sea A') return OtterPalette.seaTeal[0];
-  if (bucket === 'Sea B') return OtterPalette.seaTeal[1];
-  if (bucket === 'Sea C') return OtterPalette.seaTeal[2];
-  if (bucket === 'P1') return OtterPalette.pinkstonOrange[0];
-  if (bucket === 'P2') return OtterPalette.pinkstonOrange[1];
-  if (bucket === 'P3') return OtterPalette.pinkstonOrange[2];
-  if (bucket.startsWith('G')) return OtterPalette.riverGreen[1];
-  if (bucket === 'Skills' || bucket === 'Training') return OtterPalette.slateNavy;
+  if (bucket === 'Sea A') {
+    return OtterPalette.seaTeal[0];
+  }
+  if (bucket === 'Sea B') {
+    return OtterPalette.seaTeal[1];
+  }
+  if (bucket === 'Sea C') {
+    return OtterPalette.seaTeal[2];
+  }
+  if (bucket === 'P1') {
+    return OtterPalette.pinkstonOrange[0];
+  }
+  if (bucket === 'P2') {
+    return OtterPalette.pinkstonOrange[1];
+  }
+  if (bucket === 'P3') {
+    return OtterPalette.pinkstonOrange[2];
+  }
+  if (bucket.startsWith('G')) {
+    return OtterPalette.riverGreen[1];
+  }
+  if (bucket === 'Skills' || bucket === 'Training') {
+    return OtterPalette.slateNavy;
+  }
   return OtterPalette.lochPool;
 }
 
@@ -109,7 +144,9 @@ export default function MyTripsScreen() {
       const up: SignupRow[] = [];
       const pa: SignupRow[] = [];
       for (const r of rows) {
-        if (!r.event) continue;
+        if (!r.event) {
+          continue;
+        }
         const endIso = r.event.ends_at ?? r.event.starts_at;
         if (new Date(endIso).getTime() >= now) {
           up.push(r);
@@ -118,12 +155,10 @@ export default function MyTripsScreen() {
         }
       }
       up.sort(
-        (a, b) =>
-          new Date(a.event!.starts_at).getTime() - new Date(b.event!.starts_at).getTime(),
+        (a, b) => new Date(a.event!.starts_at).getTime() - new Date(b.event!.starts_at).getTime(),
       );
       pa.sort(
-        (a, b) =>
-          new Date(b.event!.starts_at).getTime() - new Date(a.event!.starts_at).getTime(),
+        (a, b) => new Date(b.event!.starts_at).getTime() - new Date(a.event!.starts_at).getTime(),
       );
       setUpcoming(up);
       setPast(pa);
@@ -147,7 +182,8 @@ export default function MyTripsScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <TopBar title="My Trips" subtitle="Upcoming and past" />
 
         {isLoading ? (
@@ -204,11 +240,7 @@ export default function MyTripsScreen() {
             ) : (
               past.map((s) => {
                 const ev = s.event!;
-                const bucket = bucketFor(
-                  ev.category?.name,
-                  ev.grade_advertised,
-                  ev.grade_actual,
-                );
+                const bucket = bucketFor(ev.category?.name, ev.grade_advertised, ev.grade_actual);
                 return (
                   <Pressable key={s.id} onPress={() => router.push(`/event/${ev.id}`)}>
                     <Card>

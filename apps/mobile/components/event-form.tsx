@@ -47,9 +47,7 @@ import { supabase } from '@/lib/supabase';
 
 export type EventFormMode = 'create' | 'edit';
 
-export type EventFormProps =
-  | { mode: 'create' }
-  | { mode: 'edit'; eventId: string };
+export type EventFormProps = { mode: 'create' } | { mode: 'edit'; eventId: string };
 
 export default function EventForm(props: EventFormProps) {
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -89,7 +87,9 @@ export default function EventForm(props: EventFormProps) {
 
   // ---------- Load categories (always) and event row (edit only) ----------
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
     let cancelled = false;
     (async () => {
       const catRes = supabase
@@ -97,18 +97,21 @@ export default function EventForm(props: EventFormProps) {
         .select('id, name, default_min_level, default_cost')
         .order('id');
 
-      const evRes = isEdit && eventId
-        ? supabase
-            .from('events')
-            .select(
-              'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path',
-            )
-            .eq('id', eventId)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null });
+      const evRes =
+        isEdit && eventId
+          ? supabase
+              .from('events')
+              .select(
+                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path',
+              )
+              .eq('id', eventId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
 
       const [c, e] = await Promise.all([catRes, evRes]);
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
 
       if (c.error) {
         setError(`Couldn't load categories: ${c.error.message}`);
@@ -162,11 +165,17 @@ export default function EventForm(props: EventFormProps) {
   }, [selectedCategory]);
 
   const occurrencePreview = useMemo(() => {
-    if (!repeatEnabled || isEdit) return [];
+    if (!repeatEnabled || isEdit) {
+      return [];
+    }
     const n = Number(repeatCount);
-    if (!Number.isInteger(n) || n < 2 || n > 26) return [];
+    if (!Number.isInteger(n) || n < 2 || n > 26) {
+      return [];
+    }
     const start = new Date(startsAt);
-    if (isNaN(start.getTime())) return [];
+    if (isNaN(start.getTime())) {
+      return [];
+    }
     const stepDays = repeatFrequency === 'fortnightly' ? 14 : 7;
     return Array.from({ length: Math.min(n, 6) }, (_, i) => {
       const d = new Date(start);
@@ -181,9 +190,13 @@ export default function EventForm(props: EventFormProps) {
     if (!minLevelTouched) {
       setMinLevel(c.default_min_level === 'selkie' ? 'dolphin' : c.default_min_level);
     }
-    if (!isEdit) setCost(String(c.default_cost ?? 0));
+    if (!isEdit) {
+      setCost(String(c.default_cost ?? 0));
+    }
     const opts = gradeOptionsFor(c);
-    if (!opts || !opts.includes(grade as never)) setGrade('');
+    if (!opts || !opts.includes(grade as never)) {
+      setGrade('');
+    }
     if (!isEdit) {
       const defaults = CATEGORY_DEFAULTS[c.name];
       if (defaults?.repeats && !repeatEnabled) {
@@ -210,14 +223,22 @@ export default function EventForm(props: EventFormProps) {
   };
 
   const submit = async () => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
     setError(null);
     const errs: Partial<Record<FieldKey, string>> = {};
-    if (!title.trim()) errs.title = 'Title is required';
-    if (!categoryId) errs.category = 'Pick a category';
+    if (!title.trim()) {
+      errs.title = 'Title is required';
+    }
+    if (!categoryId) {
+      errs.category = 'Pick a category';
+    }
 
     const startDate = new Date(startsAt);
-    if (isNaN(startDate.getTime())) errs.startsAt = 'Invalid date — use YYYY-MM-DDTHH:MM';
+    if (isNaN(startDate.getTime())) {
+      errs.startsAt = 'Invalid date — use YYYY-MM-DDTHH:MM';
+    }
 
     const dur = Number(durationHours);
     if (durationHours.trim() && (isNaN(dur) || dur < 0)) {
@@ -261,7 +282,9 @@ export default function EventForm(props: EventFormProps) {
     if (isEdit && eventId) {
       // ---------- EDIT path ----------
       let newPath: string | null | undefined = undefined;
-      if (removePhotoFlag) newPath = null;
+      if (removePhotoFlag) {
+        newPath = null;
+      }
       if (photoAsset) {
         const result = await uploadPhoto('event-photos', eventId, photoAsset);
         if ('error' in result) {
@@ -287,12 +310,11 @@ export default function EventForm(props: EventFormProps) {
         approval_mode: approvalMode,
         status,
       };
-      if (newPath !== undefined) update.photo_path = newPath;
+      if (newPath !== undefined) {
+        update.photo_path = newPath;
+      }
 
-      const { error: updateError } = await supabase
-        .from('events')
-        .update(update)
-        .eq('id', eventId);
+      const { error: updateError } = await supabase.from('events').update(update).eq('id', eventId);
       setBusy(false);
 
       if (updateError) {
@@ -358,12 +380,17 @@ export default function EventForm(props: EventFormProps) {
         await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
       }
     }
-    if (firstId) router.replace(`/event/${firstId}`);
-    else router.back();
+    if (firstId) {
+      router.replace(`/event/${firstId}`);
+    } else {
+      router.back();
+    }
   };
 
   const onDelete = async () => {
-    if (!session || !eventId) return;
+    if (!session || !eventId) {
+      return;
+    }
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
@@ -388,7 +415,8 @@ export default function EventForm(props: EventFormProps) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
-        edges={['top']}>
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} title="Edit event" />
         <View style={styles.center}>
           <ActivityIndicator color={palette.tint} />
@@ -401,7 +429,8 @@ export default function EventForm(props: EventFormProps) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
-        edges={['top']}>
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} title="Edit event" />
         <Card style={{ marginTop: 16 }}>
           <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>
@@ -416,7 +445,8 @@ export default function EventForm(props: EventFormProps) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}
-        edges={['top']}>
+        edges={['top']}
+      >
         <Header onBack={() => router.back()} title="Create event" />
         <Card style={{ marginTop: 16 }}>
           <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Selkies only</Text>
@@ -447,17 +477,17 @@ export default function EventForm(props: EventFormProps) {
   const showExistingPhoto = isEdit && !photoAsset && !removePhotoFlag && originalPhotoPath;
 
   return (
-    <SafeAreaView
-      style={[styles.screen, { backgroundColor: palette.background }]}
-      edges={['top']}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Header onBack={() => router.back()} title={screenTitle} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 32 }}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           {/* ---------- The basics ---------- */}
           <SectionTitle>The basics</SectionTitle>
           <Card>
@@ -466,7 +496,9 @@ export default function EventForm(props: EventFormProps) {
               value={title}
               onChangeText={(t) => {
                 setTitle(t);
-                if (fieldErrors.title) setFieldErrors((e) => ({ ...e, title: undefined }));
+                if (fieldErrors.title) {
+                  setFieldErrors((e) => ({ ...e, title: undefined }));
+                }
               }}
               placeholder={titlePlaceholder}
               placeholderTextColor={palette.muted}
@@ -480,10 +512,8 @@ export default function EventForm(props: EventFormProps) {
             {groupCategories(categories).map((group) => (
               <View key={group.label} style={{ marginBottom: 10 }}>
                 <Text
-                  style={[
-                    styles.groupLabel,
-                    { color: palette.muted, borderColor: palette.border },
-                  ]}>
+                  style={[styles.groupLabel, { color: palette.muted, borderColor: palette.border }]}
+                >
                   {group.label}
                 </Text>
                 <View style={styles.chipWrap}>
@@ -497,19 +527,14 @@ export default function EventForm(props: EventFormProps) {
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: isActive
-                              ? OtterPalette.slateNavy
-                              : palette.surface,
-                            borderColor: isActive
-                              ? OtterPalette.slateNavy
-                              : palette.border,
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                           },
-                        ]}>
+                        ]}
+                      >
                         <Text
-                          style={[
-                            styles.chipText,
-                            { color: isActive ? '#fff' : palette.text },
-                          ]}>
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
                           {label}
                         </Text>
                       </Pressable>
@@ -528,7 +553,9 @@ export default function EventForm(props: EventFormProps) {
 
             {(() => {
               const opts = gradeOptionsFor(selectedCategory);
-              if (!opts) return null;
+              if (!opts) {
+                return null;
+              }
               return (
                 <>
                   <FieldLabel palette={palette} style={{ marginTop: 14 }}>
@@ -545,19 +572,14 @@ export default function EventForm(props: EventFormProps) {
                           style={[
                             styles.chip,
                             {
-                              backgroundColor: isActive
-                                ? OtterPalette.slateNavy
-                                : palette.surface,
-                              borderColor: isActive
-                                ? OtterPalette.slateNavy
-                                : palette.border,
+                              backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                              borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                             },
-                          ]}>
+                          ]}
+                        >
                           <Text
-                            style={[
-                              styles.chipText,
-                              { color: isActive ? '#fff' : palette.text },
-                            ]}>
+                            style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                          >
                             {g}
                           </Text>
                         </Pressable>
@@ -574,18 +596,18 @@ export default function EventForm(props: EventFormProps) {
           <Card>
             <View
               style={[
-                wideLayout
-                  ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }
-                  : null,
-              ]}>
+                wideLayout ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' } : null,
+              ]}
+            >
               <View style={wideLayout ? { flex: 2 } : null}>
                 <FieldLabel palette={palette}>Starts at</FieldLabel>
                 <DateTimeField
                   value={startsAt}
                   onChange={(v) => {
                     setStartsAt(v);
-                    if (fieldErrors.startsAt)
+                    if (fieldErrors.startsAt) {
                       setFieldErrors((e) => ({ ...e, startsAt: undefined }));
+                    }
                   }}
                   style={fieldStyle('startsAt')}
                   placeholderColor={palette.muted}
@@ -598,8 +620,9 @@ export default function EventForm(props: EventFormProps) {
                   value={durationHours}
                   onChangeText={(t) => {
                     setDurationHours(t);
-                    if (fieldErrors.duration)
+                    if (fieldErrors.duration) {
                       setFieldErrors((e) => ({ ...e, duration: undefined }));
+                    }
                   }}
                   keyboardType="decimal-pad"
                   placeholder="2"
@@ -631,19 +654,14 @@ export default function EventForm(props: EventFormProps) {
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: isActive
-                              ? OtterPalette.slateNavy
-                              : palette.surface,
-                            borderColor: isActive
-                              ? OtterPalette.slateNavy
-                              : palette.border,
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                           },
-                        ]}>
+                        ]}
+                      >
                         <Text
-                          style={[
-                            styles.chipText,
-                            { color: isActive ? '#fff' : palette.text },
-                          ]}>
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
                           {opt.label}
                         </Text>
                       </Pressable>
@@ -666,16 +684,13 @@ export default function EventForm(props: EventFormProps) {
                                 backgroundColor: isActive
                                   ? OtterPalette.slateNavy
                                   : palette.surface,
-                                borderColor: isActive
-                                  ? OtterPalette.slateNavy
-                                  : palette.border,
+                                borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                               },
-                            ]}>
+                            ]}
+                          >
                             <Text
-                              style={[
-                                styles.chipText,
-                                { color: isActive ? '#fff' : palette.text },
-                              ]}>
+                              style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                            >
                               {freq === 'weekly' ? 'Every week' : 'Every 2 weeks'}
                             </Text>
                           </Pressable>
@@ -689,8 +704,9 @@ export default function EventForm(props: EventFormProps) {
                       value={repeatCount}
                       onChangeText={(t) => {
                         setRepeatCount(t);
-                        if (fieldErrors.repeatCount)
+                        if (fieldErrors.repeatCount) {
                           setFieldErrors((e) => ({ ...e, repeatCount: undefined }));
+                        }
                       }}
                       keyboardType="number-pad"
                       testID="event-repeat-count"
@@ -708,20 +724,20 @@ export default function EventForm(props: EventFormProps) {
                           backgroundColor: palette.surface,
                           borderWidth: 1,
                           borderColor: palette.border,
-                        }}>
-                        <Text
-                          style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+                        }}
+                      >
+                        <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
                           Preview (first {occurrencePreview.length} of {Number(repeatCount)})
                         </Text>
                         {occurrencePreview.map((d, i) => (
                           <Text
                             key={i}
-                            style={[styles.body, { color: palette.text, marginTop: 2 }]}>
+                            style={[styles.body, { color: palette.text, marginTop: 2 }]}
+                          >
                             · {formatPreviewDate(d)}
                           </Text>
                         ))}
-                        <Text
-                          style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
+                        <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
                           Each occurrence is a separate event with its own sign-ups.
                         </Text>
                       </View>
@@ -775,9 +791,9 @@ export default function EventForm(props: EventFormProps) {
                         backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
                         borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                       },
-                    ]}>
-                    <Text
-                      style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
                       {LEVEL_EMOJI[lv]} {lv}
                     </Text>
                   </Pressable>
@@ -792,8 +808,9 @@ export default function EventForm(props: EventFormProps) {
                   value={maxParticipants}
                   onChangeText={(t) => {
                     setMaxParticipants(t);
-                    if (fieldErrors.maxParticipants)
+                    if (fieldErrors.maxParticipants) {
                       setFieldErrors((e) => ({ ...e, maxParticipants: undefined }));
+                    }
                   }}
                   keyboardType="number-pad"
                   placeholder="no cap"
@@ -808,7 +825,9 @@ export default function EventForm(props: EventFormProps) {
                   value={cost}
                   onChangeText={(t) => {
                     setCost(t);
-                    if (fieldErrors.cost) setFieldErrors((e) => ({ ...e, cost: undefined }));
+                    if (fieldErrors.cost) {
+                      setFieldErrors((e) => ({ ...e, cost: undefined }));
+                    }
                   }}
                   keyboardType="decimal-pad"
                   placeholder="0"
@@ -835,9 +854,9 @@ export default function EventForm(props: EventFormProps) {
                         backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
                         borderColor: isActive ? OtterPalette.slateNavy : palette.border,
                       },
-                    ]}>
-                    <Text
-                      style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
                       {mode === 'auto' ? 'Auto-approve (uses ceiling)' : 'Manual review all'}
                     </Text>
                   </Pressable>
@@ -857,11 +876,7 @@ export default function EventForm(props: EventFormProps) {
                 contentFit="cover"
               />
             ) : showExistingPhoto ? (
-              <EventPhoto
-                path={originalPhotoPath}
-                height={140}
-                style={{ marginBottom: 10 }}
-              />
+              <EventPhoto path={originalPhotoPath} height={140} style={{ marginBottom: 10 }} />
             ) : null}
             <Row style={{ gap: 8 }}>
               <Pressable
@@ -870,7 +885,8 @@ export default function EventForm(props: EventFormProps) {
                 style={[
                   styles.chip,
                   { backgroundColor: palette.surface, borderColor: palette.border },
-                ]}>
+                ]}
+              >
                 <Text style={[styles.chipText, { color: palette.text }]}>
                   {photoAsset || originalPhotoPath ? 'Change photo' : 'Pick photo'}
                 </Text>
@@ -881,7 +897,8 @@ export default function EventForm(props: EventFormProps) {
                   style={[
                     styles.chip,
                     { backgroundColor: palette.surface, borderColor: palette.border },
-                  ]}>
+                  ]}
+                >
                   <Text style={[styles.chipText, { color: palette.muted }]}>Remove</Text>
                 </Pressable>
               ) : null}
@@ -927,12 +944,11 @@ export default function EventForm(props: EventFormProps) {
                             backgroundColor: isActive ? opt.color : palette.surface,
                             borderColor: isActive ? opt.color : palette.border,
                           },
-                        ]}>
+                        ]}
+                      >
                         <Text
-                          style={[
-                            styles.chipText,
-                            { color: isActive ? '#fff' : palette.text },
-                          ]}>
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
                           {opt.label}
                         </Text>
                       </Pressable>
@@ -941,8 +957,8 @@ export default function EventForm(props: EventFormProps) {
                 </Row>
                 {status === 'full' ? (
                   <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-                    Status was auto-set to "Full" by sign-ups. Change to Closed if you want to
-                    stop further sign-ups manually.
+                    Status was auto-set to "Full" by sign-ups. Change to Closed if you want to stop
+                    further sign-ups manually.
                   </Text>
                 ) : null}
               </Card>
@@ -955,8 +971,7 @@ export default function EventForm(props: EventFormProps) {
               <SectionTitle>Danger zone</SectionTitle>
               <Card style={{ borderColor: OtterPalette.ice, borderWidth: 1.5 }}>
                 <Text style={[styles.hint, { color: palette.muted, marginBottom: 10 }]}>
-                  Deleting removes this event and all its sign-ups. Refund any paid sign-ups
-                  first.
+                  Deleting removes this event and all its sign-ups. Refund any paid sign-ups first.
                 </Text>
                 <Pressable
                   testID="event-delete"
@@ -970,19 +985,22 @@ export default function EventForm(props: EventFormProps) {
                       borderWidth: 1.5,
                       opacity: busy ? 0.7 : 1,
                     },
-                  ]}>
+                  ]}
+                >
                   <Text
                     style={[
                       styles.primaryBtnText,
                       { color: confirmDelete ? '#fff' : OtterPalette.ice },
-                    ]}>
+                    ]}
+                  >
                     {confirmDelete ? 'Tap again to confirm delete' : 'Delete event'}
                   </Text>
                 </Pressable>
                 {confirmDelete ? (
                   <Pressable
                     onPress={() => setConfirmDelete(false)}
-                    style={{ marginTop: 8, alignItems: 'center' }}>
+                    style={{ marginTop: 8, alignItems: 'center' }}
+                  >
                     <Text style={[styles.hint, { color: palette.muted }]}>Cancel</Text>
                   </Pressable>
                 ) : null}
@@ -996,11 +1014,10 @@ export default function EventForm(props: EventFormProps) {
           style={[
             styles.footer,
             { backgroundColor: palette.background, borderTopColor: palette.border },
-          ]}>
+          ]}
+        >
           {error ? (
-            <Text
-              style={[styles.footerError, { color: OtterPalette.ice }]}
-              numberOfLines={2}>
+            <Text style={[styles.footerError, { color: OtterPalette.ice }]} numberOfLines={2}>
               {error}
             </Text>
           ) : null}
@@ -1011,7 +1028,8 @@ export default function EventForm(props: EventFormProps) {
             style={[
               styles.primaryBtn,
               { backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.7 : 1 },
-            ]}>
+            ]}
+          >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (

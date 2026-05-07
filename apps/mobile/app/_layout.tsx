@@ -21,7 +21,9 @@ function AuthGate() {
   const palette = Colors[colorScheme ?? 'light'];
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
     const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
       router.replace('/sign-in');
@@ -38,7 +40,8 @@ function AuthGate() {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: palette.background,
-        }}>
+        }}
+      >
         <ActivityIndicator size="large" color={palette.tint} />
       </View>
     );

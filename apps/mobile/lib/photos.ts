@@ -5,17 +5,29 @@ import { supabase } from '@/lib/supabase';
 export type PhotoBucket = 'avatars' | 'event-photos';
 
 export function publicUrl(bucket: PhotoBucket, path: string | null | undefined): string | null {
-  if (!path) return null;
+  if (!path) {
+    return null;
+  }
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl ?? null;
 }
 
 function extFromMime(mime: string | undefined, fallbackUri: string): string {
-  if (mime?.includes('png')) return 'png';
-  if (mime?.includes('webp')) return 'webp';
-  if (mime?.includes('heic')) return 'heic';
-  if (mime?.includes('heif')) return 'heif';
-  if (mime?.includes('jpeg') || mime?.includes('jpg')) return 'jpg';
+  if (mime?.includes('png')) {
+    return 'png';
+  }
+  if (mime?.includes('webp')) {
+    return 'webp';
+  }
+  if (mime?.includes('heic')) {
+    return 'heic';
+  }
+  if (mime?.includes('heif')) {
+    return 'heif';
+  }
+  if (mime?.includes('jpeg') || mime?.includes('jpg')) {
+    return 'jpg';
+  }
   const m = fallbackUri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
   return m ? m[1].toLowerCase() : 'jpg';
 }
@@ -28,12 +40,16 @@ export async function pickImage(): Promise<ImagePicker.ImagePickerAsset | null> 
     allowsEditing: true,
     aspect: [4, 3],
   });
-  if (res.canceled || res.assets.length === 0) return null;
+  if (res.canceled || res.assets.length === 0) {
+    return null;
+  }
   return res.assets[0];
 }
 
 async function assetToBlob(asset: ImagePicker.ImagePickerAsset): Promise<Blob> {
-  if ((asset as { file?: File }).file) return (asset as { file: File }).file;
+  if ((asset as { file?: File }).file) {
+    return (asset as { file: File }).file;
+  }
   const response = await fetch(asset.uri);
   return await response.blob();
 }
@@ -55,12 +71,19 @@ export async function uploadPhoto(
     contentType: asset.mimeType ?? blob.type ?? 'image/jpeg',
     upsert: true,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    return { error: error.message };
+  }
   return { path };
 }
 
 /** Best-effort cleanup of a previously-uploaded photo. Errors are swallowed. */
 export async function removePhoto(bucket: PhotoBucket, path: string | null | undefined) {
-  if (!path) return;
-  await supabase.storage.from(bucket).remove([path]).catch(() => undefined);
+  if (!path) {
+    return;
+  }
+  await supabase.storage
+    .from(bucket)
+    .remove([path])
+    .catch(() => undefined);
 }

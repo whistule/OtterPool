@@ -46,14 +46,20 @@ type ProfileFields = {
 };
 
 function formatDob(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) {
+    return '—';
+  }
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) {
+    return iso;
+  }
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function isValidDob(s: string): boolean {
-  if (!s) return true;
+  if (!s) {
+    return true;
+  }
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(s).getTime());
 }
 
@@ -69,9 +75,7 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
 
   // contactMode: 'closed' = no form; 'new' = adding; { id } = editing existing.
-  const [contactMode, setContactMode] = useState<'closed' | 'new' | { id: string }>(
-    'closed',
-  );
+  const [contactMode, setContactMode] = useState<'closed' | 'new' | { id: string }>('closed');
   const [contactDraft, setContactDraft] = useState<{
     name: string;
     relationship: string;
@@ -141,9 +145,13 @@ export default function ProfileScreen() {
   );
 
   const onChangeAvatar = async () => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
     const asset = await pickImage();
-    if (!asset) return;
+    if (!asset) {
+      return;
+    }
     setError(null);
     setUploadingAvatar(true);
     const previousPath = profile?.avatar_path ?? null;
@@ -171,7 +179,9 @@ export default function ProfileScreen() {
   };
 
   const beginEdit = () => {
-    if (!profile) return;
+    if (!profile) {
+      return;
+    }
     setForm({
       full_name: profile.full_name ?? '',
       display_name: profile.display_name ?? '',
@@ -184,7 +194,9 @@ export default function ProfileScreen() {
   };
 
   const saveProfile = async () => {
-    if (!form || !session) return;
+    if (!form || !session) {
+      return;
+    }
     if (!isValidDob(form.dob)) {
       setError('Date of birth must be YYYY-MM-DD');
       return;
@@ -212,7 +224,9 @@ export default function ProfileScreen() {
   };
 
   const saveContact = async () => {
-    if (!session) return;
+    if (!session) {
+      return;
+    }
     if (!contactDraft.name.trim() || !contactDraft.phone.trim()) {
       setError('Name and phone are required for an emergency contact.');
       return;
@@ -227,7 +241,9 @@ export default function ProfileScreen() {
         .update({ is_primary: false })
         .eq('member_id', session.user.id)
         .eq('is_primary', true);
-      if (editingId) demote = demote.neq('id', editingId);
+      if (editingId) {
+        demote = demote.neq('id', editingId);
+      }
       await demote;
     }
     const payload = {
@@ -239,10 +255,7 @@ export default function ProfileScreen() {
       is_primary: contactDraft.is_primary,
     };
     const res = editingId
-      ? await supabase
-          .from('emergency_contacts')
-          .update(payload)
-          .eq('id', editingId)
+      ? await supabase.from('emergency_contacts').update(payload).eq('id', editingId)
       : await supabase
           .from('emergency_contacts')
           .insert({ ...payload, member_id: session.user.id });
@@ -258,15 +271,17 @@ export default function ProfileScreen() {
 
   const deleteContact = (c: EmergencyContact) => {
     const doDelete = async () => {
-      const { error: err } = await supabase
-        .from('emergency_contacts')
-        .delete()
-        .eq('id', c.id);
-      if (err) setError(err.message);
-      else await loadContacts();
+      const { error: err } = await supabase.from('emergency_contacts').delete().eq('id', c.id);
+      if (err) {
+        setError(err.message);
+      } else {
+        await loadContacts();
+      }
     };
     if (Platform.OS === 'web') {
-      if (window.confirm(`Remove ${c.name}?`)) doDelete();
+      if (window.confirm(`Remove ${c.name}?`)) {
+        doDelete();
+      }
     } else {
       Alert.alert('Remove contact', `Remove ${c.name}?`, [
         { text: 'Cancel', style: 'cancel' },
@@ -276,7 +291,9 @@ export default function ProfileScreen() {
   };
 
   const makePrimary = async (c: EmergencyContact) => {
-    if (!session || c.is_primary) return;
+    if (!session || c.is_primary) {
+      return;
+    }
     await supabase
       .from('emergency_contacts')
       .update({ is_primary: false })
@@ -286,8 +303,11 @@ export default function ProfileScreen() {
       .from('emergency_contacts')
       .update({ is_primary: true })
       .eq('id', c.id);
-    if (err) setError(err.message);
-    else await loadContacts();
+    if (err) {
+      setError(err.message);
+    } else {
+      await loadContacts();
+    }
   };
 
   if (!profile || contacts == null) {
@@ -309,11 +329,13 @@ export default function ProfileScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           <TopBar title="Profile" subtitle="Your details and settings" />
 
           <Card>
@@ -321,7 +343,8 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={uploadingAvatar ? undefined : onChangeAvatar}
                 testID="profile-change-avatar"
-                style={{ position: 'relative' }}>
+                style={{ position: 'relative' }}
+              >
                 <Avatar path={profile.avatar_path} size={64} fallback={levelEmoji} />
                 <View style={styles.avatarBadge}>
                   {uploadingAvatar ? (
@@ -341,9 +364,13 @@ export default function ProfileScreen() {
                   />
                   <Pill
                     label={profile.status}
-                    color={MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool}
+                    color={
+                      MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool
+                    }
                   />
-                  {profile.is_admin ? <Pill label="Admin" color={OtterPalette.burntOrange} /> : null}
+                  {profile.is_admin ? (
+                    <Pill label="Admin" color={OtterPalette.burntOrange} />
+                  ) : null}
                 </Row>
               </View>
             </Row>
@@ -356,9 +383,7 @@ export default function ProfileScreen() {
           ) : null}
 
           {profile.is_admin ? (
-            <Pressable
-              onPress={() => router.push('/members')}
-              testID="admin-manage-members">
+            <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
               <Card style={styles.adminCard}>
                 <Text style={styles.adminKicker}>Admin</Text>
                 <Text style={styles.adminAction}>Manage members ›</Text>
@@ -414,10 +439,9 @@ export default function ProfileScreen() {
                   testID="profile-save"
                   onPress={saveProfile}
                   disabled={savingProfile}
-                  style={[styles.primaryBtn, savingProfile && { opacity: 0.6 }]}>
-                  <Text style={styles.primaryBtnText}>
-                    {savingProfile ? 'Saving…' : 'Save'}
-                  </Text>
+                  style={[styles.primaryBtn, savingProfile && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.primaryBtnText}>{savingProfile ? 'Saving…' : 'Save'}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -425,7 +449,8 @@ export default function ProfileScreen() {
                     setError(null);
                   }}
                   disabled={savingProfile}
-                  style={[styles.ghostBtn, { borderColor: palette.border }]}>
+                  style={[styles.ghostBtn, { borderColor: palette.border }]}
+                >
                   <Text style={[styles.ghostBtnText, { color: palette.text }]}>Cancel</Text>
                 </Pressable>
               </Row>
@@ -454,7 +479,8 @@ export default function ProfileScreen() {
               <Pressable
                 testID="profile-edit"
                 onPress={beginEdit}
-                style={[styles.editBtn, { borderColor: palette.border }]}>
+                style={[styles.editBtn, { borderColor: palette.border }]}
+              >
                 <Text style={[styles.editBtnText, { color: palette.text }]}>Edit details</Text>
               </Pressable>
             </Card>
@@ -469,8 +495,7 @@ export default function ProfileScreen() {
             </Card>
           ) : null}
           {contacts.map((c) => {
-            const editingThis =
-              typeof contactMode === 'object' && contactMode.id === c.id;
+            const editingThis = typeof contactMode === 'object' && contactMode.id === c.id;
             if (editingThis) {
               return (
                 <ContactForm
@@ -509,14 +534,16 @@ export default function ProfileScreen() {
                   <Pressable
                     testID={`contact-edit-${c.id}`}
                     onPress={() => beginEditContact(c)}
-                    style={[styles.ghostBtn, { borderColor: palette.border }]}>
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
                     <Text style={[styles.ghostBtnText, { color: palette.text }]}>Edit</Text>
                   </Pressable>
                   {!c.is_primary ? (
                     <Pressable
                       testID={`contact-make-primary-${c.id}`}
                       onPress={() => makePrimary(c)}
-                      style={[styles.ghostBtn, { borderColor: palette.border }]}>
+                      style={[styles.ghostBtn, { borderColor: palette.border }]}
+                    >
                       <Text style={[styles.ghostBtnText, { color: palette.text }]}>
                         Make primary
                       </Text>
@@ -525,7 +552,8 @@ export default function ProfileScreen() {
                   <Pressable
                     testID={`contact-remove-${c.id}`}
                     onPress={() => deleteContact(c)}
-                    style={[styles.ghostBtn, { borderColor: palette.border }]}>
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
                     <Text style={[styles.ghostBtnText, { color: OtterPalette.ice }]}>Remove</Text>
                   </Pressable>
                 </Row>
@@ -646,7 +674,8 @@ function ContactForm({
       <Pressable
         testID={`contact-primary-toggle-${testIdSuffix}`}
         onPress={() => setDraft({ ...draft, is_primary: !draft.is_primary })}
-        style={[styles.checkbox, { borderColor: palette.border }]}>
+        style={[styles.checkbox, { borderColor: palette.border }]}
+      >
         <Text style={{ color: palette.text, fontSize: 14 }}>
           {draft.is_primary ? '☑' : '☐'} Primary contact
         </Text>
@@ -656,14 +685,16 @@ function ContactForm({
           testID={`contact-save-${testIdSuffix}`}
           onPress={onSave}
           disabled={saving}
-          style={[styles.primaryBtn, saving && { opacity: 0.6 }]}>
+          style={[styles.primaryBtn, saving && { opacity: 0.6 }]}
+        >
           <Text style={styles.primaryBtnText}>{saving ? 'Saving…' : saveLabel}</Text>
         </Pressable>
         <Pressable
           testID={`contact-cancel-${testIdSuffix}`}
           onPress={onCancel}
           disabled={saving}
-          style={[styles.ghostBtn, { borderColor: palette.border }]}>
+          style={[styles.ghostBtn, { borderColor: palette.border }]}
+        >
           <Text style={[styles.ghostBtnText, { color: palette.text }]}>Cancel</Text>
         </Pressable>
       </Row>
@@ -729,7 +760,8 @@ function DetailRow({
       style={[
         styles.fieldRow,
         !last && { borderBottomWidth: 1, borderBottomColor: palette.border },
-      ]}>
+      ]}
+    >
       <Text style={[styles.fieldLabel, { color: palette.muted }]}>{label}</Text>
       <Text style={[styles.fieldValue, { color: palette.text }]}>{value}</Text>
     </View>
