@@ -47,7 +47,9 @@ app-example
 /test-results/
 /playwright/.cache/
 
-# Google / Firebase
-google-services.json
+# Google / Firebase — google-services.json is NOT secret (ships in every APK,
+# decompilable from any installed build) and must be tracked so EAS Build can
+# find it. The Firebase service-account JSON (used for FCM V1 push) IS secret
+# and is uploaded via `eas credentials`, not via the repo.
 
 # (devenv / direnv now live at the repo root; see top-level .gitignore)
