@@ -18,6 +18,7 @@ import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
@@ -290,6 +291,17 @@ export default function EventDetailScreen() {
       setFeedback({ type: 'err', msg: 'Payment cancelled. You can try again.' });
     }
   }, [cancelled]);
+
+  useEffect(() => {
+    if (!event) {
+      return;
+    }
+    if (signup?.status === 'confirmed') {
+      scheduleEventReminder(event.id, event.title, event.starts_at).catch(() => {});
+    } else {
+      cancelEventReminder(event.id).catch(() => {});
+    }
+  }, [signup?.status, event]);
 
   const seriesInfo = useMemo(() => {
     if (!event?.series_id || series.length < 2) {

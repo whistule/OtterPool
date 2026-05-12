@@ -3,6 +3,7 @@ import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { gradeWithinCeiling, meetsLevel, trackForCategory } from '../_shared/progression.ts';
 import { getStripe } from '../_shared/stripe.ts';
+import { sendPush } from '../_shared/push.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -222,6 +223,16 @@ Deno.serve(async (req) => {
         await admin.from('events').update({ status: 'full' }).eq('id', event_id);
       }
     }
+
+    // Notify the leader. pending_review needs their action; confirmed is FYI.
+    const leaderTitle =
+      targetStatus === 'pending_review' ? 'New sign-up to review' : 'New sign-up';
+    const memberName = profile.full_name ?? 'A member';
+    await sendPush(admin, [event.leader_id], {
+      title: leaderTitle,
+      body: `${memberName} signed up to ${event.title}`,
+      data: { type: 'signup', event_id: event.id, signup_id: signup.id, status: targetStatus },
+    });
 
     return ok({ signup, message });
   } catch (e) {

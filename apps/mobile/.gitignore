@@ -47,4 +47,7 @@ app-example
 /test-results/
 /playwright/.cache/
 
+# Google / Firebase
+google-services.json
+
 # (devenv / direnv now live at the repo root; see top-level .gitignore)

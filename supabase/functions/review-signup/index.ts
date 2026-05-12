@@ -1,6 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
+import { sendPush } from '../_shared/push.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
     const { data: signup } = await admin
       .from('event_signups')
       .select(
-        'id, status, event_id, member_id, event:events!event_signups_event_id_fkey(id, leader_id, cost, max_participants, status)',
+        'id, status, event_id, member_id, event:events!event_signups_event_id_fkey(id, title, leader_id, cost, max_participants, status)',
       )
       .eq('id', signup_id)
       .maybeSingle();
@@ -37,6 +38,7 @@ Deno.serve(async (req) => {
 
     const event = signup.event as {
       id: string;
+      title: string;
       leader_id: string;
       cost: number;
       max_participants: number | null;
@@ -66,6 +68,11 @@ Deno.serve(async (req) => {
       if (updateErr) {
         return err(`Update failed: ${updateErr.message}`, 500);
       }
+      await sendPush(admin, [signup.member_id], {
+        title: 'Sign-up declined',
+        body: `Your sign-up to ${event.title} was declined`,
+        data: { type: 'signup_reviewed', event_id: event.id, signup_id, status: 'declined' },
+      });
       return ok({ signup_id, status: 'declined' });
     }
 
@@ -88,6 +95,11 @@ Deno.serve(async (req) => {
         if (updateErr) {
           return err(`Update failed: ${updateErr.message}`, 500);
         }
+        await sendPush(admin, [signup.member_id], {
+          title: 'Moved to waitlist',
+          body: `${event.title} filled up before your sign-up was approved`,
+          data: { type: 'signup_reviewed', event_id: event.id, signup_id, status: 'waitlisted' },
+        });
         return ok({
           signup_id,
           status: 'waitlisted',
@@ -127,6 +139,16 @@ Deno.serve(async (req) => {
         await admin.from('events').update({ status: 'full' }).eq('id', event.id);
       }
     }
+
+    const memberBody =
+      nextStatus === 'confirmed'
+        ? `You're in for ${event.title}`
+        : `Approved — pay to confirm your place on ${event.title}`;
+    await sendPush(admin, [signup.member_id], {
+      title: nextStatus === 'confirmed' ? 'Sign-up confirmed' : 'Sign-up approved',
+      body: memberBody,
+      data: { type: 'signup_reviewed', event_id: event.id, signup_id, status: nextStatus },
+    });
 
     return ok({ signup_id, status: nextStatus });
   } catch (e) {

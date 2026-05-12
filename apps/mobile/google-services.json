@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "369259249393",
+    "project_id": "otterpool-71f51",
+    "storage_bucket": "otterpool-71f51.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:369259249393:android:0b31a85ed4d09014597350",
+        "android_client_info": {
+          "package_name": "com.robertplant.otterpool"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9CgtE7Td4a_gIIuz1E699mR5r3xFdv3Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Stripe, getStripe } from '../_shared/stripe.ts';
+import { sendPush } from '../_shared/push.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
       })
       .eq('id', signupId)
       .eq('status', 'pending_payment')
-      .select('event_id')
+      .select('event_id, member_id')
       .maybeSingle();
 
     if (updateErr) {
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
     if (updated) {
       const { data: ev } = await admin
         .from('events')
-        .select('max_participants, status')
+        .select('title, max_participants, status')
         .eq('id', updated.event_id)
         .single();
 
@@ -88,6 +89,16 @@ Deno.serve(async (req) => {
           await admin.from('events').update({ status: 'full' }).eq('id', updated.event_id);
         }
       }
+
+      await sendPush(admin, [updated.member_id], {
+        title: 'Payment received',
+        body: `You're confirmed for ${ev?.title ?? 'your event'}`,
+        data: {
+          type: 'payment_confirmed',
+          event_id: updated.event_id,
+          signup_id: signupId,
+        },
+      });
     }
   } else if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent;

@@ -1,50 +1,63 @@
-# Welcome to your Expo app 👋
+# OtterPool mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo Router app. All commands below run from this directory (`apps/mobile/`).
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Day-to-day dev
 
 ```bash
-npm run reset-project
+npm install                       # first time only
+npx expo start --dev-client       # serves JS to a dev client on device
+npx expo start --web              # web build, used by Playwright e2e
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`--dev-client` only works once you have a development build installed on the device — see below. Expo Go does **not** work on SDK 54 because we use plugins (notifications etc.) that need a custom native shell.
 
-## Learn more
+## Builds (EAS)
 
-To learn more about developing your project with Expo, look at the following resources:
+Three profiles are defined in `eas.json`:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Profile       | Output         | Use when                                                            |
+| ------------- | -------------- | ------------------------------------------------------------------- |
+| `development` | APK (dev client) | Day-to-day work. Loads JS from Metro, needs `npx expo start --dev-client` running |
+| `preview`     | APK (standalone) | Carrying the app around to test push, lock-screen, offline behaviour without Metro |
+| `production`  | AAB             | Play Store submission                                              |
 
-## Join the community
+### First-time setup
 
-Join our community of developers creating universal apps.
+```bash
+npx eas login                     # use your expo.dev account
+npx eas init                      # only if app.json has no extra.eas.projectId
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`eas init` writes the project's `projectId` and `owner` to `app.json` — verify they end up there (not in a stray repo-root `app.json`).
+
+### Build commands
+
+```bash
+# Standard dev build — install, then run `npx expo start --dev-client`
+npx eas build --profile development --platform android
+
+# Standalone APK — install and run with no laptop required
+npx eas build --profile preview --platform android
+```
+
+Builds run in the EAS cloud (~15-25 min). When done, EAS gives you a URL; download the APK, install on your phone. If reinstalling, uninstall the previous build first or you'll hit a signature conflict.
+
+iOS builds need an Apple Developer account and aren't currently set up.
+
+## Push notifications
+
+Push tokens are registered automatically on login (see `lib/notifications.ts`) and stored in `public.user_push_tokens`. Server-triggered push fires from the supabase edge functions (`sign-up`, `review-signup`, `stripe-webhook`) via `_shared/push.ts`.
+
+**Important:** push requires a dev or preview build. It will not work in Expo Go, and it will silently fail if `app.json` is missing `extra.eas.projectId`.
+
+Local reminders (24h before an event) are scheduled on-device from the event screen when a signup becomes `confirmed`.
+
+## Testing
+
+```bash
+npm run test:e2e                  # Playwright against web build
+npm run test:e2e:ui               # Playwright UI mode
+```
+
+E2E tests reseed the local Supabase DB first — see `supabase/seed-e2e.js`.

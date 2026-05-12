@@ -1,6 +1,7 @@
 import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { registerForPushNotifications } from './notifications';
 import { supabase } from './supabase';
 
 export type Profile = {
@@ -66,6 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       if (newSession) {
         loadProfile(newSession.user.id);
+        registerForPushNotifications(newSession.user.id).catch((e) => {
+          console.warn('[push] registration failed:', e);
+        });
       } else {
         setProfile(null);
       }
