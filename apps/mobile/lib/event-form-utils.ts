@@ -74,10 +74,8 @@ export const CATEGORY_DEFAULTS: Record<
   { repeats?: { enabled: boolean; frequency: 'weekly' | 'fortnightly' }; location?: string }
 > = {
   'Tuesday Evening - Loch Lomond': {
-    repeats: { enabled: true, frequency: 'weekly' },
     location: 'Loch Lomond, Balmaha',
   },
-  'Tuesday Evening - All Away': { repeats: { enabled: true, frequency: 'weekly' } },
   Pinkston: { location: 'Pinkston Watersports Centre, Glasgow' },
 };
 

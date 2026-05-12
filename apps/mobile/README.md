@@ -22,6 +22,12 @@ Three profiles are defined in `eas.json`:
 | `preview`     | APK (standalone) | Carrying the app around to test push, lock-screen, offline behaviour without Metro |
 | `production`  | AAB             | Play Store submission                                              |
 
+> **TODO (before first prod release):** split staging/prod Firebase. The current `google-services.json` and Expo project point at a single Firebase project, which is fine for testing but means any "real" install would share push credentials with dev. When ready:
+> - create a second Firebase project for prod
+> - switch the production profile to a separate `android.package` (e.g. drop `.staging` from the current package and use `com.robertplant.otterpool` for prod, `.staging` for everything else)
+> - either swap to `app.config.js` so each profile picks its own `googleServicesFile`, or use an EAS file secret to inject the prod one at build time
+> - upload a second FCM V1 service-account key via `eas credentials` against the prod profile
+
 ### First-time setup
 
 ```bash

@@ -6,6 +6,7 @@
   packages = [
     pkgs.nodejs_22
     pkgs.playwright-driver.browsers
+    pkgs.biome
   ];
 
   # Point Playwright at the nixpkgs-built browsers and skip the host-OS

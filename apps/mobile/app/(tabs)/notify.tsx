@@ -1,50 +1,72 @@
-import React, { useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Card, Screen, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
-const TRIP_TYPES = [
-  { label: 'Sea A trips', defaultOn: true },
-  { label: 'Sea B trips', defaultOn: true },
-  { label: 'Sea C trips', defaultOn: false },
-  { label: 'River — up to G2', defaultOn: true },
-  { label: 'River — G2/3 and above', defaultOn: false },
-  { label: 'Pinkston sessions', defaultOn: true },
-  { label: 'Tuesday Evenings', defaultOn: true },
-  { label: 'Skills / Microsessions', defaultOn: false },
-];
-
-function ToggleRow({
-  label,
-  initial,
-  caption,
-}: {
-  label: string;
-  initial?: boolean;
-  caption?: string;
-}) {
-  const palette = Colors[useColorScheme() ?? 'light'];
-  const [on, setOn] = useState(initial ?? false);
-  return (
-    <View style={styles.toggleRow}>
-      <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={[styles.toggleLabel, { color: palette.text }]}>{label}</Text>
-        {caption ? <Text style={[styles.caption, { color: palette.muted }]}>{caption}</Text> : null}
-      </View>
-      <Switch
-        value={on}
-        onValueChange={setOn}
-        trackColor={{ true: OtterPalette.slateNavy, false: '#d6d3cd' }}
-        thumbColor="#ffffff"
-      />
-    </View>
-  );
-}
+type Category = { id: number; name: string };
 
 export default function NotifyScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const { session } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subscribed, setSubscribed] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const userId = session?.user.id ?? null;
+
+  const load = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    const [catRes, profileRes] = await Promise.all([
+      supabase.from('event_categories').select('id, name').order('id'),
+      supabase.from('profiles').select('notify_category_ids').eq('id', userId).maybeSingle(),
+    ]);
+    if (catRes.error) {
+      setError(catRes.error.message);
+      setLoading(false);
+      return;
+    }
+    if (profileRes.error) {
+      setError(profileRes.error.message);
+      setLoading(false);
+      return;
+    }
+    setCategories((catRes.data as Category[]) ?? []);
+    setSubscribed(new Set(profileRes.data?.notify_category_ids ?? []));
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const toggle = async (categoryId: number, on: boolean) => {
+    if (!userId) {
+      return;
+    }
+    const next = new Set(subscribed);
+    if (on) {
+      next.add(categoryId);
+    } else {
+      next.delete(categoryId);
+    }
+    setSubscribed(next);
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ notify_category_ids: Array.from(next) })
+      .eq('id', userId);
+    if (updateError) {
+      // Revert on failure
+      setSubscribed(subscribed);
+      setError(updateError.message);
+    }
+  };
 
   return (
     <Screen>
@@ -52,29 +74,67 @@ export default function NotifyScreen() {
 
       <SectionTitle>Trip alerts</SectionTitle>
       <Card>
-        {TRIP_TYPES.map((t, i) => (
-          <View
-            key={t.label}
-            style={[
-              i < TRIP_TYPES.length - 1 && {
-                borderBottomWidth: 1,
-                borderBottomColor: palette.border,
-              },
-            ]}
-          >
-            <ToggleRow label={t.label} initial={t.defaultOn} />
+        {loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={palette.tint} />
           </View>
-        ))}
+        ) : (
+          categories.map((c, i) => (
+            <View
+              key={c.id}
+              style={[
+                i < categories.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: palette.border,
+                },
+              ]}
+            >
+              <ToggleRow
+                label={c.name}
+                value={subscribed.has(c.id)}
+                onValueChange={(on) => toggle(c.id, on)}
+              />
+            </View>
+          ))
+        )}
+        {error ? (
+          <Text style={[styles.caption, { color: OtterPalette.ice, marginTop: 8 }]}>{error}</Text>
+        ) : null}
       </Card>
 
       <SectionTitle>Always on</SectionTitle>
       <Card>
         <Text style={[styles.caption, { color: palette.muted }]}>
-          You'll always be notified about leader changes, change-of-plan updates, waitlist offers,
-          and approval decisions.
+          You'll always be notified about events you've signed up to: leader decisions, payment
+          receipts, waitlist offers, and cancellations.
         </Text>
       </Card>
     </Screen>
+  );
+}
+
+function ToggleRow({
+  label,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  value: boolean;
+  onValueChange: (on: boolean) => void;
+}) {
+  const palette = Colors[useColorScheme() ?? 'light'];
+  return (
+    <View style={styles.toggleRow}>
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={[styles.toggleLabel, { color: palette.text }]}>{label}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: OtterPalette.slateNavy, false: '#d6d3cd' }}
+        thumbColor="#ffffff"
+      />
+    </View>
   );
 }
 
@@ -86,4 +146,5 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontSize: 14, fontWeight: '600' },
   caption: { fontSize: 12, marginTop: 2 },
+  loading: { paddingVertical: 16, alignItems: 'center' },
 });

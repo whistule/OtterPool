@@ -1,3 +1,4 @@
+import * as ExpoLinking from 'expo-linking';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -327,7 +328,7 @@ export default function EventDetailScreen() {
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? `${window.location.origin}/event/${id}`
-        : `otterpool://event/${id}`;
+        : ExpoLinking.createURL(`/event/${id}`);
 
     const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
       body: { event_id: id, return_url: returnUrl },
@@ -349,6 +350,27 @@ export default function EventDetailScreen() {
     }
 
     setFeedback({ type: 'ok', msg: data?.message ?? 'Signed up' });
+    await load();
+    setBusy(false);
+  };
+
+  const handleCancelSignup = async () => {
+    if (!signup) {
+      return;
+    }
+    setBusy(true);
+    setFeedback(null);
+    const { error } = await supabase.functions.invoke('cancel-signup', {
+      body: { signup_id: signup.id },
+    });
+    if (error) {
+      const msg = await readErrorMessage(error);
+      setFeedback({ type: 'err', msg });
+      setBusy(false);
+      return;
+    }
+    cancelEventReminder(id ?? '').catch(() => {});
+    setFeedback({ type: 'ok', msg: 'Sign-up cancelled' });
     await load();
     setBusy(false);
   };
@@ -675,6 +697,20 @@ export default function EventDetailScreen() {
                     : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
+              {signup.status !== 'withdrawn' && signup.status !== 'declined' ? (
+                <Pressable
+                  testID="event-cancel-signup"
+                  onPress={handleCancelSignup}
+                  disabled={busy}
+                  style={[styles.cancelBtn, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.cancelBtnText, { color: OtterPalette.ice }]}>
+                    {isPaid && signup.status === 'confirmed'
+                      ? 'Cancel sign-up (contact leader for refund)'
+                      : 'Cancel sign-up'}
+                  </Text>
+                </Pressable>
+              ) : null}
             </Card>
           </>
         ) : null}
@@ -813,6 +849,14 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
+  cancelBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  cancelBtnText: { fontSize: 13, fontWeight: '600' },
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,

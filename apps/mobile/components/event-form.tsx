@@ -380,6 +380,14 @@ export default function EventForm(props: EventFormProps) {
         await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
       }
     }
+    // Fire-and-forget — a failed notification shouldn't block creation feedback.
+    // For a repeated series, only push once (for the first occurrence) so
+    // subscribers don't get one notification per week.
+    if (firstId) {
+      supabase.functions
+        .invoke('notify-event-created', { body: { event_id: firstId } })
+        .catch((e) => console.warn('[notify-event-created] failed', e));
+    }
     if (firstId) {
       router.replace(`/event/${firstId}`);
     } else {
@@ -397,6 +405,12 @@ export default function EventForm(props: EventFormProps) {
     }
     setBusy(true);
     setError(null);
+    // Push the cancellation notice first — once the row is deleted we lose the
+    // title and signup list. Failure is non-fatal; we still want to let the
+    // leader delete the event.
+    await supabase.functions
+      .invoke('notify-event-cancelled', { body: { event_id: eventId } })
+      .catch((e) => console.warn('[notify-event-cancelled] failed', e));
     const { error: deleteError } = await supabase.from('events').delete().eq('id', eventId);
     setBusy(false);
     if (deleteError) {

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { Link } from 'expo-router';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,6 +22,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -33,22 +35,6 @@ export default function SignInScreen() {
     setBusy(false);
     if (error) {
       setError(error.message);
-    }
-  };
-
-  const handleSignUp = async () => {
-    if (!email || !password) {
-      setError('Email and password are required');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
-    setBusy(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      setError('Check your email to confirm — then sign in.');
     }
   };
 
@@ -76,6 +62,18 @@ export default function SignInScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
+            textContentType="username"
+            autoComplete="email"
+            importantForAutofill="yes"
+            returnKeyType={password ? 'go' : 'next'}
+            onSubmitEditing={() => {
+              if (password) {
+                handleSignIn();
+              } else {
+                passwordRef.current?.focus();
+              }
+            }}
+            submitBehavior="submit"
             placeholder="you@example.com"
             placeholderTextColor={palette.muted}
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
@@ -83,9 +81,15 @@ export default function SignInScreen() {
 
           <Text style={[styles.label, { color: palette.muted, marginTop: 14 }]}>Password</Text>
           <TextInput
+            ref={passwordRef}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            textContentType="password"
+            autoComplete="current-password"
+            importantForAutofill="yes"
+            returnKeyType="go"
+            onSubmitEditing={handleSignIn}
             placeholder="••••••••"
             placeholderTextColor={palette.muted}
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
@@ -108,11 +112,13 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
-          <Pressable onPress={handleSignUp} disabled={busy} style={styles.secondaryBtn}>
-            <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
-              Create account
-            </Text>
-          </Pressable>
+          <Link href="/sign-up" asChild>
+            <Pressable disabled={busy} style={styles.secondaryBtn}>
+              <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
+                Create account
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
