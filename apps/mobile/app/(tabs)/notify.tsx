@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Card, Screen, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { type DiagStep, diagnosePushRegistration } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 
 type Category = { id: number; name: string };
@@ -16,8 +17,25 @@ export default function NotifyScreen() {
   const [subscribed, setSubscribed] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [diag, setDiag] = useState<DiagStep[] | null>(null);
+  const [diagBusy, setDiagBusy] = useState(false);
 
   const userId = session?.user.id ?? null;
+
+  const runDiag = async () => {
+    if (!userId) {
+      return;
+    }
+    setDiagBusy(true);
+    try {
+      const steps = await diagnosePushRegistration(userId);
+      setDiag(steps);
+    } catch (e) {
+      setDiag([{ step: 'fatal', ok: false, detail: String(e) }]);
+    } finally {
+      setDiagBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -109,6 +127,35 @@ export default function NotifyScreen() {
           receipts, waitlist offers, and cancellations.
         </Text>
       </Card>
+
+      <SectionTitle>Push diagnostics</SectionTitle>
+      <Card>
+        <Pressable
+          onPress={diagBusy ? undefined : runDiag}
+          disabled={diagBusy}
+          style={[styles.diagBtn, { borderColor: palette.border, opacity: diagBusy ? 0.6 : 1 }]}
+        >
+          <Text style={[styles.diagBtnText, { color: palette.text }]}>
+            {diagBusy ? 'Running…' : 'Run push check'}
+          </Text>
+        </Pressable>
+        {diag ? (
+          <View style={{ marginTop: 12, gap: 6 }}>
+            {diag.map((s, i) => (
+              <Text
+                key={i}
+                style={[
+                  styles.diagLine,
+                  { color: s.ok ? palette.text : OtterPalette.ice },
+                ]}
+                selectable
+              >
+                {s.ok ? '✓' : '✗'} {s.step}: {s.detail}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+      </Card>
     </Screen>
   );
 }
@@ -147,4 +194,12 @@ const styles = StyleSheet.create({
   toggleLabel: { fontSize: 14, fontWeight: '600' },
   caption: { fontSize: 12, marginTop: 2 },
   loading: { paddingVertical: 16, alignItems: 'center' },
+  diagBtn: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  diagBtnText: { fontSize: 14, fontWeight: '600' },
+  diagLine: { fontSize: 12, fontFamily: 'monospace' },
 });

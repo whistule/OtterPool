@@ -74,6 +74,91 @@ export async function registerForPushNotifications(userId: string): Promise<void
   }
 }
 
+export type DiagStep = { step: string; ok: boolean; detail: string };
+
+export async function diagnosePushRegistration(userId: string): Promise<DiagStep[]> {
+  const steps: DiagStep[] = [];
+  const push = (s: DiagStep) => {
+    steps.push(s);
+  };
+
+  push({
+    step: 'appOwnership',
+    ok: Constants.appOwnership !== 'expo',
+    detail: `Constants.appOwnership=${String(Constants.appOwnership)} (must NOT be 'expo')`,
+  });
+  push({
+    step: 'isDevice',
+    ok: Device.isDevice,
+    detail: `Device.isDevice=${Device.isDevice}`,
+  });
+  push({
+    step: 'platform',
+    ok: true,
+    detail: `Platform.OS=${Platform.OS}`,
+  });
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    push({ step: 'permissions', ok: status === 'granted', detail: `status=${status}` });
+    if (status !== 'granted') {
+      const { status: requested } = await Notifications.requestPermissionsAsync();
+      push({
+        step: 'permissions.request',
+        ok: requested === 'granted',
+        detail: `requested=${requested}`,
+      });
+    }
+  } catch (e) {
+    push({ step: 'permissions', ok: false, detail: `threw: ${String(e)}` });
+    return steps;
+  }
+
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  push({
+    step: 'projectId',
+    ok: !!projectId,
+    detail: projectId ? String(projectId) : 'MISSING — getExpoPushTokenAsync will throw',
+  });
+
+  let token: string | null = null;
+  try {
+    const tokenResponse = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined,
+    );
+    token = tokenResponse.data ?? null;
+    push({
+      step: 'getExpoPushTokenAsync',
+      ok: !!token,
+      detail: token ? `${token.slice(0, 30)}…` : 'no token returned',
+    });
+  } catch (e) {
+    push({ step: 'getExpoPushTokenAsync', ok: false, detail: `threw: ${String(e)}` });
+    return steps;
+  }
+
+  if (!token) {
+    return steps;
+  }
+
+  const platform =
+    Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+  const { error } = await supabase
+    .from('user_push_tokens')
+    .upsert(
+      { expo_push_token: token, user_id: userId, platform },
+      { onConflict: 'expo_push_token' },
+    );
+  push({
+    step: 'upsert user_push_tokens',
+    ok: !error,
+    detail: error ? error.message : 'inserted/updated',
+  });
+
+  return steps;
+}
+
 const REMINDER_LEAD_MS = 24 * 60 * 60 * 1000;
 
 function reminderId(eventId: string): string {

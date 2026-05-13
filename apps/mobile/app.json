@@ -57,6 +57,12 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "owner": "robertplant"
+    "owner": "robertplant",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/37730b67-6b93-4033-81e3-79badbaa4779"
+    }
   }
 }
