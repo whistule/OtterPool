@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 import type * as ImagePicker from 'expo-image-picker';
@@ -51,6 +51,7 @@ export type EventFormProps = { mode: 'create' } | { mode: 'edit'; eventId: strin
 
 export default function EventForm(props: EventFormProps) {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const insets = useSafeAreaInsets();
   const { session, profile } = useAuth();
   const { width } = useWindowDimensions();
   const wideLayout = width >= 600;
@@ -1027,7 +1028,11 @@ export default function EventForm(props: EventFormProps) {
         <View
           style={[
             styles.footer,
-            { backgroundColor: palette.background, borderTopColor: palette.border },
+            {
+              backgroundColor: palette.background,
+              borderTopColor: palette.border,
+              paddingBottom: (Platform.OS === 'ios' ? 20 : 16) + insets.bottom,
+            },
           ]}
         >
           {error ? (

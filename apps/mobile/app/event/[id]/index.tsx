@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
 import { Avatar, EventPhoto } from '@/components/photo';
@@ -190,6 +190,7 @@ export default function EventDetailScreen() {
     cancelled?: string;
   }>();
   const palette = Colors[useColorScheme() ?? 'light'];
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
 
   const [event, setEvent] = useState<EventRow | null>(null);
@@ -743,7 +744,11 @@ export default function EventDetailScreen() {
         <View
           style={[
             styles.footer,
-            { backgroundColor: palette.background, borderTopColor: palette.border },
+            {
+              backgroundColor: palette.background,
+              borderTopColor: palette.border,
+              paddingBottom: (Platform.OS === 'ios' ? 20 : 16) + insets.bottom,
+            },
           ]}
         >
           <Pressable
