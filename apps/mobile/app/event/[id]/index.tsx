@@ -1,4 +1,3 @@
-import * as ExpoLinking from 'expo-linking';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -325,10 +324,15 @@ export default function EventDetailScreen() {
     setBusy(true);
     setFeedback(null);
 
+    // Stripe Checkout requires http(s) for success_url / cancel_url, so native
+    // can't pass `otterpool://...` directly. On native we route through the
+    // payment-return edge function, which 302s into the app's custom scheme.
+    const supabaseUrl =
+      process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? `${window.location.origin}/event/${id}`
-        : ExpoLinking.createURL(`/event/${id}`);
+        : `${supabaseUrl}/functions/v1/payment-return?event_id=${id}`;
 
     const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
       body: { event_id: id, return_url: returnUrl },

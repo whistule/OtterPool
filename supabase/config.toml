@@ -373,6 +373,12 @@ deno_version = 2
 [functions.stripe-webhook]
 verify_jwt = false
 
+# payment-return is the public HTTPS landing that Stripe redirects to after
+# Checkout for native clients. It 302s back into the `otterpool://` scheme.
+# No JWT, no body — just URL params.
+[functions.payment-return]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
