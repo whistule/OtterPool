@@ -144,10 +144,7 @@ export default function NotifyScreen() {
             {diag.map((s, i) => (
               <Text
                 key={i}
-                style={[
-                  styles.diagLine,
-                  { color: s.ok ? palette.text : OtterPalette.ice },
-                ]}
+                style={[styles.diagLine, { color: s.ok ? palette.text : OtterPalette.ice }]}
                 selectable
               >
                 {s.ok ? '✓' : '✗'} {s.step}: {s.detail}

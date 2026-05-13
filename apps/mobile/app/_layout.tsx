@@ -28,7 +28,8 @@ function AuthGate() {
       return;
     }
     const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
+    const onResetPassword = segments[0] === 'reset-password';
+    if (!session && !inAuthGroup && !onResetPassword) {
       router.replace('/sign-in');
     } else if (session && inAuthGroup) {
       router.replace('/');
@@ -52,11 +53,7 @@ function AuthGate() {
     );
   }
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 function useNotificationTapNavigation(enabled: boolean) {

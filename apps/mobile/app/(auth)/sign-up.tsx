@@ -57,8 +57,7 @@ export default function SignUpScreen() {
     setError(null);
     setInfo(null);
 
-    const emailRedirectTo =
-      Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
+    const emailRedirectTo = Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: trimmedEmail,
@@ -93,10 +92,7 @@ export default function SignUpScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
             <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
             <Text style={[styles.tag, { color: palette.muted }]}>Create your account</Text>
@@ -215,11 +211,7 @@ export default function SignUpScreen() {
               )}
             </Pressable>
 
-            <Pressable
-              onPress={() => router.back()}
-              disabled={busy}
-              style={styles.secondaryBtn}
-            >
+            <Pressable onPress={() => router.back()} disabled={busy} style={styles.secondaryBtn}>
               <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
                 Back to sign in
               </Text>

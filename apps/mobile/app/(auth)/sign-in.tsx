@@ -119,6 +119,14 @@ export default function SignInScreen() {
               </Text>
             </Pressable>
           </Link>
+
+          <Link href="/forgot-password" asChild>
+            <Pressable disabled={busy} style={styles.tertiaryBtn}>
+              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
@@ -172,6 +180,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryBtnText: { fontSize: 14, fontWeight: '600' },
+  tertiaryBtn: { marginTop: 4, paddingVertical: 8, alignItems: 'center' },
+  tertiaryBtnText: { fontSize: 13, fontWeight: '500' },
   footer: {
     textAlign: 'center',
     fontSize: 11,
