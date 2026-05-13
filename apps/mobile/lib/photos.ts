@@ -1,4 +1,6 @@
+import { File as FsFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
@@ -46,12 +48,18 @@ export async function pickImage(): Promise<ImagePicker.ImagePickerAsset | null> 
   return res.assets[0];
 }
 
-async function assetToBlob(asset: ImagePicker.ImagePickerAsset): Promise<Blob> {
-  if ((asset as { file?: File }).file) {
-    return (asset as { file: File }).file;
+// On web the picker gives us a real File object — use it directly. On native,
+// `fetch(file://…).blob()` returns a zero-byte Blob on Android (RN-Expo bug),
+// so we read through expo-file-system into an ArrayBuffer instead.
+async function assetToBody(asset: ImagePicker.ImagePickerAsset): Promise<Blob | ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    if ((asset as { file?: File }).file) {
+      return (asset as { file: File }).file;
+    }
+    const response = await fetch(asset.uri);
+    return await response.blob();
   }
-  const response = await fetch(asset.uri);
-  return await response.blob();
+  return await new FsFile(asset.uri).arrayBuffer();
 }
 
 /**
@@ -63,12 +71,13 @@ export async function uploadPhoto(
   folder: string,
   asset: ImagePicker.ImagePickerAsset,
 ): Promise<{ path: string } | { error: string }> {
-  const blob = await assetToBlob(asset);
-  const ext = extFromMime(asset.mimeType ?? blob.type, asset.uri);
+  const body = await assetToBody(asset);
+  const blobType = body instanceof Blob ? body.type : undefined;
+  const ext = extFromMime(asset.mimeType ?? blobType, asset.uri);
   const filename = `${Date.now()}.${ext}`;
   const path = `${folder}/${filename}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, blob, {
-    contentType: asset.mimeType ?? blob.type ?? 'image/jpeg',
+  const { error } = await supabase.storage.from(bucket).upload(path, body, {
+    contentType: asset.mimeType ?? blobType ?? 'image/jpeg',
     upsert: true,
   });
   if (error) {
