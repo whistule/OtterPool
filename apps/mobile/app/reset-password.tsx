@@ -1,5 +1,5 @@
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -50,9 +50,12 @@ function parseRecoveryFromUrl(url: string): RecoveryParams | null {
 
 export default function ResetPasswordScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const reactiveUrl = Linking.useURL();
+  const params = useLocalSearchParams<{ code?: string }>();
   const [ready, setReady] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [seenUrl, setSeenUrl] = useState<string | null>(null);
+  const [initialUrl, setInitialUrl] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -99,7 +102,16 @@ export default function ResetPasswordScreen() {
       setReady(true);
     };
 
-    Linking.getInitialURL().then(consume);
+    // expo-router exposes ?code=... from the deep link via search params,
+    // which is reliable even when the OS strips URL fragments.
+    if (params.code) {
+      consume(`otterpool:///reset-password?code=${params.code}`);
+    }
+
+    Linking.getInitialURL().then((u) => {
+      setInitialUrl(u);
+      consume(u);
+    });
     const sub = Linking.addEventListener('url', (event) => {
       consume(event.url);
     });
@@ -118,7 +130,7 @@ export default function ResetPasswordScreen() {
       cancelled = true;
       sub.remove();
     };
-  }, []);
+  }, [params.code]);
 
   const handleSubmit = async () => {
     if (password.length < 8) {
@@ -185,13 +197,20 @@ export default function ResetPasswordScreen() {
             <View style={{ paddingVertical: 24, alignItems: 'center' }}>
               <ActivityIndicator color={palette.tint} />
               <Text style={[styles.info, { color: palette.muted, marginTop: 12 }]}>
-                Validating reset link…
+                Checking link [v4]…
               </Text>
-              {seenUrl ? (
-                <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
-                  Received: {seenUrl}
-                </Text>
-              ) : null}
+              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
+                code param: {params.code ?? '(none)'}
+              </Text>
+              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
+                initial: {initialUrl ?? '(none)'}
+              </Text>
+              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
+                reactive: {reactiveUrl ?? '(none)'}
+              </Text>
+              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
+                consumed: {seenUrl ?? '(none)'}
+              </Text>
             </View>
           ) : (
             <>
