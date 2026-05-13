@@ -50,12 +50,9 @@ function parseRecoveryFromUrl(url: string): RecoveryParams | null {
 
 export default function ResetPasswordScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
-  const reactiveUrl = Linking.useURL();
   const params = useLocalSearchParams<{ code?: string }>();
   const [ready, setReady] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
-  const [seenUrl, setSeenUrl] = useState<string | null>(null);
-  const [initialUrl, setInitialUrl] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -70,7 +67,6 @@ export default function ResetPasswordScreen() {
       if (cancelled || consumedRef.current || !url) {
         return;
       }
-      setSeenUrl(url);
       const recovery = parseRecoveryFromUrl(url);
       if (!recovery) {
         // On web, supabase-js's detectSessionInUrl already consumed the URL.
@@ -108,10 +104,7 @@ export default function ResetPasswordScreen() {
       consume(`otterpool:///reset-password?code=${params.code}`);
     }
 
-    Linking.getInitialURL().then((u) => {
-      setInitialUrl(u);
-      consume(u);
-    });
+    Linking.getInitialURL().then(consume);
     const sub = Linking.addEventListener('url', (event) => {
       consume(event.url);
     });
@@ -197,19 +190,7 @@ export default function ResetPasswordScreen() {
             <View style={{ paddingVertical: 24, alignItems: 'center' }}>
               <ActivityIndicator color={palette.tint} />
               <Text style={[styles.info, { color: palette.muted, marginTop: 12 }]}>
-                Checking link [v4]…
-              </Text>
-              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
-                code param: {params.code ?? '(none)'}
-              </Text>
-              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
-                initial: {initialUrl ?? '(none)'}
-              </Text>
-              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
-                reactive: {reactiveUrl ?? '(none)'}
-              </Text>
-              <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
-                consumed: {seenUrl ?? '(none)'}
+                Validating reset link…
               </Text>
             </View>
           ) : (
