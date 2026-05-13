@@ -17,27 +17,42 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 
-function parseRecoveryFromUrl(url: string): { accessToken: string; refreshToken: string } | null {
+type RecoveryParams =
+  | { kind: 'pkce'; code: string }
+  | { kind: 'implicit'; accessToken: string; refreshToken: string };
+
+function parseRecoveryFromUrl(url: string): RecoveryParams | null {
+  // PKCE flow: ?code=... in the query string.
+  const queryIdx = url.indexOf('?');
+  if (queryIdx !== -1) {
+    const end = url.indexOf('#', queryIdx);
+    const queryStr = url.slice(queryIdx + 1, end === -1 ? undefined : end);
+    const q = new URLSearchParams(queryStr);
+    const code = q.get('code');
+    if (code) {
+      return { kind: 'pkce', code };
+    }
+  }
+  // Implicit flow: #access_token=...&refresh_token=...&type=recovery
   const hashIdx = url.indexOf('#');
-  if (hashIdx === -1) {
-    return null;
+  if (hashIdx !== -1) {
+    const params = new URLSearchParams(url.slice(hashIdx + 1));
+    if (params.get('type') === 'recovery') {
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (accessToken && refreshToken) {
+        return { kind: 'implicit', accessToken, refreshToken };
+      }
+    }
   }
-  const params = new URLSearchParams(url.slice(hashIdx + 1));
-  if (params.get('type') !== 'recovery') {
-    return null;
-  }
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (!accessToken || !refreshToken) {
-    return null;
-  }
-  return { accessToken, refreshToken };
+  return null;
 }
 
 export default function ResetPasswordScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const [ready, setReady] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [seenUrl, setSeenUrl] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -52,9 +67,10 @@ export default function ResetPasswordScreen() {
       if (cancelled || consumedRef.current || !url) {
         return;
       }
-      const tokens = parseRecoveryFromUrl(url);
-      if (!tokens) {
-        // On web, supabase-js's detectSessionInUrl already consumed the fragment.
+      setSeenUrl(url);
+      const recovery = parseRecoveryFromUrl(url);
+      if (!recovery) {
+        // On web, supabase-js's detectSessionInUrl already consumed the URL.
         if (Platform.OS === 'web') {
           const { data } = await supabase.auth.getSession();
           if (!cancelled && data.session) {
@@ -66,15 +82,18 @@ export default function ResetPasswordScreen() {
         return;
       }
       consumedRef.current = true;
-      const { error: setErr } = await supabase.auth.setSession({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-      });
+      const result =
+        recovery.kind === 'pkce'
+          ? await supabase.auth.exchangeCodeForSession(recovery.code)
+          : await supabase.auth.setSession({
+              access_token: recovery.accessToken,
+              refresh_token: recovery.refreshToken,
+            });
       if (cancelled) {
         return;
       }
-      if (setErr) {
-        setTokenError(setErr.message);
+      if (result.error) {
+        setTokenError(result.error.message);
         return;
       }
       setReady(true);
@@ -168,6 +187,11 @@ export default function ResetPasswordScreen() {
               <Text style={[styles.info, { color: palette.muted, marginTop: 12 }]}>
                 Validating reset link…
               </Text>
+              {seenUrl ? (
+                <Text style={[styles.info, { color: palette.muted, fontSize: 11 }]} selectable>
+                  Received: {seenUrl}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <>
