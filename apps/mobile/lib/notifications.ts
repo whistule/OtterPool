@@ -53,8 +53,7 @@ export async function registerForPushNotifications(userId: string): Promise<void
     return;
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const tokenResponse = await Notifications.getExpoPushTokenAsync(
     projectId ? { projectId } : undefined,
   );
@@ -63,15 +62,36 @@ export async function registerForPushNotifications(userId: string): Promise<void
     return;
   }
 
-  const platform =
-    Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+  const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 
   const { error } = await supabase
     .from('user_push_tokens')
-    .upsert({ expo_push_token: token, user_id: userId, platform }, { onConflict: 'expo_push_token' });
+    .upsert(
+      { expo_push_token: token, user_id: userId, platform },
+      { onConflict: 'expo_push_token' },
+    );
   if (error) {
     console.warn('[push] upsert failed:', error.message);
   }
+}
+
+// Routes a tapped notification to the right screen.
+// Most types open the event; `event_cancelled` goes home because the event
+// row has been deleted by the time the push arrives.
+export function routeForNotification(data: Record<string, unknown> | undefined): string | null {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+  const type = typeof data.type === 'string' ? data.type : null;
+  const eventId = typeof data.event_id === 'string' ? data.event_id : null;
+
+  if (type === 'event_cancelled') {
+    return '/';
+  }
+  if (eventId) {
+    return `/event/${eventId}`;
+  }
+  return null;
 }
 
 export type DiagStep = { step: string; ok: boolean; detail: string };
@@ -114,8 +134,7 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
     return steps;
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   push({
     step: 'projectId',
     ok: !!projectId,
@@ -142,8 +161,7 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
     return steps;
   }
 
-  const platform =
-    Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+  const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
   const { error } = await supabase
     .from('user_push_tokens')
     .upsert(
