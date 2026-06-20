@@ -13,6 +13,7 @@ export type FieldKey =
   | 'category'
   | 'startsAt'
   | 'duration'
+  | 'endsAt'
   | 'maxParticipants'
   | 'cost'
   | 'repeatCount';

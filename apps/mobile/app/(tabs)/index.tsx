@@ -18,7 +18,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
-import { formatShortDateTime } from '@/lib/datetime';
+import { formatShortRange } from '@/lib/datetime';
 import { LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -283,7 +283,7 @@ export default function CalendarScreen() {
                         {ev.title}
                       </Text>
                       <Text style={[styles.evDate, { color: palette.muted }]}>
-                        {formatShortDateTime(ev.starts_at)}
+                        {formatShortRange(ev.starts_at, ev.ends_at)}
                       </Text>
                     </View>
                   </Row>

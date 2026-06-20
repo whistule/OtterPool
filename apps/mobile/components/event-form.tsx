@@ -64,6 +64,8 @@ export default function EventForm(props: EventFormProps) {
   const [grade, setGrade] = useState('');
   const [startsAt, setStartsAt] = useState(defaultStartIso());
   const [durationHours, setDurationHours] = useState('2');
+  const [multiDay, setMultiDay] = useState(false);
+  const [endsAt, setEndsAt] = useState('');
   const [location, setLocation] = useState('');
   const [meetingPoint, setMeetingPoint] = useState('');
   const [minLevel, setMinLevel] = useState<'frog' | 'duck' | 'otter' | 'dolphin'>('frog');
@@ -137,6 +139,18 @@ export default function EventForm(props: EventFormProps) {
         setGrade(ev.grade_advertised ?? '');
         setStartsAt(toLocalIsoMinutes(new Date(ev.starts_at)));
         setDurationHours(durationHoursBetween(ev.starts_at, ev.ends_at));
+        if (ev.ends_at) {
+          const s = new Date(ev.starts_at);
+          const e2 = new Date(ev.ends_at);
+          const crossesDay =
+            s.getFullYear() !== e2.getFullYear() ||
+            s.getMonth() !== e2.getMonth() ||
+            s.getDate() !== e2.getDate();
+          if (crossesDay) {
+            setMultiDay(true);
+            setEndsAt(toLocalIsoMinutes(e2));
+          }
+        }
         setLocation(ev.location ?? '');
         setMeetingPoint(ev.meeting_point ?? '');
         setMinLevel(ev.min_level === 'selkie' ? 'dolphin' : ev.min_level);
@@ -241,14 +255,26 @@ export default function EventForm(props: EventFormProps) {
       errs.startsAt = 'Invalid date — use YYYY-MM-DDTHH:MM';
     }
 
-    const dur = Number(durationHours);
-    if (durationHours.trim() && (isNaN(dur) || dur < 0)) {
-      errs.duration = 'Duration must be a non-negative number';
+    let endDate: Date | null = null;
+    if (multiDay) {
+      endDate = new Date(endsAt);
+      if (isNaN(endDate.getTime())) {
+        errs.endsAt = 'Invalid end — use YYYY-MM-DDTHH:MM';
+        endDate = null;
+      } else if (!isNaN(startDate.getTime()) && endDate.getTime() <= startDate.getTime()) {
+        errs.endsAt = 'End must be after the start';
+        endDate = null;
+      }
+    } else {
+      const dur = Number(durationHours);
+      if (durationHours.trim() && (isNaN(dur) || dur < 0)) {
+        errs.duration = 'Duration must be a non-negative number';
+      }
+      endDate =
+        durationHours.trim() && dur > 0 && !isNaN(dur)
+          ? new Date(startDate.getTime() + dur * 60 * 60 * 1000)
+          : null;
     }
-    const endDate =
-      durationHours.trim() && dur > 0 && !isNaN(dur)
-        ? new Date(startDate.getTime() + dur * 60 * 60 * 1000)
-        : null;
 
     const maxP = maxParticipants.trim() ? Number(maxParticipants) : null;
     if (maxP !== null && (isNaN(maxP) || maxP < 1)) {
@@ -609,12 +635,57 @@ export default function EventForm(props: EventFormProps) {
           {/* ---------- When ---------- */}
           <SectionTitle>When</SectionTitle>
           <Card>
+            {/* Single-day uses a quick duration; multi-day uses an explicit end. */}
+            <FieldLabel palette={palette}>Length</FieldLabel>
+            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+              {(
+                [
+                  { value: false, label: 'Single day' },
+                  { value: true, label: 'Multi-day' },
+                ] as const
+              ).map((opt) => {
+                const isActive = opt.value === multiDay;
+                return (
+                  <Pressable
+                    key={String(opt.value)}
+                    testID={`event-multiday-${opt.value ? 'on' : 'off'}`}
+                    onPress={() => {
+                      setMultiDay(opt.value);
+                      setFieldErrors((e) => ({ ...e, duration: undefined, endsAt: undefined }));
+                      // Seed a sensible end (next day, same time) when enabling.
+                      if (opt.value && !endsAt) {
+                        const s = new Date(startsAt);
+                        if (!isNaN(s.getTime())) {
+                          s.setDate(s.getDate() + 1);
+                          setEndsAt(toLocalIsoMinutes(s));
+                        }
+                      }
+                    }}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                        borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Row>
+
             <View
               style={[
-                wideLayout ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' } : null,
+                { marginTop: 14 },
+                wideLayout && !multiDay
+                  ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }
+                  : null,
               ]}
             >
-              <View style={wideLayout ? { flex: 2 } : null}>
+              <View style={wideLayout && !multiDay ? { flex: 2 } : null}>
                 <FieldLabel palette={palette}>Starts at</FieldLabel>
                 <DateTimeField
                   value={startsAt}
@@ -629,23 +700,41 @@ export default function EventForm(props: EventFormProps) {
                 />
                 <FieldError text={fieldErrors.startsAt} />
               </View>
-              <View style={[wideLayout ? { flex: 1 } : { marginTop: 14 }]}>
-                <FieldLabel palette={palette}>Duration (hours)</FieldLabel>
-                <TextInput
-                  value={durationHours}
-                  onChangeText={(t) => {
-                    setDurationHours(t);
-                    if (fieldErrors.duration) {
-                      setFieldErrors((e) => ({ ...e, duration: undefined }));
-                    }
-                  }}
-                  keyboardType="decimal-pad"
-                  placeholder="2"
-                  placeholderTextColor={palette.muted}
-                  style={fieldStyle('duration')}
-                />
-                <FieldError text={fieldErrors.duration} />
-              </View>
+              {!multiDay ? (
+                <View style={[wideLayout ? { flex: 1 } : { marginTop: 14 }]}>
+                  <FieldLabel palette={palette}>Duration (hours)</FieldLabel>
+                  <TextInput
+                    value={durationHours}
+                    onChangeText={(t) => {
+                      setDurationHours(t);
+                      if (fieldErrors.duration) {
+                        setFieldErrors((e) => ({ ...e, duration: undefined }));
+                      }
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="2"
+                    placeholderTextColor={palette.muted}
+                    style={fieldStyle('duration')}
+                  />
+                  <FieldError text={fieldErrors.duration} />
+                </View>
+              ) : (
+                <View style={{ marginTop: 14 }}>
+                  <FieldLabel palette={palette}>Ends at</FieldLabel>
+                  <DateTimeField
+                    value={endsAt}
+                    onChange={(v) => {
+                      setEndsAt(v);
+                      if (fieldErrors.endsAt) {
+                        setFieldErrors((e) => ({ ...e, endsAt: undefined }));
+                      }
+                    }}
+                    style={fieldStyle('endsAt')}
+                    placeholderColor={palette.muted}
+                  />
+                  <FieldError text={fieldErrors.endsAt} />
+                </View>
+              )}
             </View>
 
             {!isEdit ? (
