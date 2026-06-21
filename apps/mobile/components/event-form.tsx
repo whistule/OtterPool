@@ -483,7 +483,8 @@ export default function EventForm(props: EventFormProps) {
     );
   }
 
-  if (!isEdit && profile && profile.level !== 'selkie') {
+  // Selkies create events; paddling/super admins can too, regardless of level.
+  if (!isEdit && profile && profile.level !== 'selkie' && !roleFlags(profile).paddlingAdmin) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}

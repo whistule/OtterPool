@@ -335,6 +335,9 @@ export default function MemberProfileScreen() {
   const canPaddling = roles.paddlingAdmin && !isSelf;
   const canMembership = roles.membershipAdmin && !isSelf;
   const canRoles = roles.superAdmin && !isSelf;
+  // Level is the one control a paddling/super admin may change on their own
+  // record (e.g. a Selkie self-promoting). Other controls stay non-self.
+  const canEditLevel = roles.paddlingAdmin;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -376,7 +379,7 @@ export default function MemberProfileScreen() {
 
         <SectionTitle>Current level</SectionTitle>
         <CurrentLevelCard level={profile.level} createdAt={profile.created_at} />
-        {canPaddling ? (
+        {canEditLevel ? (
           <Pressable
             onPress={() => setLevelEditOpen(true)}
             disabled={savingLevel}
