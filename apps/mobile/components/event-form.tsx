@@ -78,6 +78,8 @@ export default function EventForm(props: EventFormProps) {
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [originalPhotoPath, setOriginalPhotoPath] = useState<string | null>(null);
+  const [seriesId, setSeriesId] = useState<string | null>(null);
+  const [applyToSeries, setApplyToSeries] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatFrequency, setRepeatFrequency] = useState<'weekly' | 'fortnightly'>('weekly');
   const [repeatCount, setRepeatCount] = useState('4');
@@ -105,7 +107,7 @@ export default function EventForm(props: EventFormProps) {
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path',
+                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
@@ -162,6 +164,7 @@ export default function EventForm(props: EventFormProps) {
         setStatus(ev.status === 'draft' ? 'open' : (ev.status as Status));
         setDescription(ev.description ?? '');
         setOriginalPhotoPath(ev.photo_path);
+        setSeriesId(ev.series_id);
         setLoading(false);
       }
     })();
@@ -323,28 +326,43 @@ export default function EventForm(props: EventFormProps) {
         newPath = result.path;
       }
 
-      const update: Record<string, unknown> = {
+      // Definitional fields shared across a series; date and status stay
+      // per-occurrence (each repeat is its own day with its own sign-ups).
+      const shared: Record<string, unknown> = {
         title: title.trim(),
         category_id: categoryId,
         description: description.trim() || null,
         grade_advertised: grade.trim() || null,
-        starts_at: startDate.toISOString(),
-        ends_at: endDate ? endDate.toISOString() : null,
         location: location.trim() || null,
         meeting_point: meetingPoint.trim() || null,
         min_level: minLevel,
         max_participants: maxP,
         cost: costNum,
         approval_mode: approvalMode,
-        status,
       };
       if (newPath !== undefined) {
-        update.photo_path = newPath;
+        shared.photo_path = newPath;
       }
+      const perOccurrence: Record<string, unknown> = {
+        starts_at: startDate.toISOString(),
+        ends_at: endDate ? endDate.toISOString() : null,
+        status,
+      };
 
-      const { error: updateError } = await supabase.from('events').update(update).eq('id', eventId);
+      const applyAll = applyToSeries && !!seriesId;
+      // This occurrence's own date/status always update just this row.
+      const { error: occErr } = await supabase
+        .from('events')
+        .update(applyAll ? perOccurrence : { ...shared, ...perOccurrence })
+        .eq('id', eventId);
+      // When applying to the whole series, push the shared fields to every
+      // occurrence sharing this series_id.
+      const { error: seriesErr } = applyAll
+        ? await supabase.from('events').update(shared).eq('series_id', seriesId)
+        : { error: null };
       setBusy(false);
 
+      const updateError = occErr ?? seriesErr;
       if (updateError) {
         setError(updateError.message);
         return;
@@ -512,7 +530,9 @@ export default function EventForm(props: EventFormProps) {
 
   const screenTitle = isEdit ? 'Edit event' : 'Create event';
   const submitLabel = isEdit
-    ? 'Save changes'
+    ? applyToSeries && seriesId
+      ? 'Save changes to series'
+      : 'Save changes'
     : repeatEnabled
       ? `Create ${Number(repeatCount) || ''} events`.trim()
       : 'Create event';
@@ -531,6 +551,51 @@ export default function EventForm(props: EventFormProps) {
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ---------- Repeating-series scope (edit only) ---------- */}
+          {isEdit && seriesId ? (
+            <>
+              <SectionTitle>Repeating event</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Apply changes to</FieldLabel>
+                <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {(
+                    [
+                      { value: false, label: 'This event only' },
+                      { value: true, label: 'All in series' },
+                    ] as const
+                  ).map((opt) => {
+                    const isActive = opt.value === applyToSeries;
+                    return (
+                      <Pressable
+                        key={String(opt.value)}
+                        testID={`event-scope-${opt.value ? 'series' : 'single'}`}
+                        onPress={() => setApplyToSeries(opt.value)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </Row>
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
+                  {applyToSeries
+                    ? 'Shared details (title, description, location, cost, etc.) update every occurrence. Each event keeps its own date and status.'
+                    : 'Only this occurrence changes.'}
+                </Text>
+              </Card>
+            </>
+          ) : null}
+
           {/* ---------- The basics ---------- */}
           <SectionTitle>The basics</SectionTitle>
           <Card>

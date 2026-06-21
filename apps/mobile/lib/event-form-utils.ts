@@ -37,6 +37,7 @@ export type LoadedEvent = {
   status: 'draft' | Status;
   leader_id: string;
   photo_path: string | null;
+  series_id: string | null;
 };
 
 export type CategoryGroup = {
