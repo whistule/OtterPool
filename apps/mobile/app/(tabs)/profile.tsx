@@ -20,7 +20,7 @@ import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
@@ -373,7 +373,7 @@ export default function ProfileScreen() {
                       MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool
                     }
                   />
-                  {profile.is_admin ? (
+                  {roleFlags(profile).anyAdmin ? (
                     <Pill label="Admin" color={OtterPalette.burntOrange} />
                   ) : null}
                 </Row>
@@ -387,7 +387,7 @@ export default function ProfileScreen() {
             </Card>
           ) : null}
 
-          {profile.is_admin ? (
+          {roleFlags(profile).anyAdmin ? (
             <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
               <Card style={styles.adminCard}>
                 <Text style={styles.adminKicker}>Admin</Text>

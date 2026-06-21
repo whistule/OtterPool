@@ -17,7 +17,7 @@ import { Avatar, EventPhoto } from '@/components/photo';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
@@ -411,8 +411,8 @@ export default function EventDetailScreen() {
   const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
   const isPaid = Number(event.cost) > 0;
   const isLeader = !!session && session.user.id === event.leader_id;
-  // Admins can manage any event, even when they aren't the leader.
-  const canManage = isLeader || !!profile?.is_admin;
+  // Paddling (and super) admins can manage any event, not just their own.
+  const canManage = isLeader || roleFlags(profile).paddlingAdmin;
 
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';

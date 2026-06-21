@@ -9,7 +9,7 @@ import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -160,7 +160,7 @@ export default function ReviewSignupsScreen() {
     );
   }
 
-  if (!session || (session.user.id !== event.leader_id && !profile?.is_admin)) {
+  if (!session || (session.user.id !== event.leader_id && !roleFlags(profile).paddlingAdmin)) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}

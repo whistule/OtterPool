@@ -9,7 +9,7 @@ import { Card, Pill, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { LEVEL_EMOJI, LEVEL_LABEL, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -25,7 +25,8 @@ type MemberRow = {
 export default function MembersScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { profile: viewerProfile } = useAuth();
-  const isAdmin = !!viewerProfile?.is_admin;
+  // Emails are membership-admin (and super-admin) data.
+  const isAdmin = roleFlags(viewerProfile).membershipAdmin;
   const [members, setMembers] = useState<MemberRow[] | null>(null);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);

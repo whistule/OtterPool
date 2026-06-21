@@ -11,6 +11,8 @@ export type Profile = {
   level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
   status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
   is_admin: boolean;
+  is_membership_admin: boolean;
+  is_paddling_admin: boolean;
   phone: string | null;
   dob: string | null;
   bc_membership_no: string | null;
@@ -43,7 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [profRes, privRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, display_name, level, status, is_admin, avatar_path')
+        .select(
+          'id, full_name, display_name, level, status, is_admin, is_membership_admin, is_paddling_admin, avatar_path',
+        )
         .eq('id', userId)
         .maybeSingle(),
       supabase
@@ -121,4 +125,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+export type RoleFlags = {
+  superAdmin: boolean;
+  membershipAdmin: boolean;
+  paddlingAdmin: boolean;
+  anyAdmin: boolean;
+};
+
+// Resolve a profile's admin role flags. Super admin (is_admin) implies every
+// role. Accepts any object carrying the three flags (Profile or a row type).
+export function roleFlags(
+  p: {
+    is_admin?: boolean | null;
+    is_membership_admin?: boolean | null;
+    is_paddling_admin?: boolean | null;
+  } | null,
+): RoleFlags {
+  const superAdmin = !!p?.is_admin;
+  const membershipAdmin = superAdmin || !!p?.is_membership_admin;
+  const paddlingAdmin = superAdmin || !!p?.is_paddling_admin;
+  return { superAdmin, membershipAdmin, paddlingAdmin, anyAdmin: membershipAdmin || paddlingAdmin };
 }

@@ -17,7 +17,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { logAdminAction } from '@/lib/audit';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
@@ -39,6 +39,8 @@ type ProfileRow = {
   created_at: string;
   avatar_path: string | null;
   is_admin: boolean;
+  is_membership_admin: boolean;
+  is_paddling_admin: boolean;
 };
 
 type ApprovalRow = { track: Track; ceiling: string };
@@ -66,6 +68,14 @@ const EMPTY_PRIVATE: PrivateFields = {
   medical_notes: '',
 };
 
+type RoleColumn = 'is_admin' | 'is_membership_admin' | 'is_paddling_admin';
+
+const ROLE_DEFS: { column: RoleColumn; label: string }[] = [
+  { column: 'is_admin', label: 'Super admin' },
+  { column: 'is_membership_admin', label: 'Membership admin' },
+  { column: 'is_paddling_admin', label: 'Paddling admin' },
+];
+
 export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -85,8 +95,8 @@ export default function MemberProfileScreen() {
   const [statusEditOpen, setStatusEditOpen] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [trackEdit, setTrackEdit] = useState<Track | null>(null);
-  const [savingAdmin, setSavingAdmin] = useState(false);
-  const [confirmAdmin, setConfirmAdmin] = useState(false);
+  const [savingRole, setSavingRole] = useState<RoleColumn | null>(null);
+  const [confirmSuper, setConfirmSuper] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -97,7 +107,9 @@ export default function MemberProfileScreen() {
     const [profRes, ceilRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, display_name, level, status, created_at, avatar_path, is_admin')
+        .select(
+          'id, full_name, display_name, level, status, created_at, avatar_path, is_admin, is_membership_admin, is_paddling_admin',
+        )
         .eq('id', id)
         .maybeSingle(),
       supabase.from('member_approvals').select('track, ceiling').eq('member_id', id),
@@ -108,9 +120,9 @@ export default function MemberProfileScreen() {
     setProfile((profRes.data as ProfileRow) ?? null);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
 
-    // Admins see the member's email, private fields and emergency contacts
-    // (all gated server-side by RLS / the email RPC).
-    if (viewerProfile?.is_admin) {
+    // Membership admins see the member's email, private fields and emergency
+    // contacts (all gated server-side by RLS / the email RPC).
+    if (roleFlags(viewerProfile).membershipAdmin) {
       const [emailRes, privRes, contactRes] = await Promise.all([
         supabase.rpc('admin_member_emails', { p_member_id: id }),
         supabase
@@ -135,7 +147,7 @@ export default function MemberProfileScreen() {
       setContacts((contactRes.data ?? []) as EmergencyContact[]);
     }
     setLoading(false);
-  }, [id, session, viewerProfile?.is_admin]);
+  }, [id, session, viewerProfile]);
 
   const savePrivateFields = async () => {
     if (!id || !privForm) {
@@ -265,24 +277,27 @@ export default function MemberProfileScreen() {
     setTrackEdit(null);
   };
 
-  const onToggleAdmin = async () => {
+  const onToggleRole = async (column: RoleColumn) => {
     if (!id) {
       return;
     }
-    // Privileged action — require a second tap to confirm.
-    if (!confirmAdmin) {
-      setConfirmAdmin(true);
+    // Granting/revoking super admin is the most privileged — confirm it.
+    if (column === 'is_admin' && !confirmSuper) {
+      setConfirmSuper(true);
       return;
     }
-    const next = !profile?.is_admin;
-    setSavingAdmin(true);
-    const { error: err } = await supabase.from('profiles').update({ is_admin: next }).eq('id', id);
-    setSavingAdmin(false);
-    setConfirmAdmin(false);
+    const next = !profile?.[column];
+    setSavingRole(column);
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ [column]: next })
+      .eq('id', id);
+    setSavingRole(null);
+    setConfirmSuper(false);
     if (err) {
       setError(err.message);
     } else {
-      setProfile((p) => (p ? { ...p, is_admin: next } : p));
+      setProfile((p) => (p ? { ...p, [column]: next } : p));
     }
   };
 
@@ -313,7 +328,13 @@ export default function MemberProfileScreen() {
   const name = profile.display_name ?? profile.full_name ?? 'Member';
   const levelEmoji = LEVEL_EMOJI[profile.level];
   const isSelf = profile.id === viewerProfile?.id;
-  const canEdit = !!viewerProfile?.is_admin && !isSelf;
+  const roles = roleFlags(viewerProfile);
+  // Paddling admins manage progression (level + ceilings); membership admins
+  // manage member data (status, email, private fields, contacts); super admins
+  // manage role grants. Never on your own record.
+  const canPaddling = roles.paddlingAdmin && !isSelf;
+  const canMembership = roles.membershipAdmin && !isSelf;
+  const canRoles = roles.superAdmin && !isSelf;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -355,7 +376,7 @@ export default function MemberProfileScreen() {
 
         <SectionTitle>Current level</SectionTitle>
         <CurrentLevelCard level={profile.level} createdAt={profile.created_at} />
-        {canEdit ? (
+        {canPaddling ? (
           <Pressable
             onPress={() => setLevelEditOpen(true)}
             disabled={savingLevel}
@@ -369,7 +390,7 @@ export default function MemberProfileScreen() {
           </Pressable>
         ) : null}
 
-        {canEdit ? (
+        {canMembership ? (
           <>
             <SectionTitle>Membership status</SectionTitle>
             <Card>
@@ -406,7 +427,7 @@ export default function MemberProfileScreen() {
           </>
         ) : null}
 
-        {canEdit ? (
+        {canMembership ? (
           <>
             <SectionTitle>Personal & medical</SectionTitle>
             <Card>
@@ -524,9 +545,9 @@ export default function MemberProfileScreen() {
         <SectionTitle>Approval ceiling</SectionTitle>
         <CeilingsCard
           ceilings={ceilings}
-          onPressTrack={canEdit ? (t) => setTrackEdit(t) : undefined}
+          onPressTrack={canPaddling ? (t) => setTrackEdit(t) : undefined}
         />
-        {canEdit ? (
+        {canPaddling ? (
           <Text style={[styles.hint, { color: palette.muted }]}>
             Tap a track to set or clear the ceiling.
           </Text>
@@ -535,55 +556,58 @@ export default function MemberProfileScreen() {
         <SectionTitle>The journey</SectionTitle>
         <JourneyLadder level={profile.level} />
 
-        {canEdit ? (
+        {canRoles ? (
           <>
-            <SectionTitle>Admin rights</SectionTitle>
+            <SectionTitle>Admin roles</SectionTitle>
             <Card>
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={[styles.muted, { color: palette.text, flex: 1 }]}>
-                  {profile.is_admin
-                    ? `${name} is an admin and can manage members and events.`
-                    : `${name} is not an admin.`}
-                </Text>
-                <Pill
-                  label={profile.is_admin ? 'Admin' : 'Member'}
-                  color={profile.is_admin ? OtterPalette.slateNavy : palette.surface}
-                  textStyle={profile.is_admin ? undefined : { color: palette.muted }}
-                />
-              </Row>
-              <Pressable
-                onPress={savingAdmin ? undefined : onToggleAdmin}
-                disabled={savingAdmin}
-                testID="toggle-admin-cta"
-                style={[
-                  styles.editCta,
-                  {
-                    marginTop: 12,
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    borderRadius: 12,
-                    backgroundColor: confirmAdmin ? OtterPalette.ice : OtterPalette.slateNavy,
-                  },
-                ]}
-              >
-                <Text style={styles.editCtaText}>
-                  {savingAdmin
-                    ? 'Saving…'
-                    : confirmAdmin
-                      ? 'Tap again to confirm'
-                      : profile.is_admin
-                        ? 'Revoke admin'
-                        : 'Make admin'}
-                </Text>
-              </Pressable>
-              {confirmAdmin ? (
-                <Pressable
-                  onPress={() => setConfirmAdmin(false)}
-                  style={{ marginTop: 8, alignItems: 'center' }}
-                >
-                  <Text style={[styles.hint, { color: palette.muted }]}>Cancel</Text>
-                </Pressable>
-              ) : null}
+              {ROLE_DEFS.map(({ column, label }, i) => {
+                const on = !!profile[column];
+                const saving = savingRole === column;
+                const confirming = column === 'is_admin' && confirmSuper;
+                return (
+                  <View key={column} style={{ marginTop: i === 0 ? 0 : 14 }}>
+                    <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={[styles.muted, { color: palette.text, flex: 1 }]}>{label}</Text>
+                      <Pill
+                        label={on ? 'On' : 'Off'}
+                        color={on ? OtterPalette.slateNavy : palette.surface}
+                        textStyle={on ? undefined : { color: palette.muted }}
+                      />
+                    </Row>
+                    <Pressable
+                      onPress={saving ? undefined : () => onToggleRole(column)}
+                      disabled={saving}
+                      testID={`toggle-role-${column}`}
+                      style={[
+                        styles.editCta,
+                        styles.btnPad,
+                        {
+                          marginTop: 8,
+                          backgroundColor: confirming ? OtterPalette.ice : OtterPalette.slateNavy,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.editCtaText}>
+                        {saving
+                          ? 'Saving…'
+                          : confirming
+                            ? 'Tap again to confirm'
+                            : on
+                              ? `Revoke ${label.toLowerCase()}`
+                              : `Grant ${label.toLowerCase()}`}
+                      </Text>
+                    </Pressable>
+                    {confirming ? (
+                      <Pressable
+                        onPress={() => setConfirmSuper(false)}
+                        style={{ marginTop: 8, alignItems: 'center' }}
+                      >
+                        <Text style={[styles.hint, { color: palette.muted }]}>Cancel</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                );
+              })}
             </Card>
           </>
         ) : null}

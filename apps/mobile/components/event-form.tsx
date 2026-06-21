@@ -24,7 +24,7 @@ import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { EventPhoto } from '@/components/photo';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import {
   CATEGORY_DEFAULTS,
   CATEGORY_TITLE_HINTS,
@@ -129,8 +129,8 @@ export default function EventForm(props: EventFormProps) {
           return;
         }
         const ev = e.data as LoadedEvent;
-        // Leaders edit their own events; admins can edit any event.
-        if (ev.leader_id !== session.user.id && !profile?.is_admin) {
+        // Leaders edit their own events; paddling/super admins can edit any.
+        if (ev.leader_id !== session.user.id && !roleFlags(profile).paddlingAdmin) {
           setForbidden(true);
           setLoading(false);
           return;
@@ -168,7 +168,7 @@ export default function EventForm(props: EventFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [session, isEdit, eventId, profile?.is_admin]);
+  }, [session, isEdit, eventId, profile?.is_admin, profile?.is_paddling_admin]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
