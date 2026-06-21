@@ -54,6 +54,8 @@ export default function MemberProfileScreen() {
   const [savingLevel, setSavingLevel] = useState(false);
   const [savingTrack, setSavingTrack] = useState<Track | null>(null);
   const [levelEditOpen, setLevelEditOpen] = useState(false);
+  const [statusEditOpen, setStatusEditOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [trackEdit, setTrackEdit] = useState<Track | null>(null);
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [confirmAdmin, setConfirmAdmin] = useState(false);
@@ -101,6 +103,21 @@ export default function MemberProfileScreen() {
       setProfile((p) => (p ? { ...p, level: next } : p));
     }
     setLevelEditOpen(false);
+  };
+
+  const onChangeStatus = async (next: MemberStatus) => {
+    if (!id) {
+      return;
+    }
+    setSavingStatus(true);
+    const { error: err } = await supabase.from('profiles').update({ status: next }).eq('id', id);
+    setSavingStatus(false);
+    if (err) {
+      setError(err.message);
+    } else {
+      setProfile((p) => (p ? { ...p, status: next } : p));
+    }
+    setStatusEditOpen(false);
   };
 
   const onSetCeiling = async (track: Track, ceiling: string | null) => {
@@ -244,6 +261,43 @@ export default function MemberProfileScreen() {
           </Pressable>
         ) : null}
 
+        {canEdit ? (
+          <>
+            <SectionTitle>Membership status</SectionTitle>
+            <Card>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[styles.muted, { color: palette.text, flex: 1 }]}>
+                  {`${name} is currently ${profile.status}.`}
+                </Text>
+                <Pill
+                  label={profile.status}
+                  color={
+                    MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool
+                  }
+                />
+              </Row>
+              <Pressable
+                onPress={() => setStatusEditOpen(true)}
+                disabled={savingStatus}
+                testID="change-status-cta"
+                style={[
+                  styles.editCta,
+                  {
+                    marginTop: 12,
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderRadius: 12,
+                  },
+                ]}
+              >
+                <Text style={styles.editCtaText}>
+                  {savingStatus ? 'Saving…' : 'Change membership status'}
+                </Text>
+              </Pressable>
+            </Card>
+          </>
+        ) : null}
+
         <SectionTitle>Approval ceiling</SectionTitle>
         <CeilingsCard
           ceilings={ceilings}
@@ -318,6 +372,12 @@ export default function MemberProfileScreen() {
         onClose={() => setLevelEditOpen(false)}
         onPick={onChangeLevel}
       />
+      <StatusPicker
+        visible={statusEditOpen}
+        current={profile.status}
+        onClose={() => setStatusEditOpen(false)}
+        onPick={onChangeStatus}
+      />
       {trackEdit ? (
         <CeilingPicker
           track={trackEdit}
@@ -368,6 +428,58 @@ function LevelPicker({
                 <Text style={[styles.modalRowLabel, { color: palette.text }]}>
                   {LEVEL_LABEL[l]}
                 </Text>
+                {selected ? (
+                  <Text style={[styles.modalCurrent, { color: palette.muted }]}>Current</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+          <Pressable style={styles.modalCancel} onPress={onClose}>
+            <Text style={[styles.modalCancelText, { color: palette.muted }]}>Cancel</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const MEMBER_STATUSES: MemberStatus[] = ['active', 'aspirant', 'lapsed', 'suspended'];
+
+function StatusPicker({
+  visible,
+  current,
+  onClose,
+  onPick,
+}: {
+  visible: boolean;
+  current: MemberStatus;
+  onClose: () => void;
+  onPick: (s: MemberStatus) => void;
+}) {
+  const palette = Colors[useColorScheme() ?? 'light'];
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.modalSheet, { backgroundColor: palette.surface }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <Text style={[styles.modalTitle, { color: palette.text }]}>Set membership status</Text>
+          {MEMBER_STATUSES.map((s) => {
+            const selected = s === current;
+            return (
+              <Pressable
+                key={s}
+                onPress={() => onPick(s)}
+                testID={`status-pick-${s}`}
+                style={[
+                  styles.modalRow,
+                  { borderColor: palette.border },
+                  selected && { backgroundColor: palette.background },
+                ]}
+              >
+                <View style={[styles.statusDot, { backgroundColor: MEMBER_STATUS_COLOR[s] }]} />
+                <Text style={[styles.modalRowLabel, { color: palette.text }]}>{s}</Text>
                 {selected ? (
                   <Text style={[styles.modalCurrent, { color: palette.muted }]}>Current</Text>
                 ) : null}
@@ -485,7 +597,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderRadius: 8,
   },
-  modalRowLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  modalRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', textTransform: 'capitalize' },
+  statusDot: { width: 14, height: 14, borderRadius: 7 },
   modalCurrent: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   modalCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   modalCancelText: { fontSize: 14, fontWeight: '600' },
