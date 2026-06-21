@@ -7,6 +7,7 @@
     pkgs.nodejs_22
     pkgs.playwright-driver.browsers
     pkgs.biome
+    pkgs.supabase-cli
   ];
 
   # Point Playwright at the nixpkgs-built browsers and skip the host-OS
@@ -20,6 +21,7 @@
   enterShell = ''
     echo "OtterPool monorepo devshell"
     echo "  node:       $(node --version)"
+    echo "  supabase:   $(supabase --version 2>/dev/null || echo 'n/a')"
     echo "  playwright: browsers at $PLAYWRIGHT_BROWSERS_PATH"
   '';
 }
