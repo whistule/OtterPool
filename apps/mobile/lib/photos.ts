@@ -86,6 +86,25 @@ export async function uploadPhoto(
   return { path };
 }
 
+/**
+ * Server-side copy of an existing object into `<toFolder>/<filename>`. Used to
+ * reuse a previous event's photo without re-uploading — and without sharing the
+ * same storage object (so deleting one event can't break another's image).
+ */
+export async function copyPhoto(
+  bucket: PhotoBucket,
+  fromPath: string,
+  toFolder: string,
+): Promise<{ path: string } | { error: string }> {
+  const ext = fromPath.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? 'jpg';
+  const toPath = `${toFolder}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).copy(fromPath, toPath);
+  if (error) {
+    return { error: error.message };
+  }
+  return { path: toPath };
+}
+
 /** Best-effort cleanup of a previously-uploaded photo. Errors are swallowed. */
 export async function removePhoto(bucket: PhotoBucket, path: string | null | undefined) {
   if (!path) {

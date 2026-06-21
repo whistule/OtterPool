@@ -41,7 +41,7 @@ import {
   STATUS_OPTIONS,
   toLocalIsoMinutes,
 } from '@/lib/event-form-utils';
-import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
+import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -81,6 +81,8 @@ export default function EventForm(props: EventFormProps) {
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [originalPhotoPath, setOriginalPhotoPath] = useState<string | null>(null);
+  const [photoSuggestions, setPhotoSuggestions] = useState<string[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [seriesId, setSeriesId] = useState<string | null>(null);
   const [applyToSeries, setApplyToSeries] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
@@ -184,6 +186,55 @@ export default function EventForm(props: EventFormProps) {
     [categories, categoryId],
   );
 
+  // Suggest photos from previous events whose title or put-in matches what the
+  // user is typing, so they can reuse a relevant image while creating.
+  useEffect(() => {
+    // Strip characters that would break the PostgREST or() filter syntax.
+    const clean = (s: string) => s.replace(/[(),%*]/g, ' ').trim();
+    const t = clean(title);
+    const p = clean(putInPoint);
+    if (t.length < 2 && p.length < 2) {
+      setPhotoSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      const filters: string[] = [];
+      if (t.length >= 2) {
+        filters.push(`title.ilike.%${t}%`);
+      }
+      if (p.length >= 2) {
+        filters.push(`put_in_point.ilike.%${p}%`);
+      }
+      const { data } = await supabase
+        .from('events')
+        .select('photo_path')
+        .not('photo_path', 'is', null)
+        .or(filters.join(','))
+        .order('starts_at', { ascending: false })
+        .limit(24);
+      if (cancelled) {
+        return;
+      }
+      const seen = new Set<string>();
+      const paths: string[] = [];
+      for (const r of (data ?? []) as { photo_path: string | null }[]) {
+        if (r.photo_path && r.photo_path !== originalPhotoPath && !seen.has(r.photo_path)) {
+          seen.add(r.photo_path);
+          paths.push(r.photo_path);
+        }
+        if (paths.length >= 8) {
+          break;
+        }
+      }
+      setPhotoSuggestions(paths);
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [title, putInPoint, originalPhotoPath]);
+
   const titlePlaceholder = useMemo(() => {
     const hint = selectedCategory ? CATEGORY_TITLE_HINTS[selectedCategory.name] : null;
     return hint ?? 'e.g. Sea Kayak — Cumbrae circumnavigation';
@@ -238,13 +289,21 @@ export default function EventForm(props: EventFormProps) {
     const asset = await pickImage();
     if (asset) {
       setPhotoAsset(asset);
+      setSelectedSuggestion(null);
       setRemovePhotoFlag(false);
     }
   };
 
   const onClearPhoto = () => {
     setPhotoAsset(null);
+    setSelectedSuggestion(null);
     setRemovePhotoFlag(true);
+  };
+
+  const onPickSuggestion = (path: string) => {
+    setSelectedSuggestion((cur) => (cur === path ? null : path));
+    setPhotoAsset(null);
+    setRemovePhotoFlag(false);
   };
 
   const submit = async () => {
@@ -334,6 +393,14 @@ export default function EventForm(props: EventFormProps) {
         const result = await uploadPhoto('event-photos', eventId, photoAsset);
         if ('error' in result) {
           setError(`Photo upload failed: ${result.error}`);
+          setBusy(false);
+          return;
+        }
+        newPath = result.path;
+      } else if (selectedSuggestion && selectedSuggestion !== originalPhotoPath) {
+        const result = await copyPhoto('event-photos', selectedSuggestion, eventId);
+        if ('error' in result) {
+          setError(`Couldn't reuse that photo: ${result.error}`);
           setBusy(false);
           return;
         }
@@ -437,13 +504,20 @@ export default function EventForm(props: EventFormProps) {
       return;
     }
     const firstId = data?.[0]?.id;
-    if (firstId && photoAsset) {
-      const result = await uploadPhoto('event-photos', firstId, photoAsset);
-      if ('error' in result) {
-        setError(`Event created, but photo upload failed: ${result.error}`);
-      } else {
-        const ids = (data ?? []).map((r) => r.id);
-        await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+    if (firstId) {
+      const ids = (data ?? []).map((r) => r.id);
+      if (photoAsset) {
+        const result = await uploadPhoto('event-photos', firstId, photoAsset);
+        if ('error' in result) {
+          setError(`Event created, but photo upload failed: ${result.error}`);
+        } else {
+          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+        }
+      } else if (selectedSuggestion) {
+        const result = await copyPhoto('event-photos', selectedSuggestion, firstId);
+        if (!('error' in result)) {
+          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+        }
       }
     }
     // Fire-and-forget — a failed notification shouldn't block creation feedback.
@@ -557,7 +631,8 @@ export default function EventForm(props: EventFormProps) {
       ? `Create ${Number(repeatCount) || ''} events`.trim()
       : 'Create event';
 
-  const showExistingPhoto = isEdit && !photoAsset && !removePhotoFlag && originalPhotoPath;
+  const showExistingPhoto =
+    isEdit && !photoAsset && !selectedSuggestion && !removePhotoFlag && originalPhotoPath;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -1118,6 +1193,8 @@ export default function EventForm(props: EventFormProps) {
                 style={styles.photoPreview}
                 contentFit="cover"
               />
+            ) : selectedSuggestion ? (
+              <EventPhoto path={selectedSuggestion} height={140} style={{ marginBottom: 10 }} />
             ) : showExistingPhoto ? (
               <EventPhoto path={originalPhotoPath} height={140} style={{ marginBottom: 10 }} />
             ) : null}
@@ -1131,10 +1208,12 @@ export default function EventForm(props: EventFormProps) {
                 ]}
               >
                 <Text style={[styles.chipText, { color: palette.text }]}>
-                  {photoAsset || originalPhotoPath ? 'Change photo' : 'Pick photo'}
+                  {photoAsset || selectedSuggestion || originalPhotoPath
+                    ? 'Change photo'
+                    : 'Pick photo'}
                 </Text>
               </Pressable>
-              {photoAsset || (originalPhotoPath && !removePhotoFlag) ? (
+              {photoAsset || selectedSuggestion || (originalPhotoPath && !removePhotoFlag) ? (
                 <Pressable
                   onPress={onClearPhoto}
                   style={[
@@ -1146,6 +1225,35 @@ export default function EventForm(props: EventFormProps) {
                 </Pressable>
               ) : null}
             </Row>
+
+            {photoSuggestions.length > 0 && !photoAsset ? (
+              <View style={{ marginTop: 12 }}>
+                <FieldLabel palette={palette}>Reuse a photo from a similar event</FieldLabel>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
+                >
+                  {photoSuggestions.map((path) => {
+                    const isSel = path === selectedSuggestion;
+                    return (
+                      <Pressable
+                        key={path}
+                        onPress={() => onPickSuggestion(path)}
+                        testID={`photo-suggestion-${path}`}
+                        style={{
+                          borderWidth: 2,
+                          borderRadius: 12,
+                          borderColor: isSel ? OtterPalette.slateNavy : 'transparent',
+                        }}
+                      >
+                        <EventPhoto path={path} height={80} thumb />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            ) : null}
 
             <FieldLabel palette={palette} style={{ marginTop: 14 }}>
               Description (optional)
