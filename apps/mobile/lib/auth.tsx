@@ -38,15 +38,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(
-        'id, full_name, display_name, level, status, is_admin, phone, dob, bc_membership_no, medical_notes, avatar_path',
-      )
-      .eq('id', userId)
-      .maybeSingle();
-    if (!error) {
-      setProfile((data as Profile) ?? null);
+    // Sensitive fields live in member_private (self/admin-only); merge the
+    // member's own private row into the in-memory profile.
+    const [profRes, privRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, display_name, level, status, is_admin, avatar_path')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase
+        .from('member_private')
+        .select('phone, dob, bc_membership_no, medical_notes')
+        .eq('member_id', userId)
+        .maybeSingle(),
+    ]);
+    if (!profRes.error && profRes.data) {
+      const priv = privRes.data ?? {};
+      setProfile({
+        ...(profRes.data as Omit<Profile, 'phone' | 'dob' | 'bc_membership_no' | 'medical_notes'>),
+        phone: (priv as { phone?: string | null }).phone ?? null,
+        dob: (priv as { dob?: string | null }).dob ?? null,
+        bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
+        medical_notes: (priv as { medical_notes?: string | null }).medical_notes ?? null,
+      });
+    } else if (!profRes.error) {
+      setProfile(null);
     }
   }, []);
 

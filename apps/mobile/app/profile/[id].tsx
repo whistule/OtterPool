@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -42,6 +42,29 @@ type ProfileRow = {
 
 type ApprovalRow = { track: Track; ceiling: string };
 
+type PrivateFields = {
+  phone: string;
+  dob: string;
+  bc_membership_no: string;
+  medical_notes: string;
+};
+
+type EmergencyContact = {
+  id: string;
+  name: string;
+  relationship: string | null;
+  phone: string;
+  email: string | null;
+  is_primary: boolean;
+};
+
+const EMPTY_PRIVATE: PrivateFields = {
+  phone: '',
+  dob: '',
+  bc_membership_no: '',
+  medical_notes: '',
+};
+
 export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -49,6 +72,10 @@ export default function MemberProfileScreen() {
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [priv, setPriv] = useState<PrivateFields>(EMPTY_PRIVATE);
+  const [privForm, setPrivForm] = useState<PrivateFields | null>(null);
+  const [savingPriv, setSavingPriv] = useState(false);
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [ceilings, setCeilings] = useState<Ceiling[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingLevel, setSavingLevel] = useState(false);
@@ -80,13 +107,55 @@ export default function MemberProfileScreen() {
     setProfile((profRes.data as ProfileRow) ?? null);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
 
-    // Admins see the member's email (gated server-side).
+    // Admins see the member's email, private fields and emergency contacts
+    // (all gated server-side by RLS / the email RPC).
     if (viewerProfile?.is_admin) {
-      const { data: emailData } = await supabase.rpc('admin_member_emails', { p_member_id: id });
-      setEmail((emailData as { email: string | null }[] | null)?.[0]?.email ?? null);
+      const [emailRes, privRes, contactRes] = await Promise.all([
+        supabase.rpc('admin_member_emails', { p_member_id: id }),
+        supabase
+          .from('member_private')
+          .select('phone, dob, bc_membership_no, medical_notes')
+          .eq('member_id', id)
+          .maybeSingle(),
+        supabase
+          .from('emergency_contacts')
+          .select('id, name, relationship, phone, email, is_primary')
+          .eq('member_id', id)
+          .order('is_primary', { ascending: false }),
+      ]);
+      setEmail((emailRes.data as { email: string | null }[] | null)?.[0]?.email ?? null);
+      const p = privRes.data as Partial<PrivateFields> | null;
+      setPriv({
+        phone: p?.phone ?? '',
+        dob: p?.dob ?? '',
+        bc_membership_no: p?.bc_membership_no ?? '',
+        medical_notes: p?.medical_notes ?? '',
+      });
+      setContacts((contactRes.data ?? []) as EmergencyContact[]);
     }
     setLoading(false);
   }, [id, session, viewerProfile?.is_admin]);
+
+  const savePrivateFields = async () => {
+    if (!id || !privForm) {
+      return;
+    }
+    setSavingPriv(true);
+    const { error: err } = await supabase.from('member_private').upsert({
+      member_id: id,
+      phone: privForm.phone.trim() || null,
+      dob: privForm.dob.trim() || null,
+      bc_membership_no: privForm.bc_membership_no.trim() || null,
+      medical_notes: privForm.medical_notes.trim() || null,
+    });
+    setSavingPriv(false);
+    if (err) {
+      setError(err.message);
+    } else {
+      setPriv(privForm);
+      setPrivForm(null);
+    }
+  };
 
   useLoadOnFocus(load);
 
@@ -298,6 +367,121 @@ export default function MemberProfileScreen() {
           </>
         ) : null}
 
+        {canEdit ? (
+          <>
+            <SectionTitle>Personal & medical</SectionTitle>
+            <Card>
+              {privForm ? (
+                <>
+                  <FieldRow palette={palette} label="Phone">
+                    <TextInput
+                      value={privForm.phone}
+                      onChangeText={(v) => setPrivForm({ ...privForm, phone: v })}
+                      keyboardType="phone-pad"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                  </FieldRow>
+                  <FieldRow palette={palette} label="Date of birth (YYYY-MM-DD)">
+                    <TextInput
+                      value={privForm.dob}
+                      onChangeText={(v) => setPrivForm({ ...privForm, dob: v })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                  </FieldRow>
+                  <FieldRow palette={palette} label="BC membership no.">
+                    <TextInput
+                      value={privForm.bc_membership_no}
+                      onChangeText={(v) => setPrivForm({ ...privForm, bc_membership_no: v })}
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                  </FieldRow>
+                  <FieldRow palette={palette} label="Medical notes">
+                    <TextInput
+                      value={privForm.medical_notes}
+                      onChangeText={(v) => setPrivForm({ ...privForm, medical_notes: v })}
+                      multiline
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        { color: palette.text, borderColor: palette.border, minHeight: 72 },
+                      ]}
+                    />
+                  </FieldRow>
+                  <Row style={{ gap: 8, marginTop: 12 }}>
+                    <Pressable
+                      onPress={savingPriv ? undefined : savePrivateFields}
+                      disabled={savingPriv}
+                      testID="save-private-cta"
+                      style={[styles.editCta, styles.btnPad, { flex: 1 }]}
+                    >
+                      <Text style={styles.editCtaText}>{savingPriv ? 'Saving…' : 'Save'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setPrivForm(null)}
+                      style={[styles.btnPad, { flex: 1, alignItems: 'center' }]}
+                    >
+                      <Text style={[styles.editCtaText, { color: palette.muted }]}>Cancel</Text>
+                    </Pressable>
+                  </Row>
+                </>
+              ) : (
+                <>
+                  <ReadRow palette={palette} label="Phone" value={priv.phone || '—'} />
+                  <ReadRow palette={palette} label="Date of birth" value={priv.dob || '—'} />
+                  <ReadRow
+                    palette={palette}
+                    label="BC membership no."
+                    value={priv.bc_membership_no || '—'}
+                  />
+                  <ReadRow
+                    palette={palette}
+                    label="Medical notes"
+                    value={priv.medical_notes || 'None recorded'}
+                  />
+                  <Pressable
+                    onPress={() => setPrivForm(priv)}
+                    testID="edit-private-cta"
+                    style={[styles.editCta, styles.btnPad, { marginTop: 12 }]}
+                  >
+                    <Text style={styles.editCtaText}>Edit personal & medical</Text>
+                  </Pressable>
+                </>
+              )}
+            </Card>
+
+            <SectionTitle>Emergency contacts</SectionTitle>
+            <Card>
+              {contacts.length === 0 ? (
+                <Text style={[styles.muted, { color: palette.muted }]}>None recorded</Text>
+              ) : (
+                contacts.map((c) => (
+                  <View key={c.id} style={{ marginBottom: 10 }}>
+                    <Row style={{ gap: 6, alignItems: 'center' }}>
+                      <Text style={[styles.name, { color: palette.text, fontSize: 15 }]}>
+                        {c.name}
+                      </Text>
+                      {c.is_primary ? (
+                        <Pill label="Primary" color={OtterPalette.slateNavy} />
+                      ) : null}
+                    </Row>
+                    {c.relationship ? (
+                      <Text style={[styles.muted, { color: palette.muted }]}>{c.relationship}</Text>
+                    ) : null}
+                    <Text style={[styles.muted, { color: palette.text }]}>{c.phone}</Text>
+                    {c.email ? (
+                      <Text style={[styles.muted, { color: palette.muted }]}>{c.email}</Text>
+                    ) : null}
+                  </View>
+                ))
+              )}
+            </Card>
+          </>
+        ) : null}
+
         <SectionTitle>Approval ceiling</SectionTitle>
         <CeilingsCard
           ceilings={ceilings}
@@ -388,6 +572,40 @@ export default function MemberProfileScreen() {
         />
       ) : null}
     </SafeAreaView>
+  );
+}
+
+function ReadRow({
+  palette,
+  label,
+  value,
+}: {
+  palette: typeof Colors.light;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={{ marginBottom: 8 }}>
+      <Text style={[styles.fieldLabel, { color: palette.muted }]}>{label}</Text>
+      <Text style={[styles.muted, { color: palette.text, fontSize: 14 }]}>{value}</Text>
+    </View>
+  );
+}
+
+function FieldRow({
+  palette,
+  label,
+  children,
+}: {
+  palette: typeof Colors.light;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={[styles.fieldLabel, { color: palette.muted }]}>{label}</Text>
+      {children}
+    </View>
   );
 }
 
@@ -599,6 +817,21 @@ const styles = StyleSheet.create({
   },
   modalRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', textTransform: 'capitalize' },
   statusDot: { width: 14, height: 14, borderRadius: 7 },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  btnPad: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12 },
   modalCurrent: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   modalCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   modalCancelText: { fontSize: 14, fontWeight: '600' },

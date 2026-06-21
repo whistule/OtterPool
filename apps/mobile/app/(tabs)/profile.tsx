@@ -203,18 +203,23 @@ export default function ProfileScreen() {
     }
     setError(null);
     setSavingProfile(true);
-    const { error: err } = await supabase
+    // Public fields on profiles; sensitive fields on member_private.
+    const { error: profErr } = await supabase
       .from('profiles')
       .update({
         full_name: form.full_name.trim() || null,
         display_name: form.display_name.trim() || null,
-        phone: form.phone.trim() || null,
-        dob: form.dob.trim() || null,
-        bc_membership_no: form.bc_membership_no.trim() || null,
-        medical_notes: form.medical_notes.trim() || null,
       })
       .eq('id', session.user.id);
+    const { error: privErr } = await supabase.from('member_private').upsert({
+      member_id: session.user.id,
+      phone: form.phone.trim() || null,
+      dob: form.dob.trim() || null,
+      bc_membership_no: form.bc_membership_no.trim() || null,
+      medical_notes: form.medical_notes.trim() || null,
+    });
     setSavingProfile(false);
+    const err = profErr ?? privErr;
     if (err) {
       setError(err.message);
       return;
