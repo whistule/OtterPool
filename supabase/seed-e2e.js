@@ -77,17 +77,20 @@ async function ensureUser(spec) {
       level: spec.level,
       status: spec.status,
       is_admin: spec.is_admin ?? false,
-      // Reset the round-two profile fields so e2e specs see a known empty
-      // baseline.
-      phone: null,
-      dob: null,
-      bc_membership_no: null,
-      medical_notes: null,
+      is_membership_admin: spec.is_membership_admin ?? false,
+      is_paddling_admin: spec.is_paddling_admin ?? false,
       avatar_path: null,
     })
     .eq('id', user.id);
   if (updErr) {
     throw updErr;
+  }
+
+  // Sensitive fields now live in member_private — clear them for a known
+  // empty baseline (Stage 2 moved them off profiles).
+  const { error: mpErr } = await admin.from('member_private').delete().eq('member_id', user.id);
+  if (mpErr) {
+    throw mpErr;
   }
 
   // Clear any emergency contacts left over from previous runs.

@@ -25,7 +25,7 @@ async function fillBaseEvent(page: Page, title: string) {
   await page.locator('input[placeholder^="e.g. Sea Kayak"]:visible').fill(title);
   await page.locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`).click();
   await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
-  await page.locator('input[placeholder^="e.g. Balmaha"]:visible').fill('Reception');
+  await page.locator('input[placeholder^="e.g. Club container"]:visible').fill('Reception');
 }
 
 test.describe('event recurrence + delete — leader', () => {
