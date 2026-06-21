@@ -16,6 +16,7 @@ import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
+import { logAdminAction } from '@/lib/audit';
 import { useAuth } from '@/lib/auth';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
@@ -154,6 +155,15 @@ export default function MemberProfileScreen() {
     } else {
       setPriv(privForm);
       setPrivForm(null);
+      if (session) {
+        // Action only — never store the sensitive values themselves.
+        logAdminAction({
+          actorId: session.user.id,
+          targetType: 'profile',
+          targetId: id,
+          action: 'private_fields',
+        });
+      }
     }
   };
 
@@ -164,12 +174,23 @@ export default function MemberProfileScreen() {
       return;
     }
     setSavingLevel(true);
+    const prev = profile?.level ?? null;
     const { error: err } = await supabase.from('profiles').update({ level: next }).eq('id', id);
     setSavingLevel(false);
     if (err) {
       setError(err.message);
     } else {
       setProfile((p) => (p ? { ...p, level: next } : p));
+      if (session) {
+        logAdminAction({
+          actorId: session.user.id,
+          targetType: 'profile',
+          targetId: id,
+          action: 'level',
+          before: prev,
+          after: next,
+        });
+      }
     }
     setLevelEditOpen(false);
   };
@@ -203,7 +224,16 @@ export default function MemberProfileScreen() {
       if (err) {
         setError(err.message);
       } else {
+        const prev = ceilings.find((c) => c.track === track)?.ceiling ?? null;
         setCeilings((cs) => cs.filter((c) => c.track !== track));
+        logAdminAction({
+          actorId: session.user.id,
+          targetType: 'profile',
+          targetId: id,
+          action: `ceiling:${track}`,
+          before: prev,
+          after: null,
+        });
       }
     } else {
       const { error: err } = await supabase.from('member_approvals').upsert({
@@ -216,9 +246,18 @@ export default function MemberProfileScreen() {
       if (err) {
         setError(err.message);
       } else {
+        const prev = ceilings.find((c) => c.track === track)?.ceiling ?? null;
         setCeilings((cs) => {
           const others = cs.filter((c) => c.track !== track);
           return [...others, { track, ceiling }];
+        });
+        logAdminAction({
+          actorId: session.user.id,
+          targetType: 'profile',
+          targetId: id,
+          action: `ceiling:${track}`,
+          before: prev,
+          after: ceiling,
         });
       }
     }
