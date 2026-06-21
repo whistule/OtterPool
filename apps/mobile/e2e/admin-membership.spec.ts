@@ -35,4 +35,15 @@ test.describe('admin — membership status', () => {
     // The profile reflects the new status.
     await expect(page.getByText('lapsed').first()).toBeAttached({ timeout: 15_000 });
   });
+
+  test('super admin grants a member the membership-admin role', async ({ page }) => {
+    await page.goto('/members');
+    await page.getByText('E2E Member', { exact: true }).first().click();
+    await page.waitForURL(/\/profile\/[0-9a-f-]{36}/, { timeout: 15_000 });
+
+    // The Admin roles card is super-admin only.
+    await page.locator('[data-testid="toggle-role-is_membership_admin"]:visible').click();
+    // That role row flips to On.
+    await expect(page.getByText('On', { exact: true }).first()).toBeAttached({ timeout: 15_000 });
+  });
 });

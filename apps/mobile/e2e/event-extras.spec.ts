@@ -69,4 +69,15 @@ test.describe('event extras — leader', () => {
       timeout: 15_000,
     });
   });
+
+  test('suggests a reusable photo from a previous event with a matching put-in', async ({
+    page,
+  }) => {
+    await startNewEvent(page, `[E2E] PhotoSuggest ${Date.now()}`);
+    // Matches the seeded "E2E Photo Source Trip" put-in, which carries a photo.
+    await page.locator('input[placeholder^="e.g. Loch Ard"]:visible').fill('E2E Put In Spot');
+    await expect(page.locator('[data-testid^="photo-suggestion-"]').first()).toBeAttached({
+      timeout: 15_000,
+    });
+  });
 });

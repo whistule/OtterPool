@@ -24,6 +24,8 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 const FIXTURE_EVENT_TITLE = 'E2E Manual Review Trip';
 const FIXTURE_SELKIE_TITLE = 'E2E Selkie Only Trip';
+const FIXTURE_PHOTO_TITLE = 'E2E Photo Source Trip';
+const FIXTURE_PUT_IN = 'E2E Put In Spot';
 
 const E2E_USERS = [
   {
@@ -43,6 +45,24 @@ const E2E_USERS = [
     level: 'duck',
     status: 'active',
     is_admin: false,
+  },
+  {
+    email: 'e2e-membership-admin@test.com',
+    password: 'e2e-test-password',
+    full_name: 'E2E Membership Admin',
+    display_name: 'E2E Membership Admin',
+    level: 'duck',
+    status: 'active',
+    is_membership_admin: true,
+  },
+  {
+    email: 'e2e-paddling-admin@test.com',
+    password: 'e2e-test-password',
+    full_name: 'E2E Paddling Admin',
+    display_name: 'E2E Paddling Admin',
+    level: 'duck',
+    status: 'active',
+    is_paddling_admin: true,
   },
 ];
 
@@ -108,7 +128,7 @@ async function resetFixtureEvent(leader) {
   const { error: delErr } = await admin
     .from('events')
     .delete()
-    .in('title', [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE]);
+    .in('title', [FIXTURE_EVENT_TITLE, FIXTURE_SELKIE_TITLE, FIXTURE_PHOTO_TITLE]);
   if (delErr) {
     throw delErr;
   }
@@ -173,8 +193,35 @@ async function resetFixtureEvent(leader) {
     throw selkieErr;
   }
 
+  // A past event carrying a photo + distinctive put-in, used by the
+  // photo-suggestions spec. Past so it doesn't show in the upcoming calendar
+  // (won't disturb calendar-filter), but still queryable as a suggestion.
+  const photoStartsAt = new Date(startsAt);
+  photoStartsAt.setDate(photoStartsAt.getDate() - 60);
+  const photoEndsAt = new Date(photoStartsAt);
+  photoEndsAt.setHours(photoStartsAt.getHours() + 3);
+  const { error: photoErr } = await admin.from('events').insert({
+    title: FIXTURE_PHOTO_TITLE,
+    category_id: 7,
+    starts_at: photoStartsAt.toISOString(),
+    ends_at: photoEndsAt.toISOString(),
+    location: 'E2E photo source',
+    put_in_point: FIXTURE_PUT_IN,
+    photo_path: 'fixture/e2e-photo-source.jpg',
+    min_level: 'frog',
+    max_participants: 6,
+    cost: 0,
+    status: 'open',
+    approval_mode: 'auto',
+    leader_id: leader.id,
+  });
+  if (photoErr) {
+    throw photoErr;
+  }
+
   console.log(`  + fixture event ${FIXTURE_EVENT_TITLE} (${data.id})`);
   console.log(`  + fixture event ${FIXTURE_SELKIE_TITLE}`);
+  console.log(`  + fixture event ${FIXTURE_PHOTO_TITLE}`);
   return data.id;
 }
 
