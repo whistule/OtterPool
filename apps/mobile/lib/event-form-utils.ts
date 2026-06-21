@@ -14,6 +14,8 @@ export type FieldKey =
   | 'startsAt'
   | 'duration'
   | 'endsAt'
+  | 'meetingTime'
+  | 'putInTime'
   | 'maxParticipants'
   | 'cost'
   | 'repeatCount';
@@ -30,6 +32,9 @@ export type LoadedEvent = {
   ends_at: string | null;
   location: string | null;
   meeting_point: string | null;
+  meeting_time: string | null;
+  put_in_point: string | null;
+  put_in_time: string | null;
   min_level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
   max_participants: number | null;
   cost: number;

@@ -33,6 +33,9 @@ type EventRow = {
   ends_at: string | null;
   location: string | null;
   meeting_point: string | null;
+  meeting_time: string | null;
+  put_in_point: string | null;
+  put_in_time: string | null;
   min_level: string;
   max_participants: number | null;
   cost: number;
@@ -210,7 +213,7 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
+          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
         )
         .eq('id', id)
         .maybeSingle(),
@@ -581,7 +584,7 @@ export default function EventDetailScreen() {
         </Card>
 
         {/* ---------- Where ---------- */}
-        {event.location || event.meeting_point ? (
+        {event.location || event.meeting_point || event.put_in_point ? (
           <>
             <SectionTitle>Where</SectionTitle>
             <Card>
@@ -601,7 +604,22 @@ export default function EventDetailScreen() {
                   style={{ marginTop: event.location ? 6 : 0 }}
                 >
                   <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
-                    Meet at {event.meeting_point} ↗
+                    Collect gear at {event.meeting_point}
+                    {event.meeting_time ? ` · ${event.meeting_time.slice(0, 5)}` : ''} ↗
+                  </Text>
+                </Pressable>
+              ) : null}
+              {event.put_in_point ? (
+                <Pressable
+                  onPress={() =>
+                    openMaps(`${event.put_in_point}${event.location ? ', ' + event.location : ''}`)
+                  }
+                  testID="event-put-in-point"
+                  style={{ marginTop: event.location || event.meeting_point ? 6 : 0 }}
+                >
+                  <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                    Put in at {event.put_in_point}
+                    {event.put_in_time ? ` · ${event.put_in_time.slice(0, 5)}` : ''} ↗
                   </Text>
                 </Pressable>
               ) : null}

@@ -68,6 +68,9 @@ export default function EventForm(props: EventFormProps) {
   const [endsAt, setEndsAt] = useState('');
   const [location, setLocation] = useState('');
   const [meetingPoint, setMeetingPoint] = useState('');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [putInPoint, setPutInPoint] = useState('');
+  const [putInTime, setPutInTime] = useState('');
   const [minLevel, setMinLevel] = useState<'frog' | 'duck' | 'otter' | 'dolphin'>('frog');
   const [minLevelTouched, setMinLevelTouched] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('12');
@@ -107,7 +110,7 @@ export default function EventForm(props: EventFormProps) {
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
+                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
@@ -156,6 +159,9 @@ export default function EventForm(props: EventFormProps) {
         }
         setLocation(ev.location ?? '');
         setMeetingPoint(ev.meeting_point ?? '');
+        setMeetingTime(ev.meeting_time ? ev.meeting_time.slice(0, 5) : '');
+        setPutInPoint(ev.put_in_point ?? '');
+        setPutInTime(ev.put_in_time ? ev.put_in_time.slice(0, 5) : '');
         setMinLevel(ev.min_level === 'selkie' ? 'dolphin' : ev.min_level);
         setMinLevelTouched(true);
         setMaxParticipants(ev.max_participants == null ? '' : String(ev.max_participants));
@@ -284,20 +290,28 @@ export default function EventForm(props: EventFormProps) {
     if (maxP !== null && (isNaN(maxP) || maxP < 1)) {
       errs.maxParticipants = 'Must be a positive whole number, or blank';
     }
+
+    const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (meetingTime.trim() && !timeRe.test(meetingTime.trim())) {
+      errs.meetingTime = 'Use HH:MM (24h), or blank';
+    }
+    if (putInTime.trim() && !timeRe.test(putInTime.trim())) {
+      errs.putInTime = 'Use HH:MM (24h), or blank';
+    }
     const costNum = Number(cost);
     if (isNaN(costNum) || costNum < 0) {
       errs.cost = 'Cost must be 0 or a positive number';
     }
 
     let occurrences = 1;
-    let seriesId: string | null = null;
+    let newSeriesId: string | null = null;
     if (!isEdit && repeatEnabled) {
       const n = Number(repeatCount);
       if (!Number.isInteger(n) || n < 2 || n > 26) {
         errs.repeatCount = 'Whole number between 2 and 26';
       } else {
         occurrences = n;
-        seriesId = uuidv4();
+        newSeriesId = uuidv4();
       }
     }
 
@@ -335,6 +349,9 @@ export default function EventForm(props: EventFormProps) {
         grade_advertised: grade.trim() || null,
         location: location.trim() || null,
         meeting_point: meetingPoint.trim() || null,
+        meeting_time: meetingTime.trim() || null,
+        put_in_point: putInPoint.trim() || null,
+        put_in_time: putInTime.trim() || null,
         min_level: minLevel,
         max_participants: maxP,
         cost: costNum,
@@ -383,13 +400,16 @@ export default function EventForm(props: EventFormProps) {
       grade_advertised: grade.trim() || null,
       location: location.trim() || null,
       meeting_point: meetingPoint.trim() || null,
+      meeting_time: meetingTime.trim() || null,
+      put_in_point: putInPoint.trim() || null,
+      put_in_time: putInTime.trim() || null,
       min_level: minLevel,
       max_participants: maxP,
       cost: costNum,
       approval_mode: approvalMode,
       status: 'open' as const,
       leader_id: session.user.id,
-      series_id: seriesId,
+      series_id: newSeriesId,
     };
 
     const rows = Array.from({ length: occurrences }, (_, i) => {
@@ -930,16 +950,68 @@ export default function EventForm(props: EventFormProps) {
               placeholderTextColor={palette.muted}
               style={[styles.input, { color: palette.text, borderColor: palette.border }]}
             />
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              Meeting point
-            </FieldLabel>
-            <TextInput
-              value={meetingPoint}
-              onChangeText={setMeetingPoint}
-              placeholder="e.g. Balmaha car park"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-            />
+            <Text style={[styles.hint, { color: palette.muted, marginTop: 16 }]}>
+              Meet points (optional) — e.g. collect gear at one place, put the boats in at another.
+              Times are 24h (HH:MM).
+            </Text>
+
+            <Row style={{ gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
+              <View style={{ flex: 2 }}>
+                <FieldLabel palette={palette}>Gear collection</FieldLabel>
+                <TextInput
+                  value={meetingPoint}
+                  onChangeText={setMeetingPoint}
+                  placeholder="e.g. Club container, Balloch"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FieldLabel palette={palette}>Time</FieldLabel>
+                <TextInput
+                  value={meetingTime}
+                  onChangeText={(t) => {
+                    setMeetingTime(t);
+                    if (fieldErrors.meetingTime) {
+                      setFieldErrors((e) => ({ ...e, meetingTime: undefined }));
+                    }
+                  }}
+                  placeholder="18:00"
+                  placeholderTextColor={palette.muted}
+                  style={fieldStyle('meetingTime')}
+                />
+              </View>
+            </Row>
+            <FieldError text={fieldErrors.meetingTime} />
+
+            <Row style={{ gap: 12, marginTop: 12, alignItems: 'flex-start' }}>
+              <View style={{ flex: 2 }}>
+                <FieldLabel palette={palette}>Put-in</FieldLabel>
+                <TextInput
+                  value={putInPoint}
+                  onChangeText={setPutInPoint}
+                  placeholder="e.g. Loch Ard village hall"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FieldLabel palette={palette}>Time</FieldLabel>
+                <TextInput
+                  value={putInTime}
+                  onChangeText={(t) => {
+                    setPutInTime(t);
+                    if (fieldErrors.putInTime) {
+                      setFieldErrors((e) => ({ ...e, putInTime: undefined }));
+                    }
+                  }}
+                  placeholder="18:45"
+                  placeholderTextColor={palette.muted}
+                  style={fieldStyle('putInTime')}
+                />
+              </View>
+            </Row>
+            <FieldError text={fieldErrors.putInTime} />
           </Card>
 
           {/* ---------- Capacity & cost ---------- */}
