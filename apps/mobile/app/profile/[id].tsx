@@ -37,6 +37,7 @@ type ProfileRow = {
   status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
   created_at: string;
   avatar_path: string | null;
+  is_admin: boolean;
 };
 
 type ApprovalRow = { track: Track; ceiling: string };
@@ -53,6 +54,8 @@ export default function MemberProfileScreen() {
   const [savingTrack, setSavingTrack] = useState<Track | null>(null);
   const [levelEditOpen, setLevelEditOpen] = useState(false);
   const [trackEdit, setTrackEdit] = useState<Track | null>(null);
+  const [savingAdmin, setSavingAdmin] = useState(false);
+  const [confirmAdmin, setConfirmAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -63,7 +66,7 @@ export default function MemberProfileScreen() {
     const [profRes, ceilRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, display_name, level, status, created_at, avatar_path')
+        .select('id, full_name, display_name, level, status, created_at, avatar_path, is_admin')
         .eq('id', id)
         .maybeSingle(),
       supabase.from('member_approvals').select('track, ceiling').eq('member_id', id),
@@ -128,6 +131,27 @@ export default function MemberProfileScreen() {
     }
     setSavingTrack(null);
     setTrackEdit(null);
+  };
+
+  const onToggleAdmin = async () => {
+    if (!id) {
+      return;
+    }
+    // Privileged action — require a second tap to confirm.
+    if (!confirmAdmin) {
+      setConfirmAdmin(true);
+      return;
+    }
+    const next = !profile?.is_admin;
+    setSavingAdmin(true);
+    const { error: err } = await supabase.from('profiles').update({ is_admin: next }).eq('id', id);
+    setSavingAdmin(false);
+    setConfirmAdmin(false);
+    if (err) {
+      setError(err.message);
+    } else {
+      setProfile((p) => (p ? { ...p, is_admin: next } : p));
+    }
   };
 
   if (loading) {
@@ -223,6 +247,59 @@ export default function MemberProfileScreen() {
 
         <SectionTitle>The journey</SectionTitle>
         <JourneyLadder level={profile.level} />
+
+        {canEdit ? (
+          <>
+            <SectionTitle>Admin rights</SectionTitle>
+            <Card>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[styles.muted, { color: palette.text, flex: 1 }]}>
+                  {profile.is_admin
+                    ? `${name} is an admin and can manage members and events.`
+                    : `${name} is not an admin.`}
+                </Text>
+                <Pill
+                  label={profile.is_admin ? 'Admin' : 'Member'}
+                  color={profile.is_admin ? OtterPalette.slateNavy : palette.surface}
+                  textStyle={profile.is_admin ? undefined : { color: palette.muted }}
+                />
+              </Row>
+              <Pressable
+                onPress={savingAdmin ? undefined : onToggleAdmin}
+                disabled={savingAdmin}
+                testID="toggle-admin-cta"
+                style={[
+                  styles.editCta,
+                  {
+                    marginTop: 12,
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderRadius: 12,
+                    backgroundColor: confirmAdmin ? OtterPalette.ice : OtterPalette.slateNavy,
+                  },
+                ]}
+              >
+                <Text style={styles.editCtaText}>
+                  {savingAdmin
+                    ? 'Saving…'
+                    : confirmAdmin
+                      ? 'Tap again to confirm'
+                      : profile.is_admin
+                        ? 'Revoke admin'
+                        : 'Make admin'}
+                </Text>
+              </Pressable>
+              {confirmAdmin ? (
+                <Pressable
+                  onPress={() => setConfirmAdmin(false)}
+                  style={{ marginTop: 8, alignItems: 'center' }}
+                >
+                  <Text style={[styles.hint, { color: palette.muted }]}>Cancel</Text>
+                </Pressable>
+              ) : null}
+            </Card>
+          </>
+        ) : null}
       </ScrollView>
 
       <LevelPicker
