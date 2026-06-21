@@ -36,6 +36,11 @@ jobs:
       # GitHub Pages runs Jekyll, which drops underscore-prefixed dirs
       # (_expo/) — .nojekyll disables that so the JS/CSS bundle is served.
       - run: touch dist/.nojekyll
+      # Dynamic routes (e.g. /profile/[id]) have no pre-rendered HTML file,
+      # so a direct load/refresh 404s on the static host. GitHub Pages serves
+      # 404.html for any unmatched path — point it at the app shell so the
+      # client router can take over and render the route (URL preserved).
+      - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/mobile/dist
