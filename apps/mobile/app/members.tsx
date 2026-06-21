@@ -9,6 +9,7 @@ import { Card, Pill, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
+import { useAuth } from '@/lib/auth';
 import { LEVEL_EMOJI, LEVEL_LABEL, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -18,10 +19,13 @@ type MemberRow = {
   display_name: string | null;
   level: ProgressionLevel;
   status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
+  email?: string | null;
 };
 
 export default function MembersScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
+  const { profile: viewerProfile } = useAuth();
+  const isAdmin = !!viewerProfile?.is_admin;
   const [members, setMembers] = useState<MemberRow[] | null>(null);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +39,22 @@ export default function MembersScreen() {
     if (err) {
       setError(err.message);
     }
-    setMembers((data as MemberRow[]) ?? []);
-  }, []);
+    const rows = (data as MemberRow[]) ?? [];
+
+    // Admins additionally see each member's email (gated server-side).
+    if (isAdmin && rows.length > 0) {
+      const { data: emailData } = await supabase.rpc('admin_member_emails');
+      if (emailData) {
+        const byId = new Map(
+          (emailData as { id: string; email: string | null }[]).map((r) => [r.id, r.email]),
+        );
+        for (const row of rows) {
+          row.email = byId.get(row.id) ?? null;
+        }
+      }
+    }
+    setMembers(rows);
+  }, [isAdmin]);
 
   useLoadOnFocus(load);
 
@@ -47,7 +65,8 @@ export default function MembersScreen() {
     const q = query.toLowerCase();
     return (
       (m.full_name ?? '').toLowerCase().includes(q) ||
-      (m.display_name ?? '').toLowerCase().includes(q)
+      (m.display_name ?? '').toLowerCase().includes(q) ||
+      (m.email ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -85,6 +104,9 @@ export default function MembersScreen() {
                   <Row style={{ justifyContent: 'space-between' }}>
                     <View style={{ flex: 1, paddingRight: 8 }}>
                       <Text style={[styles.name, { color: palette.text }]}>{name}</Text>
+                      {m.email ? (
+                        <Text style={[styles.muted, { color: palette.muted }]}>{m.email}</Text>
+                      ) : null}
                       <Text style={[styles.muted, { color: palette.muted }]}>{m.status}</Text>
                     </View>
                     <Pill

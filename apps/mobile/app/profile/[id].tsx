@@ -48,6 +48,7 @@ export default function MemberProfileScreen() {
   const { profile: viewerProfile, session } = useAuth();
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [ceilings, setCeilings] = useState<Ceiling[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingLevel, setSavingLevel] = useState(false);
@@ -76,8 +77,14 @@ export default function MemberProfileScreen() {
     }
     setProfile((profRes.data as ProfileRow) ?? null);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
+
+    // Admins see the member's email (gated server-side).
+    if (viewerProfile?.is_admin) {
+      const { data: emailData } = await supabase.rpc('admin_member_emails', { p_member_id: id });
+      setEmail((emailData as { email: string | null }[] | null)?.[0]?.email ?? null);
+    }
     setLoading(false);
-  }, [id, session]);
+  }, [id, session, viewerProfile?.is_admin]);
 
   useLoadOnFocus(load);
 
@@ -199,6 +206,9 @@ export default function MemberProfileScreen() {
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
                   {profile.full_name}
                 </Text>
+              ) : null}
+              {email ? (
+                <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>{email}</Text>
               ) : null}
               <Row style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 <Pill
