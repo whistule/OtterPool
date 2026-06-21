@@ -129,7 +129,8 @@ export default function EventForm(props: EventFormProps) {
           return;
         }
         const ev = e.data as LoadedEvent;
-        if (ev.leader_id !== session.user.id) {
+        // Leaders edit their own events; admins can edit any event.
+        if (ev.leader_id !== session.user.id && !profile?.is_admin) {
           setForbidden(true);
           setLoading(false);
           return;
@@ -167,7 +168,7 @@ export default function EventForm(props: EventFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [session, isEdit, eventId]);
+  }, [session, isEdit, eventId, profile?.is_admin]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,

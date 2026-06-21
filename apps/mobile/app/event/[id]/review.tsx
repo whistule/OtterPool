@@ -67,7 +67,7 @@ async function readErrorMessage(error: unknown): Promise<string> {
 export default function ReviewSignupsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const palette = Colors[useColorScheme() ?? 'light'];
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [signups, setSignups] = useState<PendingSignup[] | null>(null);
@@ -160,7 +160,7 @@ export default function ReviewSignupsScreen() {
     );
   }
 
-  if (!session || session.user.id !== event.leader_id) {
+  if (!session || (session.user.id !== event.leader_id && !profile?.is_admin)) {
     return (
       <SafeAreaView
         style={[styles.screen, { backgroundColor: palette.background }]}

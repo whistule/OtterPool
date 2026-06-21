@@ -191,7 +191,7 @@ export default function EventDetailScreen() {
   }>();
   const palette = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [signup, setSignup] = useState<Signup | null>(null);
@@ -411,6 +411,8 @@ export default function EventDetailScreen() {
   const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
   const isPaid = Number(event.cost) > 0;
   const isLeader = !!session && session.user.id === event.leader_id;
+  // Admins can manage any event, even when they aren't the leader.
+  const canManage = isLeader || !!profile?.is_admin;
 
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
@@ -459,7 +461,7 @@ export default function EventDetailScreen() {
           onBack={() => router.back()}
           backTestID="event-back"
           right={
-            isLeader ? (
+            canManage ? (
               <Row style={{ gap: 6 }}>
                 <Pressable
                   testID="event-review-cta"
