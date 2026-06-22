@@ -186,31 +186,42 @@ export default function EventForm(props: EventFormProps) {
     [categories, categoryId],
   );
 
-  // Suggest photos from previous events whose title or put-in matches what the
-  // user is typing, so they can reuse a relevant image while creating.
+  // Suggest photos from previous events whose title, put-in or location match
+  // what the user is typing, so they can reuse a relevant image while creating.
   useEffect(() => {
     // Strip characters that would break the PostgREST or() filter syntax.
     const clean = (s: string) => s.replace(/[(),%*]/g, ' ').trim();
-    const t = clean(title);
+    // Forgiving title match: any significant word, so word order / extra words
+    // don't matter (e.g. "Loch Ard evening" still finds "Evening at Loch Ard").
+    const STOP = new Set(['the', 'and', 'for', 'with', 'trip', 'paddle']);
+    const titleWords = clean(title)
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOP.has(w.toLowerCase()))
+      .slice(0, 5);
     const p = clean(putInPoint);
-    if (t.length < 2 && p.length < 2) {
+    const loc = clean(location);
+
+    const filters = new Set<string>();
+    for (const w of titleWords) {
+      filters.add(`title.ilike.%${w}%`);
+    }
+    if (p.length >= 2) {
+      filters.add(`put_in_point.ilike.%${p}%`);
+    }
+    if (loc.length >= 2) {
+      filters.add(`location.ilike.%${loc}%`);
+    }
+    if (filters.size === 0) {
       setPhotoSuggestions([]);
       return;
     }
     let cancelled = false;
     const handle = setTimeout(async () => {
-      const filters: string[] = [];
-      if (t.length >= 2) {
-        filters.push(`title.ilike.%${t}%`);
-      }
-      if (p.length >= 2) {
-        filters.push(`put_in_point.ilike.%${p}%`);
-      }
       const { data } = await supabase
         .from('events')
         .select('photo_path')
         .not('photo_path', 'is', null)
-        .or(filters.join(','))
+        .or([...filters].join(','))
         .order('starts_at', { ascending: false })
         .limit(24);
       if (cancelled) {
@@ -233,7 +244,7 @@ export default function EventForm(props: EventFormProps) {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [title, putInPoint, originalPhotoPath]);
+  }, [title, putInPoint, location, originalPhotoPath]);
 
   const titlePlaceholder = useMemo(() => {
     const hint = selectedCategory ? CATEGORY_TITLE_HINTS[selectedCategory.name] : null;
