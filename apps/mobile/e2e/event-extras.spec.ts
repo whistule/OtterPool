@@ -70,12 +70,11 @@ test.describe('event extras — leader', () => {
     });
   });
 
-  test('suggests a reusable photo from a previous event with a matching put-in', async ({
-    page,
-  }) => {
+  test('fuzzily suggests a reusable photo despite a typo in the put-in', async ({ page }) => {
     await startNewEvent(page, `[E2E] PhotoSuggest ${Date.now()}`);
-    // Matches the seeded "E2E Photo Source Trip" put-in, which carries a photo.
-    await page.locator('input[placeholder^="e.g. Loch Ard"]:visible').fill('E2E Put In Spot');
+    // Typo of the seeded "E2E Put In Spot" — trigram similarity should still
+    // surface its photo.
+    await page.locator('input[placeholder^="e.g. Loch Ard"]:visible').fill('E2E Put In Spt');
     await expect(page.locator('[data-testid^="photo-suggestion-"]').first()).toBeAttached({
       timeout: 15_000,
     });

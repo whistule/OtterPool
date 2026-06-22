@@ -186,58 +186,28 @@ export default function EventForm(props: EventFormProps) {
     [categories, categoryId],
   );
 
-  // Suggest photos from previous events whose title, put-in or location match
-  // what the user is typing, so they can reuse a relevant image while creating.
+  // Suggest photos from previous events whose title, put-in or location are
+  // similar (fuzzy / trigram) to what the user is typing — so typos and
+  // near-spellings still match, ranked best-first by the suggest_event_photos
+  // RPC.
   useEffect(() => {
-    // Strip characters that would break the PostgREST or() filter syntax.
-    const clean = (s: string) => s.replace(/[(),%*]/g, ' ').trim();
-    // Forgiving title match: any significant word, so word order / extra words
-    // don't matter (e.g. "Loch Ard evening" still finds "Evening at Loch Ard").
-    const STOP = new Set(['the', 'and', 'for', 'with', 'trip', 'paddle']);
-    const titleWords = clean(title)
-      .split(/\s+/)
-      .filter((w) => w.length >= 3 && !STOP.has(w.toLowerCase()))
-      .slice(0, 5);
-    const p = clean(putInPoint);
-    const loc = clean(location);
-
-    const filters = new Set<string>();
-    for (const w of titleWords) {
-      filters.add(`title.ilike.%${w}%`);
-    }
-    if (p.length >= 2) {
-      filters.add(`put_in_point.ilike.%${p}%`);
-    }
-    if (loc.length >= 2) {
-      filters.add(`location.ilike.%${loc}%`);
-    }
-    if (filters.size === 0) {
+    if (title.trim().length < 2 && putInPoint.trim().length < 2 && location.trim().length < 2) {
       setPhotoSuggestions([]);
       return;
     }
     let cancelled = false;
     const handle = setTimeout(async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('photo_path')
-        .not('photo_path', 'is', null)
-        .or([...filters].join(','))
-        .order('starts_at', { ascending: false })
-        .limit(24);
+      const { data } = await supabase.rpc('suggest_event_photos', {
+        p_title: title.trim(),
+        p_put_in: putInPoint.trim(),
+        p_location: location.trim(),
+      });
       if (cancelled) {
         return;
       }
-      const seen = new Set<string>();
-      const paths: string[] = [];
-      for (const r of (data ?? []) as { photo_path: string | null }[]) {
-        if (r.photo_path && r.photo_path !== originalPhotoPath && !seen.has(r.photo_path)) {
-          seen.add(r.photo_path);
-          paths.push(r.photo_path);
-        }
-        if (paths.length >= 8) {
-          break;
-        }
-      }
+      const paths = ((data ?? []) as { photo_path: string | null }[])
+        .map((r) => r.photo_path)
+        .filter((p): p is string => !!p && p !== originalPhotoPath);
       setPhotoSuggestions(paths);
     }, 350);
     return () => {
