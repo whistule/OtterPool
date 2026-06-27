@@ -67,3 +67,8 @@ npm run test:e2e:ui               # Playwright UI mode
 ```
 
 E2E tests reseed the local Supabase DB first — see `supabase/seed-e2e.js`.
+
+## Web deploy
+
+The web build is published to GitHub Pages via `.github/workflows/deploy-web.yml`
+on pushes to `main` that touch `apps/mobile/**`.
