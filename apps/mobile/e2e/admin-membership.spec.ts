@@ -41,9 +41,19 @@ test.describe('admin — membership status', () => {
     await page.getByText('E2E Member', { exact: true }).first().click();
     await page.waitForURL(/\/profile\/[0-9a-f-]{36}/, { timeout: 15_000 });
 
-    // The Admin roles card is super-admin only.
-    await page.locator('[data-testid="toggle-role-is_membership_admin"]:visible').click();
-    // That role row flips to On.
-    await expect(page.getByText('On', { exact: true }).first()).toBeAttached({ timeout: 15_000 });
+    // The Admin roles card is super-admin only. Assert on the button's own
+    // label rather than a bare "On" pill: there are three role rows, so
+    // getByText('On').first() passed whenever *any* role was enabled.
+    const toggle = page.locator('[data-testid="toggle-role-is_membership_admin"]:visible');
+    await expect(toggle).toHaveText(/Grant membership admin/, { timeout: 15_000 });
+    await toggle.click();
+    await expect(toggle).toHaveText(/Revoke membership admin/, { timeout: 15_000 });
+
+    // Hand the fixture back. The suite runs serially against the shared hosted
+    // project and only re-seeds in pretest:e2e, so a role left granted here
+    // leaked into progress.spec.ts, which asserts the member sees no admin UI.
+    // (Only is_admin has the tap-again-to-confirm step, so one tap revokes.)
+    await toggle.click();
+    await expect(toggle).toHaveText(/Grant membership admin/, { timeout: 15_000 });
   });
 });
