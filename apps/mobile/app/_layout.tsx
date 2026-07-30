@@ -7,10 +7,11 @@ import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from '@/lib/auth';
+import { AuthProvider, isRecoveryPending, setRecoveryPending, useAuth } from '@/lib/auth';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { routeForNotification } from '@/lib/notifications';
+import { supabase } from '@/lib/supabase';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -29,6 +30,13 @@ function AuthGate() {
     }
     const inAuthGroup = segments[0] === '(auth)';
     const onResetPassword = segments[0] === 'reset-password';
+    if (session && !onResetPassword && isRecoveryPending()) {
+      // Recovery link followed but no new password set — that session can't do
+      // anything useful, so end it and let the redirect below take over.
+      setRecoveryPending(false);
+      supabase.auth.signOut();
+      return;
+    }
     if (!session && !inAuthGroup && !onResetPassword) {
       router.replace('/sign-in');
     } else if (session && inAuthGroup) {

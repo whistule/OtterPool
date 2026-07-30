@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, OtterPalette } from '@/constants/theme';
+import { setRecoveryPending } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 
@@ -66,6 +67,7 @@ export default function ResetPasswordScreen() {
     const markReady = () => {
       if (!cancelled && !consumedRef.current) {
         consumedRef.current = true;
+        setRecoveryPending(true);
         setReady(true);
       }
     };
@@ -105,6 +107,7 @@ export default function ResetPasswordScreen() {
         setTokenError(result.error.message);
         return;
       }
+      setRecoveryPending(true);
       setReady(true);
     };
 
@@ -176,6 +179,7 @@ export default function ResetPasswordScreen() {
       setError(updateError.message);
       return;
     }
+    setRecoveryPending(false);
     await supabase.auth.signOut();
     setBusy(false);
     setDone(true);

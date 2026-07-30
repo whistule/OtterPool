@@ -1,8 +1,35 @@
 import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { registerForPushNotifications } from './notifications';
 import { supabase } from './supabase';
+
+// A password-recovery link signs the user in so the reset screen can call
+// updateUser. That session is only good for setting a password, so it must not
+// outlive the screen. On web, leaving is a full page reload (no unmount runs),
+// so the flag is persisted rather than kept in memory only.
+const RECOVERY_KEY = 'otterpool.recovery-pending';
+let recoveryPending = false;
+
+export function setRecoveryPending(pending: boolean) {
+  recoveryPending = pending;
+  if (Platform.OS !== 'web') {
+    return;
+  }
+  if (pending) {
+    window.localStorage.setItem(RECOVERY_KEY, '1');
+  } else {
+    window.localStorage.removeItem(RECOVERY_KEY);
+  }
+}
+
+export function isRecoveryPending() {
+  if (recoveryPending) {
+    return true;
+  }
+  return Platform.OS === 'web' && window.localStorage.getItem(RECOVERY_KEY) === '1';
+}
 
 export type Profile = {
   id: string;

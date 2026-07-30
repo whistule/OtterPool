@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+const EMAIL = 'e2e-member@test.com';
+const PASSWORD = 'e2e-test-password';
+
 // Guards lib/urls.ts. Password reset emails from the deployed site were sending
 // people to http://localhost:3000: the app built redirectTo from
 // window.location.origin, which drops the /OtterPool base path, and Supabase
@@ -60,5 +63,23 @@ test.describe('auth redirect URLs', () => {
     const body = await page.locator('body').innerText();
     expect(body).not.toContain('code verifier not found');
     expect(body).not.toContain('@supabase/ssr');
+  });
+
+  test('abandoning the reset screen drops the recovery session', async ({ page }) => {
+    // Sign in first: the recovery link would leave the same kind of session
+    // behind, and this is the only way to get one without a real reset email.
+    await page.goto('/sign-in');
+    await page.getByPlaceholder('you@example.com').fill(process.env.E2E_EMAIL ?? EMAIL);
+    await page.locator('input[type="password"]').fill(process.env.E2E_PASSWORD ?? PASSWORD);
+    await page.getByText('Sign in', { exact: true }).click();
+    await page.waitForURL((url) => !url.pathname.includes('sign-in'), { timeout: 20_000 });
+
+    await page.goto('/reset-password');
+    await expect(page.getByText('Choose a new password').first()).toBeAttached({ timeout: 15_000 });
+
+    // Leave without setting a password — the session must not survive.
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname.includes('sign-in'), { timeout: 20_000 });
+    await expect(page.getByPlaceholder('you@example.com')).toBeVisible();
   });
 });
