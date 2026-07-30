@@ -20,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -335,7 +336,7 @@ export default function EventDetailScreen() {
       process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
-        ? `${window.location.origin}/event/${id}`
+        ? webRouteUrl(`/event/${id}`)
         : `${supabaseUrl}/functions/v1/payment-return?event_id=${id}`;
 
     const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
