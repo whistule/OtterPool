@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Formatting/lint and types are declared standards (root `npm run check`,
+  # a clean `tsc`) but nothing enforced them, so drift could land on main
+  # unnoticed. The e2e suite is deliberately NOT run here: it drives the app
+  # against the *hosted* Supabase project and `pretest:e2e` seeds fixtures
+  # with the service-role key, so putting it in CI would mean writing to the
+  # live database from every PR. Run `npm run test:e2e` locally instead.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      # Needed for the typecheck below (deps supply the ambient types).
+      - run: npm ci
+        working-directory: apps/mobile
+      # Biome comes from devenv (pkgs.biome) locally; CI has no nix, so pin the
+      # same version here — formatter output drifts between Biome majors, and an
+      # unpinned CI copy would flag code the devshell considers correctly
+      # formatted. Bump in step with devenv's biome. `ci` never writes.
+      - name: Format + lint (Biome)
+        run: npx --yes @biomejs/biome@2.4.13 ci apps/mobile supabase
+      - name: Typecheck
+        run: npx tsc --noEmit
+        working-directory: apps/mobile
