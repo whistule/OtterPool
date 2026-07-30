@@ -45,9 +45,9 @@
     "react-native-worklets": "0.10.1",
     "uuid": "^14.0.0"
   },
-  "//playwright": "@playwright/test is pinned exactly. Browsers come from devenv (pkgs.playwright-driver.browsers), which ships chromium_headless_shell-1217 — the build Playwright 1.59.x expects. A caret range lets npm install 1.62, which looks for -1234 and fails to launch every test. Bump this only together with devenv's nixpkgs.",
+  "//playwright": "@playwright/test is pinned exactly, and must match devenv. Browsers come from pkgs.playwright-driver.browsers, currently chromium_headless_shell-1228 — the build Playwright 1.61.x expects. Any other version looks for a revision that isn't in the nix store and every test fails to launch a browser. When bumping devenv's nixpkgs, check the new browser build number and move this pin with it.",
   "devDependencies": {
-    "@playwright/test": "1.59.1",
+    "@playwright/test": "1.61.1",
     "@types/react": "~19.2.10",
     "@types/uuid": "^10.0.0",
     "eslint": "^9.25.0",

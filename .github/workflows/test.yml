@@ -32,7 +32,7 @@ jobs:
       # unpinned CI copy would flag code the devshell considers correctly
       # formatted. Bump in step with devenv's biome. `ci` never writes.
       - name: Format + lint (Biome)
-        run: npx --yes @biomejs/biome@2.4.13 ci apps/mobile supabase
+        run: npx --yes @biomejs/biome@2.5.4 ci apps/mobile supabase
       - name: Typecheck
         run: npx tsc --noEmit
         working-directory: apps/mobile
