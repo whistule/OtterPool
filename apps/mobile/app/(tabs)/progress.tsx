@@ -46,7 +46,7 @@ export default function ProgressScreen() {
       setError(profRes.error.message);
     }
     setCreatedAt((profRes.data as { created_at: string } | null)?.created_at ?? null);
-    setTally(((tallyRes.data ?? []) as TallyRow[]) ?? []);
+    setTally((tallyRes.data ?? []) as TallyRow[]);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
   }, [session]);
 
