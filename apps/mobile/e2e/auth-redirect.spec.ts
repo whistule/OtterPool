@@ -42,4 +42,23 @@ test.describe('auth redirect URLs', () => {
     const servedUnder = new URL(page.url()).pathname.replace(/\/forgot-password\/?$/, '');
     expect(redirect.pathname).toBe(`${servedUnder}/reset-password`);
   });
+
+  // The reset screen used to run its own exchangeCodeForSession on web, on top
+  // of the one supabase-js already does via detectSessionInUrl. The first
+  // exchange consumed the verifier and signed you in; the second then failed
+  // with the raw "PKCE code verifier not found in storage" string, so you got
+  // logged in AND shown an error. The screen must never do that exchange on
+  // web now, which means that string must never reach the user.
+  test('the reset screen does not surface a raw PKCE error on web', async ({ page }) => {
+    await page.goto('/reset-password?code=not-a-real-code');
+    await expect(page.getByText('Choose a new password').first()).toBeAttached({
+      timeout: 15_000,
+    });
+
+    // The screen shows a friendly message on a 10s timeout, so check before it.
+    await page.waitForTimeout(5_000);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toContain('code verifier not found');
+    expect(body).not.toContain('@supabase/ssr');
+  });
 });

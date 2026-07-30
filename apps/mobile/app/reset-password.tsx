@@ -63,21 +63,31 @@ export default function ResetPasswordScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    const markReady = () => {
+      if (!cancelled && !consumedRef.current) {
+        consumedRef.current = true;
+        setReady(true);
+      }
+    };
+
     const consume = async (url: string | null) => {
       if (cancelled || consumedRef.current || !url) {
         return;
       }
       const recovery = parseRecoveryFromUrl(url);
       if (!recovery) {
-        // On web, supabase-js's detectSessionInUrl already consumed the URL.
-        if (Platform.OS === 'web') {
-          const { data } = await supabase.auth.getSession();
-          if (!cancelled && data.session) {
-            consumedRef.current = true;
-            setReady(true);
-            return;
-          }
-        }
+        return;
+      }
+      // On web the client sets detectSessionInUrl, so supabase-js runs the
+      // ?code= exchange itself as soon as it loads. Running it again here
+      // consumed the verifier twice: the first exchange created the session
+      // (leaving you signed in) and the second reported "PKCE code verifier not
+      // found in storage" without ever reaching the network. Leave that one to
+      // supabase-js and pick its session up below.
+      //
+      // The implicit hash still has to be handled here even on web - with
+      // flowType 'pkce', supabase-js does not consume #access_token itself.
+      if (Platform.OS === 'web' && recovery.kind === 'pkce') {
         return;
       }
       consumedRef.current = true;
@@ -109,18 +119,42 @@ export default function ResetPasswordScreen() {
       consume(event.url);
     });
 
-    if (Platform.OS === 'web') {
-      // Web flow: detectSessionInUrl already ran. If we're here with a session, we're ready.
-      supabase.auth.getSession().then(({ data }) => {
-        if (!cancelled && !consumedRef.current && data.session) {
-          consumedRef.current = true;
-          setReady(true);
-        }
-      });
+    if (Platform.OS !== 'web') {
+      return () => {
+        cancelled = true;
+        sub.remove();
+      };
     }
+
+    // Web: take the session supabase-js creates from the ?code= exchange.
+    // getSession can resolve before that finishes, so watch for the state
+    // change too.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        markReady();
+      }
+    });
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        markReady();
+      }
+    });
+
+    // If the exchange can't complete - the link was opened in a different
+    // browser to the one that requested it, so there's no verifier here -
+    // nothing fires at all and the screen would sit on "Validating" forever.
+    const timer = setTimeout(() => {
+      if (!cancelled && !consumedRef.current) {
+        setTokenError(
+          'This reset link could not be opened. Request a new one and open it in the same browser you asked for it from.',
+        );
+      }
+    }, 10_000);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
+      authSub.subscription.unsubscribe();
       sub.remove();
     };
   }, [params.code]);
