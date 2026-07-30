@@ -47,9 +47,35 @@ npx eas build --profile development --platform android
 npx eas build --profile preview --platform android
 ```
 
-Builds run in the EAS cloud (~15-25 min). When done, EAS gives you a URL; download the APK, install on your phone. If reinstalling, uninstall the previous build first or you'll hit a signature conflict.
+Builds run in the EAS cloud (~15-25 min, longer if the free tier is queued). When done, EAS gives you a URL; download the APK, install on your phone. If reinstalling, uninstall the previous build first or you'll hit a signature conflict.
 
 iOS builds need an Apple Developer account and aren't currently set up.
+
+### Shipping JS changes without a new build (EAS Update)
+
+No build profile installs itself. `distribution: internal` only means EAS hosts an install
+page - you still install the APK by hand, once.
+
+After that, JS-only changes go out over the air with no rebuild and no reinstall, and the
+app picks them up on next launch:
+
+```bash
+npx eas update --channel preview --message "what changed"
+```
+
+**An update only reaches an app whose `runtimeVersion` matches.** `app.json` sets
+`runtimeVersion.policy: "appVersion"`, so the runtime is just `version` - currently
+`1.1.0`. That coupling is the whole safety mechanism:
+
+- changed only JS/assets → publish an update, it lands on installed apps
+- changed anything native (an SDK upgrade, adding a native module, a config plugin) →
+  **bump `version` in `app.json` and ship a new native build to each channel.** Do not
+  publish a JS-only update across that boundary. Installed clients on the old runtime
+  would be served JS their native runtime cannot run, which is a hard crash on launch
+  with no way to push a fix, because they are already broken.
+
+Check what a channel is currently serving with `npx eas channel:view preview`, and confirm
+a build's runtime with `npx eas build:view <id>` before publishing.
 
 ## Push notifications
 
@@ -66,7 +92,13 @@ npm run test:e2e                  # Playwright against web build
 npm run test:e2e:ui               # Playwright UI mode
 ```
 
-E2E tests reseed the local Supabase DB first — see `supabase/seed-e2e.js`.
+E2E tests reseed first via `pretest:e2e` — see `supabase/seed-e2e.js`.
+
+**This is not a local database.** `supabase/config.js` and `config.secret.js` point at
+the hosted project, so the seed writes its `e2e-*` fixture users and events straight into
+the live data with the service-role key. No local stack or docker is involved. That is
+also why the e2e suite is deliberately not part of `test.yml` — running it in CI would
+mean every pull request writing to the live database.
 
 ## Web deploy
 
