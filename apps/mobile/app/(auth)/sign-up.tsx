@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
+import { webRouteUrl } from '@/lib/urls';
 
 export default function SignUpScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -57,7 +58,7 @@ export default function SignUpScreen() {
     setError(null);
     setInfo(null);
 
-    const emailRedirectTo = Platform.OS === 'web' ? window.location.origin : Linking.createURL('/');
+    const emailRedirectTo = Platform.OS === 'web' ? webRouteUrl('/') : Linking.createURL('/');
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: trimmedEmail,

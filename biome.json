@@ -15,6 +15,7 @@
       "!supabase/functions/_shared/deno_runtime.d.ts",
       "!supabase/test.html",
       "!supabase/seed.sql",
+      "!apps/mobile/expo-env.d.ts",
       "!**/package-lock.json"
     ]
   },
