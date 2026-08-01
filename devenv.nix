@@ -4,7 +4,7 @@
   cachix.enable = false;
 
   packages = [
-    pkgs.nodejs_22
+    pkgs.nodejs_24
     pkgs.playwright-driver.browsers
     pkgs.biome
     pkgs.supabase-cli

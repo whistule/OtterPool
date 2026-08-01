@@ -2,6 +2,8 @@
   "name": "@otterpool/mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "//packageManager": "Pin npm to the version node 24 ships, matching devenv.nix and the workflows. Keep the two in step: a lockfile written by npm 11 fails `npm ci` under npm 10 with \"Missing: <pkg> from lock file\".",
+  "packageManager": "npm@11.16.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
