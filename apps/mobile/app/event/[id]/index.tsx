@@ -20,6 +20,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
+import { formatDateTime, formatFullRange } from '@/lib/datetime';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
@@ -79,46 +80,6 @@ type SignUpResponse = {
 };
 
 type SeriesSibling = { id: string; starts_at: string };
-
-function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function formatDateOnly(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
-function formatTimeOnly(d: Date): string {
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDateTimeFull(d: Date): string {
-  return `${d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  })} · ${formatTimeOnly(d)}`;
-}
-
-function formatRange(startIso: string, endIso: string | null): string {
-  const start = new Date(startIso);
-  if (!endIso) {
-    return formatDateTimeFull(start);
-  }
-  const end = new Date(endIso);
-  if (sameDay(start, end)) {
-    return `${formatDateOnly(start)} · ${formatTimeOnly(start)}–${formatTimeOnly(end)}`;
-  }
-  return `${formatDateTimeFull(start)} → ${formatDateTimeFull(end)}`;
-}
 
 function buildIcs(ev: EventRow): string {
   const stamp = (iso: string) =>
@@ -543,7 +504,7 @@ export default function EventDetailScreen() {
                   </Text>
                   <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
                     {seriesInfo.next
-                      ? `Next: ${formatDateTimeFull(new Date(seriesInfo.next.starts_at))}`
+                      ? `Next: ${formatDateTime(new Date(seriesInfo.next.starts_at))}`
                       : 'This is the last occurrence in the series'}
                   </Text>
                 </View>
@@ -559,7 +520,7 @@ export default function EventDetailScreen() {
         <SectionTitle>When</SectionTitle>
         <Card>
           <Text style={[styles.value, { color: palette.text }]}>
-            {formatRange(event.starts_at, event.ends_at)}
+            {formatFullRange(event.starts_at, event.ends_at)}
           </Text>
           {isConfirmed && Platform.OS === 'web' ? (
             <Pressable
@@ -699,7 +660,7 @@ export default function EventDetailScreen() {
             <Card style={{ borderColor: statusInfo.color, borderWidth: 1.5 }}>
               <Text style={[styles.value, { color: statusInfo.color }]}>{statusInfo.label}</Text>
               <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                Signed up {formatDateTimeFull(new Date(signup.signed_up_at))}
+                Signed up {formatDateTime(new Date(signup.signed_up_at))}
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
