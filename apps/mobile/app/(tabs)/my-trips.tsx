@@ -35,26 +35,16 @@ function bucketFor(
   gradeActual: string | null,
 ): string {
   const name = categoryName ?? '';
-  if (name === 'Sea Kayak - A Trip') {
-    return 'Sea A';
-  }
-  if (name === 'Sea Kayak - B Trip') {
-    return 'Sea B';
-  }
-  if (name === 'Sea Kayak - C Trip') {
-    return 'Sea C';
+  // Graded disciplines read the grade off the event — the category names no
+  // longer carry it. Mirrors the my_trip_tally view.
+  if (name === 'Sea Kayak') {
+    return gradeActual ?? gradeAdvertised ?? 'Sea';
   }
   if (name === 'River Trip') {
     return gradeActual ?? gradeAdvertised ?? 'River';
   }
-  if (name === 'Pinkston - 1 Pump') {
-    return 'P1';
-  }
-  if (name === 'Pinkston - 2 Pumps') {
-    return 'P2';
-  }
-  if (name === 'Pinkston - 3 Pumps') {
-    return 'P3';
+  if (name === 'Pinkston') {
+    return gradeActual ?? gradeAdvertised ?? 'Pinkston';
   }
   if (name.startsWith('Tuesday Evening')) {
     return 'Tuesday';
