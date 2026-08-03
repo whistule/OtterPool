@@ -8,7 +8,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { sendPush } from '../_shared/push.ts';
-import { isAdmin } from '../_shared/authz.ts';
+import { isPaddlingAdmin } from '../_shared/authz.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
     }
 
     // Only the leader (or an admin) can fire a cancellation notice.
-    if (event.leader_id !== user.id && !(await isAdmin(admin, user.id))) {
-      return err('Only the event leader can cancel this event', 403);
+    if (event.leader_id !== user.id && !(await isPaddlingAdmin(admin, user.id))) {
+      return err('Only the event leader or a paddling admin can cancel this event', 403);
     }
 
     const { data: signups } = await admin
