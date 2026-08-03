@@ -25,6 +25,9 @@ type ExistingSignup = { id: string; status: string } | null;
 
 type Routing = { status: string; message: string };
 
+/** Statuses a fresh sign-up call may overwrite on an existing row. */
+const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,7 +73,10 @@ Deno.serve(async (req) => {
     }
 
     const existing = await loadExistingSignup(admin, event_id, user.id);
-    if (existing && existing.status !== 'pending_payment') {
+    // 'withdrawn' is the member's own cancellation, so let them rejoin by
+    // reusing the row (unique on event_id+member_id). 'declined' is the
+    // leader's call and stays blocked.
+    if (existing && !REJOINABLE_STATUSES.has(existing.status)) {
       return err(`Already signed up — status: ${existing.status}`, 409);
     }
 
@@ -111,11 +117,26 @@ Deno.serve(async (req) => {
     // (auto or manual_all), waitlisted seats, and the first hop of a paid
     // manual_all sign-up (pending_review until the leader confirms; payment
     // happens on a follow-up sign-up call after that).
-    const { data: signup, error: signupError } = await admin
-      .from('event_signups')
-      .insert({ event_id, member_id: user.id, status: routing.status })
-      .select()
-      .single();
+    // Rejoining after withdrawing reuses the row and resets signed_up_at, so
+    // the member goes to the back of the waitlist queue rather than keeping
+    // their original place.
+    const { data: signup, error: signupError } = existing
+      ? await admin
+          .from('event_signups')
+          .update({
+            status: routing.status,
+            signed_up_at: new Date().toISOString(),
+            reviewed_by: null,
+            reviewed_at: null,
+          })
+          .eq('id', existing.id)
+          .select()
+          .single()
+      : await admin
+          .from('event_signups')
+          .insert({ event_id, member_id: user.id, status: routing.status })
+          .select()
+          .single();
     if (signupError) {
       return err(`Failed to create sign-up: ${signupError.message}`, 500);
     }
@@ -242,6 +263,12 @@ async function ensurePendingPaymentRow(
   existing: ExistingSignup,
 ): Promise<string> {
   if (existing) {
+    // Could be a withdrawn row being rejoined, so put it back into
+    // pending_payment — the webhook only confirms rows in that status.
+    await admin
+      .from('event_signups')
+      .update({ status: 'pending_payment', payment_status: 'pending' })
+      .eq('id', existing.id);
     return existing.id;
   }
   const { data, error } = await admin

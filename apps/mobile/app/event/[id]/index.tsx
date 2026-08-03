@@ -421,6 +421,9 @@ export default function EventDetailScreen() {
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
   const isConfirmed = signup?.status === 'confirmed';
+  // A withdrawn row is the member's own cancellation — the sign-up function
+  // will reuse it, so treat it as if they had never signed up.
+  const isWithdrawn = signup?.status === 'withdrawn';
 
   const statusInfo = signup
     ? isLeaderApproved
@@ -432,7 +435,9 @@ export default function EventDetailScreen() {
     : null;
 
   const canSignUp =
-    (!signup || isPending) && !busy && (event.status === 'open' || event.status === 'full');
+    (!signup || isPending || isWithdrawn) &&
+    !busy &&
+    (event.status === 'open' || event.status === 'full');
 
   let primaryLabel = 'Sign up';
   if (event.status === 'full') {
@@ -453,7 +458,7 @@ export default function EventDetailScreen() {
       : `Pay £${Number(event.cost).toFixed(0)}`;
   }
 
-  const showFooterCta = !isLeader && (!signup || isPending);
+  const showFooterCta = !isLeader && (!signup || isPending || isWithdrawn);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
