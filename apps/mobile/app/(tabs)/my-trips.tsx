@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { formatShortDate, formatShortDateTime } from '@/lib/datetime';
+import { colorForGrade } from '@/lib/progress';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -68,31 +69,11 @@ function bucketFor(
 }
 
 function colorForBucket(bucket: string): string {
-  if (bucket === 'Sea A') {
-    return OtterPalette.seaTeal[0];
-  }
-  if (bucket === 'Sea B') {
-    return OtterPalette.seaTeal[1];
-  }
-  if (bucket === 'Sea C') {
-    return OtterPalette.seaTeal[2];
-  }
-  if (bucket === 'P1') {
-    return OtterPalette.pinkstonOrange[0];
-  }
-  if (bucket === 'P2') {
-    return OtterPalette.pinkstonOrange[1];
-  }
-  if (bucket === 'P3') {
-    return OtterPalette.pinkstonOrange[2];
-  }
-  if (bucket.startsWith('G')) {
-    return OtterPalette.riverGreen[1];
-  }
+  // Non-grade buckets have no ladder position; everything else is a grade.
   if (bucket === 'Skills' || bucket === 'Training') {
     return OtterPalette.slateNavy;
   }
-  return OtterPalette.lochPool;
+  return colorForGrade(bucket);
 }
 
 export default function MyTripsScreen() {
