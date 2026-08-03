@@ -10,6 +10,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { readErrorMessage } from '@/lib/errors';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -44,24 +45,6 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-async function readErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : String(error);
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    try {
-      const body = await (error as { context: Response }).context.clone().json();
-      return body?.error ?? body?.message ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
 }
 
 export default function ReviewSignupsScreen() {

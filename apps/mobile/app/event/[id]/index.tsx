@@ -14,10 +14,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Header } from '@/components/header';
 import { Avatar, EventPhoto } from '@/components/photo';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { readErrorMessage } from '@/lib/errors';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
@@ -167,24 +169,6 @@ function openMaps(query: string) {
     return;
   }
   Linking.openURL(url).catch(() => {});
-}
-
-async function readErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : String(error);
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    try {
-      const body = await (error as { context: Response }).context.clone().json();
-      return body?.error ?? body?.message ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
 }
 
 export default function EventDetailScreen() {
@@ -395,9 +379,7 @@ export default function EventDetailScreen() {
         style={[styles.screen, { backgroundColor: palette.background }]}
         edges={['top']}
       >
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter fill />
       </SafeAreaView>
     );
   }
@@ -409,9 +391,7 @@ export default function EventDetailScreen() {
         edges={['top']}
       >
         <Header onBack={() => router.back()} backTestID="event-back" />
-        <Card>
-          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
-        </Card>
+        <ErrorCard title="Event not found" />
       </SafeAreaView>
     );
   }
@@ -815,7 +795,6 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerAction: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -878,7 +857,6 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, fontWeight: '600' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
-  errTitle: { fontSize: 14, fontWeight: '700' },
   linkText: {
     textDecorationLine: 'underline',
   },
