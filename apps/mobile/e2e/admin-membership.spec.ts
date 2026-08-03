@@ -34,6 +34,16 @@ test.describe('admin — membership status', () => {
 
     // The profile reflects the new status.
     await expect(page.getByText('lapsed').first()).toBeAttached({ timeout: 15_000 });
+
+    // Restore the seeded status. The seed only runs once per suite, and
+    // signup-review.spec.ts runs later against this same member — sign-up
+    // rejects lapsed members, so leaving it set breaks that spec.
+    await page.locator('[data-testid="change-status-cta"]:visible').click();
+    await page.locator('[data-testid="status-pick-active"]:visible').click();
+
+    await expect(page.getByText('is currently active').first()).toBeAttached({
+      timeout: 15_000,
+    });
   });
 
   test('super admin grants a member the membership-admin role', async ({ page }) => {
