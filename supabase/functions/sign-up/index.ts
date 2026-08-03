@@ -6,7 +6,7 @@ import { ok, err } from '../_shared/response.ts';
 import { gradeWithinCeiling, meetsLevel, trackForCategory } from '../_shared/progression.ts';
 import { Stripe, getStripe } from '../_shared/stripe.ts';
 import { sendPush } from '../_shared/push.ts';
-import { markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
 
 type EventRow = {
   id: string;
@@ -221,23 +221,6 @@ async function decideRouting(
     };
   }
   return { status: 'confirmed', message: "You're in! Sign-up confirmed" };
-}
-
-async function isAtCapacity(admin: SupabaseClient, event: EventRow): Promise<boolean> {
-  // markFullIfAtCapacity already decided this; trust it even for uncapped
-  // events a leader flipped to full by hand.
-  if (event.status === 'full') {
-    return true;
-  }
-  if (!event.max_participants) {
-    return false;
-  }
-  const { count } = await admin
-    .from('event_signups')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', event.id)
-    .eq('status', 'confirmed');
-  return (count ?? 0) >= event.max_participants;
 }
 
 async function isAboveApprovalCeiling(

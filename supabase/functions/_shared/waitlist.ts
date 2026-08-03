@@ -4,6 +4,7 @@
 // offer instead so the member can re-engage through the normal sign-up flow.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { confirmedCount } from './capacity.ts';
 import { sendPush } from './push.ts';
 
 export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string): Promise<void> {
@@ -20,15 +21,8 @@ export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string
   // not actually be free (e.g. an unpaid row withdrew while confirmed seats
   // still fill the cap), and flipping to 'open' first left the event
   // advertised as available with nothing to give.
-  if (ev.max_participants) {
-    const { count } = await admin
-      .from('event_signups')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .eq('status', 'confirmed');
-    if ((count ?? 0) >= ev.max_participants) {
-      return;
-    }
+  if (ev.max_participants && (await confirmedCount(admin, eventId)) >= ev.max_participants) {
+    return;
   }
 
   // There is room now, so drop a full event back to open for the UI.
