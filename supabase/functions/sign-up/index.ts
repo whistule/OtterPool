@@ -46,7 +46,9 @@ Deno.serve(async (req) => {
     if (!event) {
       return err('Event not found', 404);
     }
-    if (event.status !== 'open') {
+    // 'full' still accepts sign-ups — they route to the waitlist. Only draft,
+    // closed and cancelled are hard stops.
+    if (event.status !== 'open' && event.status !== 'full') {
       return err(`Event is ${event.status} — sign-ups are closed`, 409);
     }
     if (event.leader_id === user.id) {
@@ -196,6 +198,11 @@ async function decideRouting(
 }
 
 async function isAtCapacity(admin: SupabaseClient, event: EventRow): Promise<boolean> {
+  // markFullIfAtCapacity already decided this; trust it even for uncapped
+  // events a leader flipped to full by hand.
+  if (event.status === 'full') {
+    return true;
+  }
   if (!event.max_participants) {
     return false;
   }
