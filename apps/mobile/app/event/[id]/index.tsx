@@ -351,10 +351,15 @@ export default function EventDetailScreen() {
 
     if (data?.payment?.checkout_url) {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        // Page is navigating away, so leave the button busy.
         window.location.href = data.payment.checkout_url;
-      } else {
-        await Linking.openURL(data.payment.checkout_url);
+        return;
       }
+      // Native keeps this screen mounted behind the browser. Clear busy now,
+      // or the CTA is stuck spinning when the member comes back — load() on
+      // focus doesn't touch it.
+      await Linking.openURL(data.payment.checkout_url).catch(() => {});
+      setBusy(false);
       return;
     }
 
