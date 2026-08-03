@@ -90,8 +90,13 @@ Deno.serve(async (req) => {
     // left by leader approval. The webhook flips pending_payment → confirmed
     // on payment_intent.succeeded. Manual_all + paid stops short on first
     // signup (pending_review, no Stripe).
+    // Capacity wins over an outstanding pending_payment row: if the event
+    // filled up while the member sat on the checkout page, they get the
+    // waitlist, not a Stripe session for a seat that no longer exists.
     const needsCheckout =
-      isPaid && (routing.status === 'confirmed' || existing?.status === 'pending_payment');
+      isPaid &&
+      routing.status !== 'waitlisted' &&
+      (routing.status === 'confirmed' || existing?.status === 'pending_payment');
 
     if (needsCheckout) {
       if (!return_url) {
