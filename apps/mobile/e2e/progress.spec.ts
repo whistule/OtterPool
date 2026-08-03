@@ -82,6 +82,16 @@ test.describe('progress — admin view', () => {
     await expect(page.getByText('🦦 Otter').first()).toBeAttached({
       timeout: 15_000,
     });
+
+    // Restore the seeded level. This test asserts the member starts as duck,
+    // so without the reset it fails on its own precondition the second time
+    // it runs against an un-reseeded environment.
+    await page.locator('[data-testid="change-level-cta"]:visible').click();
+    await page.locator('[data-testid="level-pick-duck"]:visible').click();
+
+    await expect(page.getByText('🦆 Duck').first()).toBeAttached({
+      timeout: 15_000,
+    });
   });
 
   test('admin sets and clears a per-track approval ceiling', async ({ page }) => {
