@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
@@ -53,6 +54,7 @@ export default function ForgotPasswordScreen() {
       style={[styles.screen, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      <PageTitle title="Forgot password" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

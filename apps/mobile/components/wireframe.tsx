@@ -73,14 +73,19 @@ export function Pill({
   color,
   style,
   textStyle,
+  testID,
 }: {
   label: string;
   color?: string;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  testID?: string;
 }) {
   return (
-    <View style={[styles.pill, { backgroundColor: color ?? OtterPalette.slateNavy }, style]}>
+    <View
+      testID={testID}
+      style={[styles.pill, { backgroundColor: color ?? OtterPalette.slateNavy }, style]}
+    >
       <Text style={[styles.pillText, textStyle]}>{label}</Text>
     </View>
   );

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Avatar, EventPhoto } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
@@ -408,6 +409,8 @@ export default function EventDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      {/* The trip name is what a shared or bookmarked link should be called. */}
+      <PageTitle title={event.title} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}

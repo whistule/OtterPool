@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
@@ -150,6 +151,7 @@ export default function MyTripsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="My Trips" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}

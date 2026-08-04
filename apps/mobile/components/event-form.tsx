@@ -20,6 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DateTimeField } from '@/components/event-form/date-time-field';
 import { FieldError, FieldLabel } from '@/components/event-form/field-label';
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { EventPhoto } from '@/components/photo';
 import { Colors, OtterPalette } from '@/constants/theme';
@@ -648,6 +649,7 @@ export default function EventForm(props: EventFormProps) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <PageTitle title={screenTitle} />
         <Header onBack={() => router.back()} title={screenTitle} />
         <ScrollView
           style={{ flex: 1 }}

@@ -70,28 +70,31 @@ test.describe('progress — admin view', () => {
     await page.goto('/members');
     await page.getByText(MEMBER_DISPLAY).first().click();
 
-    // Initial state: header pill shows the duck label.
-    await expect(page.getByText('🦆 Duck').first()).toBeAttached({
-      timeout: 15_000,
-    });
+    // Scope to the profile screen's own pill. `getByText('🦆 Duck')` also
+    // matches the members-list pill, which expo-router keeps mounted behind
+    // this screen with its pre-change value — so it stayed green no matter
+    // what the profile did, and the level assertions proved nothing.
+    const levelPill = page.locator('[data-testid="profile-level-pill"]:visible');
+
+    await expect(levelPill).toHaveText('🦆 Duck', { timeout: 15_000 });
 
     await page.locator('[data-testid="change-level-cta"]:visible').click();
     await page.locator('[data-testid="level-pick-otter"]:visible').click();
-
-    // Header pill updates to otter once the save round-trips.
-    await expect(page.getByText('🦦 Otter').first()).toBeAttached({
-      timeout: 15_000,
-    });
+    await expect(levelPill).toHaveText('🦦 Otter', { timeout: 15_000 });
 
     // Restore the seeded level. This test asserts the member starts as duck,
     // so without the reset it fails on its own precondition the second time
     // it runs against an un-reseeded environment.
     await page.locator('[data-testid="change-level-cta"]:visible').click();
     await page.locator('[data-testid="level-pick-duck"]:visible').click();
+    await expect(levelPill).toHaveText('🦆 Duck', { timeout: 15_000 });
 
-    await expect(page.getByText('🦆 Duck').first()).toBeAttached({
-      timeout: 15_000,
-    });
+    // The pill above renders optimistic local state, so it goes green whether
+    // or not the write reached Postgres — and the test ending there aborted
+    // the in-flight request, leaving the fixture on otter. Reload so the
+    // screen refetches, and assert the restore actually persisted.
+    await page.reload();
+    await expect(levelPill).toHaveText('🦆 Duck', { timeout: 15_000 });
   });
 
   test('admin sets and clears a per-track approval ceiling', async ({ page }) => {
