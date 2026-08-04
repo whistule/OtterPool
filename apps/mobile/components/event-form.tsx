@@ -287,6 +287,20 @@ export default function EventForm(props: EventFormProps) {
     setRemovePhotoFlag(false);
   };
 
+  // New series give every occurrence its own storage object, but series
+  // created before that fix share one path across all of them — and an admin
+  // can point two events at the same file by hand. Bin the object only once no
+  // event row still renders it, so one deletion can't blank out its siblings.
+  const removeEventPhotoIfUnused = async (path: string) => {
+    const { count } = await supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('photo_path', path);
+    if (!count) {
+      await removePhoto('event-photos', path);
+    }
+  };
+
   const submit = async () => {
     if (!session) {
       return;
@@ -433,7 +447,7 @@ export default function EventForm(props: EventFormProps) {
         return;
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
-        await removePhoto('event-photos', originalPhotoPath);
+        await removeEventPhotoIfUnused(originalPhotoPath);
       }
       router.replace(`/event/${eventId}`);
       return;
@@ -487,17 +501,30 @@ export default function EventForm(props: EventFormProps) {
     const firstId = data?.[0]?.id;
     if (firstId) {
       const ids = (data ?? []).map((r) => r.id);
+      let basePath: string | null = null;
       if (photoAsset) {
         const result = await uploadPhoto('event-photos', firstId, photoAsset);
         if ('error' in result) {
           setError(`Event created, but photo upload failed: ${result.error}`);
         } else {
-          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+          basePath = result.path;
         }
       } else if (selectedSuggestion) {
         const result = await copyPhoto('event-photos', selectedSuggestion, firstId);
         if (!('error' in result)) {
-          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+          basePath = result.path;
+        }
+      }
+      if (basePath) {
+        await supabase.from('events').update({ photo_path: basePath }).eq('id', firstId);
+        // Give every occurrence its own storage object rather than pointing
+        // them all at the first one's — otherwise deleting or re-photographing
+        // occurrence 1 removes the file the rest of the series still renders.
+        for (const otherId of ids.slice(1)) {
+          const copy = await copyPhoto('event-photos', basePath, otherId);
+          if (!('error' in copy)) {
+            await supabase.from('events').update({ photo_path: copy.path }).eq('id', otherId);
+          }
         }
       }
     }
@@ -540,7 +567,7 @@ export default function EventForm(props: EventFormProps) {
       return;
     }
     if (originalPhotoPath) {
-      await removePhoto('event-photos', originalPhotoPath);
+      await removeEventPhotoIfUnused(originalPhotoPath);
     }
     router.replace('/');
   };

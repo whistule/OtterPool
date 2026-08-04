@@ -17,7 +17,7 @@ import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
 import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
@@ -108,7 +108,9 @@ function formatCost(cost: number): string {
 export default function CalendarScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { profile } = useAuth();
-  const canCreate = profile?.level === 'selkie';
+  // Same gate the create form enforces (components/event-form.tsx): Selkies
+  // create events, and paddling/super admins can too whatever their level.
+  const canCreate = profile?.level === 'selkie' || roleFlags(profile).paddlingAdmin;
   const [active, setActive] = useState<Discipline>('All');
   const [query, setQuery] = useState('');
   const [openToMe, setOpenToMe] = useState(false);
