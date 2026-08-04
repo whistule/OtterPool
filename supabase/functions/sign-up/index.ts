@@ -201,7 +201,9 @@ async function decideRouting(
   event: EventRow,
   userId: string,
 ): Promise<Routing> {
-  if (await isAtCapacity(admin, event)) {
+  // Exclude this member's own row: a held pending_payment seat is theirs, and
+  // counting it would bounce them to the waitlist when they resume checkout.
+  if (await isAtCapacity(admin, event, userId)) {
     return {
       status: 'waitlisted',
       message: "Event is full — you've been added to the waitlist",
