@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -583,6 +584,16 @@ export default function ProfileScreen() {
               until midnight the following day.
             </Text>
           </Card>
+
+          <SectionTitle>About</SectionTitle>
+          <Pressable onPress={() => router.push('/about')} testID="profile-about">
+            <Card>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[styles.body, { color: palette.text }]}>About OtterPool</Text>
+                <Text style={[styles.body, { color: palette.muted }]}>›</Text>
+              </Row>
+            </Card>
+          </Pressable>
 
           <SectionTitle>Session</SectionTitle>
           <Pressable onPress={() => supabase.auth.signOut()} testID="profile-sign-out">
