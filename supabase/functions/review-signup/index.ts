@@ -4,7 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { sendPush } from '../_shared/push.ts';
-import { markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
 import { isPaddlingAdmin } from '../_shared/authz.ts';
 
 type ReviewEvent = {
@@ -176,18 +176,6 @@ async function routeToWaitlist(
 }
 
 // ---------- Shared helpers ----------
-
-async function isAtCapacity(admin: SupabaseClient, event: ReviewEvent): Promise<boolean> {
-  if (!event.max_participants) {
-    return false;
-  }
-  const { count } = await admin
-    .from('event_signups')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', event.id)
-    .eq('status', 'confirmed');
-  return (count ?? 0) >= event.max_participants;
-}
 
 async function applyReview(
   admin: SupabaseClient,

@@ -19,7 +19,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
-import { LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
+import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
@@ -69,31 +69,22 @@ function categoryToDiscipline(category: string): Discipline {
 }
 
 function pillForCategory(row: CalendarRow): { label: string; color: string } {
-  const grade = row.grade_advertised;
-  const cat = row.category;
-  if (cat === 'Sea Kayak') {
-    const colours: Record<string, string> = {
-      'Sea A': OtterPalette.seaTeal[0],
-      'Sea B': OtterPalette.seaTeal[1],
-      'Sea C': OtterPalette.seaTeal[2],
-    };
-    return { label: grade ?? 'Sea', color: colours[grade ?? ''] ?? OtterPalette.seaTeal[1] };
+  // A grade is the most specific thing we can show, and colorForGrade is the
+  // single source of truth for its colour.
+  if (row.grade_advertised) {
+    return { label: row.grade_advertised, color: colorForGrade(row.grade_advertised) };
   }
-  if (cat === 'River Trip') {
-    return { label: grade ?? 'River', color: OtterPalette.riverGreen[1] };
+  // Ungraded: fall back to a per-discipline label and mid-ramp colour.
+  if (row.category === 'Sea Kayak') {
+    return { label: 'Sea', color: OtterPalette.seaTeal[1] };
   }
-  if (cat === 'Pinkston') {
-    const colours: Record<string, string> = {
-      P1: OtterPalette.pinkstonOrange[0],
-      P2: OtterPalette.pinkstonOrange[1],
-      P3: OtterPalette.pinkstonOrange[2],
-    };
-    return {
-      label: grade ?? 'Pinkston',
-      color: colours[grade ?? ''] ?? OtterPalette.pinkstonOrange[1],
-    };
+  if (row.category === 'River Trip') {
+    return { label: 'River', color: OtterPalette.riverGreen[1] };
   }
-  return { label: grade ?? cat, color: OtterPalette.lochPool };
+  if (row.category === 'Pinkston') {
+    return { label: 'Pinkston', color: OtterPalette.pinkstonOrange[1] };
+  }
+  return { label: row.category, color: OtterPalette.lochPool };
 }
 
 function formatPlaces(row: CalendarRow): string {

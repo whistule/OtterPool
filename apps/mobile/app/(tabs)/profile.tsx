@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,7 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ManageMembersCard } from '@/components/admin-card';
 import { Avatar } from '@/components/photo';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -319,9 +320,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <TopBar title="Profile" subtitle="Your details and settings" />
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter />
       </SafeAreaView>
     );
   }
@@ -381,20 +380,9 @@ export default function ProfileScreen() {
             </Row>
           </Card>
 
-          {error ? (
-            <Card>
-              <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>{error}</Text>
-            </Card>
-          ) : null}
+          {error ? <ErrorCard title={error} /> : null}
 
-          {roleFlags(profile).anyAdmin ? (
-            <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
-              <Card style={styles.adminCard}>
-                <Text style={styles.adminKicker}>Admin</Text>
-                <Text style={styles.adminAction}>Manage members ›</Text>
-              </Card>
-            </Pressable>
-          ) : null}
+          {roleFlags(profile).anyAdmin ? <ManageMembersCard /> : null}
 
           <SectionTitle>Personal details</SectionTitle>
           {editing && form ? (
@@ -774,7 +762,6 @@ function DetailRow({
 }
 
 const styles = StyleSheet.create({
-  center: { padding: 32, alignItems: 'center' },
   name: { fontSize: 20, fontWeight: '700' },
   email: { fontSize: 12, marginTop: 2 },
   fieldRow: { paddingVertical: 12 },
@@ -785,7 +772,6 @@ const styles = StyleSheet.create({
   addLink: { fontSize: 14, fontWeight: '700' },
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
-  errTitle: { fontSize: 14, fontWeight: '700' },
   avatarBadge: {
     position: 'absolute',
     right: -2,
@@ -800,16 +786,6 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-  adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
-  adminKicker: {
-    color: '#ffffff',
-    opacity: 0.7,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  adminAction: { color: '#ffffff', fontSize: 16, fontWeight: '700', marginTop: 4 },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   input: {
     borderWidth: 1,

@@ -10,6 +10,8 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { formatShortDateTime } from '@/lib/datetime';
+import { readErrorMessage } from '@/lib/errors';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
@@ -35,34 +37,6 @@ type PendingSignup = {
     status: string;
   } | null;
 };
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-async function readErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : String(error);
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    try {
-      const body = await (error as { context: Response }).context.clone().json();
-      return body?.error ?? body?.message ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}
 
 export default function ReviewSignupsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -228,7 +202,7 @@ export default function ReviewSignupsScreen() {
                 >
                   <Text style={[styles.memberName, { color: palette.text }]}>{name}</Text>
                   <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
-                    Signed up {formatDateTime(s.signed_up_at)} · tap to view profile
+                    Signed up {formatShortDateTime(s.signed_up_at)} · tap to view profile
                   </Text>
                 </Pressable>
 
