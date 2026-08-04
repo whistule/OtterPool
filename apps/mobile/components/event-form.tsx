@@ -26,6 +26,7 @@ import { EventPhoto } from '@/components/photo';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { writeFailure } from '@/lib/errors';
 import {
   CATEGORY_DEFAULTS,
   CATEGORY_TITLE_HINTS,
@@ -431,20 +432,25 @@ export default function EventForm(props: EventFormProps) {
 
       const applyAll = applyToSeries && !!seriesId;
       // This occurrence's own date/status always update just this row.
-      const { error: occErr } = await supabase
+      const { data: occRows, error: occErr } = await supabase
         .from('events')
         .update(applyAll ? perOccurrence : { ...shared, ...perOccurrence })
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .select('id');
       // When applying to the whole series, push the shared fields to every
       // occurrence sharing this series_id.
-      const { error: seriesErr } = applyAll
-        ? await supabase.from('events').update(shared).eq('series_id', seriesId)
-        : { error: null };
+      const { data: seriesRows, error: seriesErr } = applyAll
+        ? await supabase.from('events').update(shared).eq('series_id', seriesId).select('id')
+        : { data: null, error: null };
       setBusy(false);
 
-      const updateError = occErr ?? seriesErr;
+      // An update RLS filtered away returns neither an error nor rows, so
+      // without the row check this navigated to the event as if it had saved.
+      // Only judge the series write when there actually was one.
+      const updateError =
+        writeFailure(occErr, occRows) ?? (applyAll ? writeFailure(seriesErr, seriesRows) : null);
       if (updateError) {
-        setError(updateError.message);
+        setError(updateError);
         return;
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
@@ -560,11 +566,19 @@ export default function EventForm(props: EventFormProps) {
     await supabase.functions
       .invoke('notify-event-cancelled', { body: { event_id: eventId } })
       .catch((e) => console.warn('[notify-event-cancelled] failed', e));
-    const { error: deleteError } = await supabase.from('events').delete().eq('id', eventId);
+    // Rows back, not just "no error": a delete RLS filtered away is silent, and
+    // this path then bins the photo and navigates home as if the event were
+    // gone — leaving it live on the calendar with no picture.
+    const { data: deleted, error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId)
+      .select('id');
     setBusy(false);
-    if (deleteError) {
+    const deleteFailure = writeFailure(deleteError, deleted);
+    if (deleteFailure) {
       setConfirmDelete(false);
-      setError(deleteError.message);
+      setError(deleteFailure);
       return;
     }
     if (originalPhotoPath) {
