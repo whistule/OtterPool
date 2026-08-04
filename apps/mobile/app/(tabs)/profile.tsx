@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ManageMembersCard } from '@/components/admin-card';
+import { PageTitle } from '@/components/page-title';
 import { Avatar } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
@@ -331,6 +332,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="Profile" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

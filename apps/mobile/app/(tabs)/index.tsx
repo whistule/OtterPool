@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
@@ -163,6 +164,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title="Calendar" />
       {canCreate ? (
         <Pressable
           testID="calendar-create-event"

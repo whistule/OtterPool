@@ -10,6 +10,7 @@ import {
   JourneyLadder,
 } from '@/components/progress-blocks';
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Avatar } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
@@ -341,6 +342,7 @@ export default function MemberProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title={name} />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Header onBack={() => router.back()} />
 
@@ -361,6 +363,7 @@ export default function MemberProfileScreen() {
               ) : null}
               <Row style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 <Pill
+                  testID="profile-level-pill"
                   label={`${levelEmoji} ${LEVEL_LABEL[profile.level]}`}
                   color={OtterPalette.slateNavy}
                 />

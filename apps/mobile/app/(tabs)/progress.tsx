@@ -11,6 +11,7 @@ import {
   StatRow,
 } from '@/components/progress-blocks';
 import { ManageMembersCard } from '@/components/admin-card';
+import { PageTitle } from '@/components/page-title';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors } from '@/constants/theme';
@@ -64,6 +65,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="Progress" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { PageTitle } from '@/components/page-title';
 import { Card, Screen, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -88,6 +89,7 @@ export default function NotifyScreen() {
 
   return (
     <Screen>
+      <PageTitle title="Notifications" />
       <TopBar title="Notifications" subtitle="What you'd like to hear about" />
 
       <SectionTitle>Trip alerts</SectionTitle>
