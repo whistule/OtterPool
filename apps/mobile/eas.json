@@ -34,6 +34,14 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://cunkkdbfylimkktwgfle.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_rTTVgC0tiQNEGi93uru3jQ_ePzJyWrD"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
