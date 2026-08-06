@@ -26,7 +26,7 @@ import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications'
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 type EventRow = {
   id: string;
@@ -278,8 +278,6 @@ export default function EventDetailScreen() {
     // Stripe Checkout requires http(s) for success_url / cancel_url, so native
     // can't pass `otterpool://...` directly. On native we route through the
     // payment-return edge function, which 302s into the app's custom scheme.
-    const supabaseUrl =
-      process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? webRouteUrl(`/event/${id}`)
