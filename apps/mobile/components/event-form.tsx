@@ -46,6 +46,7 @@ import {
 import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatMoney } from '@/lib/money';
 
 export type EventFormMode = 'create' | 'edit';
 
@@ -772,8 +773,8 @@ export default function EventForm(props: EventFormProps) {
             ))}
             {selectedCategory ? (
               <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
-                Default min level: {selectedCategory.default_min_level} · default cost: £
-                {Number(selectedCategory.default_cost).toFixed(0)}
+                Default min level: {selectedCategory.default_min_level} · default cost:{' '}
+                {formatMoney(selectedCategory.default_cost)}
               </Text>
             ) : null}
             <FieldError text={fieldErrors.category} />

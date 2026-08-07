@@ -22,6 +22,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
+import { formatMoney } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
@@ -373,7 +374,7 @@ export default function EventDetailScreen() {
   const statusInfo = signup
     ? isLeaderApproved
       ? {
-          label: `✅ Approved — pay £${Number(event.cost).toFixed(0)} to confirm`,
+          label: `✅ Approved — pay ${formatMoney(event.cost)} to confirm`,
           color: OtterPalette.forest,
         }
       : SIGNUP_STATUS[signup.status as SignupStatus]
@@ -399,8 +400,8 @@ export default function EventDetailScreen() {
   }
   if (isPending) {
     primaryLabel = isLeaderApproved
-      ? `Pay £${Number(event.cost).toFixed(0)} to confirm`
-      : `Pay £${Number(event.cost).toFixed(0)}`;
+      ? `Pay ${formatMoney(event.cost)} to confirm`
+      : `Pay ${formatMoney(event.cost)}`;
   }
 
   const showFooterCta = !isLeader && (!signup || isPending || isWithdrawn);
@@ -471,7 +472,7 @@ export default function EventDetailScreen() {
               textStyle={{ color: '#2a2f33' }}
             />
             <Pill
-              label={isPaid ? `£${Number(event.cost).toFixed(0)}` : 'Free'}
+              label={isPaid ? `${formatMoney(event.cost)}` : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
             />
             <Pill
@@ -665,13 +666,13 @@ export default function EventDetailScreen() {
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Payment received · £{Number(event.cost).toFixed(0)}
+                  Payment received · {formatMoney(event.cost)}
                 </Text>
               ) : null}
               {signup.status === 'pending_payment' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
                   {isLeaderApproved
-                    ? `The leader has approved your sign-up. Pay £${Number(event.cost).toFixed(0)} below to lock in your spot.`
+                    ? `The leader has approved your sign-up. Pay ${formatMoney(event.cost)} below to lock in your spot.`
                     : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
@@ -745,8 +746,8 @@ export default function EventDetailScreen() {
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
               {event.approval_mode === 'manual_all'
-                ? `£${Number(event.cost).toFixed(0)} taken after the leader confirms your spot.`
-                : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
+                ? `${formatMoney(event.cost)} taken after the leader confirms your spot.`
+                : `Card payment of ${formatMoney(event.cost)} taken on sign-up.`}
             </Text>
           ) : null}
         </View>

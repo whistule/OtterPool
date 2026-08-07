@@ -22,6 +22,7 @@ import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
 import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatCost } from '@/lib/money';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
 type Discipline = (typeof DISCIPLINES)[number];
@@ -97,13 +98,6 @@ function formatPlaces(row: CalendarRow): string {
   }
   const left = row.max_participants - row.confirmed_count;
   return `${left} of ${row.max_participants} left`;
-}
-
-function formatCost(cost: number): string {
-  if (cost === 0) {
-    return 'Free';
-  }
-  return `£${Number(cost).toFixed(0)}`;
 }
 
 export default function CalendarScreen() {

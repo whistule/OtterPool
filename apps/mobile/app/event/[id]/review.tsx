@@ -15,6 +15,7 @@ import { formatShortDateTime } from '@/lib/datetime';
 import { readErrorMessage } from '@/lib/errors';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatMoney } from '@/lib/money';
 
 type EventRow = {
   id: string;
@@ -160,8 +161,8 @@ export default function ReviewSignupsScreen() {
           <Text style={[styles.subtitle, { color: palette.muted }]}>{event.title}</Text>
           {isPaid ? (
             <Text style={[styles.note, { color: palette.muted, marginTop: 8 }]}>
-              Confirming a member will prompt them for £{Number(event.cost).toFixed(0)} payment to
-              complete sign-up.
+              Confirming a member will prompt them for {formatMoney(event.cost)} payment to complete
+              sign-up.
             </Text>
           ) : null}
         </View>
