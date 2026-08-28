@@ -22,11 +22,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
+import { formatMoney } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 type EventRow = {
   id: string;
@@ -278,8 +279,6 @@ export default function EventDetailScreen() {
     // Stripe Checkout requires http(s) for success_url / cancel_url, so native
     // can't pass `otterpool://...` directly. On native we route through the
     // payment-return edge function, which 302s into the app's custom scheme.
-    const supabaseUrl =
-      process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? webRouteUrl(`/event/${id}`)
@@ -375,7 +374,7 @@ export default function EventDetailScreen() {
   const statusInfo = signup
     ? isLeaderApproved
       ? {
-          label: `✅ Approved — pay £${Number(event.cost).toFixed(0)} to confirm`,
+          label: `✅ Approved — pay ${formatMoney(event.cost)} to confirm`,
           color: OtterPalette.forest,
         }
       : SIGNUP_STATUS[signup.status as SignupStatus]
@@ -401,8 +400,8 @@ export default function EventDetailScreen() {
   }
   if (isPending) {
     primaryLabel = isLeaderApproved
-      ? `Pay £${Number(event.cost).toFixed(0)} to confirm`
-      : `Pay £${Number(event.cost).toFixed(0)}`;
+      ? `Pay ${formatMoney(event.cost)} to confirm`
+      : `Pay ${formatMoney(event.cost)}`;
   }
 
   const showFooterCta = !isLeader && (!signup || isPending || isWithdrawn);
@@ -473,7 +472,7 @@ export default function EventDetailScreen() {
               textStyle={{ color: '#2a2f33' }}
             />
             <Pill
-              label={isPaid ? `£${Number(event.cost).toFixed(0)}` : 'Free'}
+              label={isPaid ? `${formatMoney(event.cost)}` : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
             />
             <Pill
@@ -667,13 +666,13 @@ export default function EventDetailScreen() {
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Payment received · £{Number(event.cost).toFixed(0)}
+                  Payment received · {formatMoney(event.cost)}
                 </Text>
               ) : null}
               {signup.status === 'pending_payment' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
                   {isLeaderApproved
-                    ? `The leader has approved your sign-up. Pay £${Number(event.cost).toFixed(0)} below to lock in your spot.`
+                    ? `The leader has approved your sign-up. Pay ${formatMoney(event.cost)} below to lock in your spot.`
                     : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
@@ -747,8 +746,8 @@ export default function EventDetailScreen() {
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
               {event.approval_mode === 'manual_all'
-                ? `£${Number(event.cost).toFixed(0)} taken after the leader confirms your spot.`
-                : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
+                ? `${formatMoney(event.cost)} taken after the leader confirms your spot.`
+                : `Card payment of ${formatMoney(event.cost)} taken on sign-up.`}
             </Text>
           ) : null}
         </View>

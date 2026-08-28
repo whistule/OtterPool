@@ -11,6 +11,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './config.secret.js';
+import { assertDevProject } from './assert-dev-project.js';
+
+// Destructive + service-role: never let this touch production.
+assertDevProject(SUPABASE_URL);
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },

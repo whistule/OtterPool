@@ -1,5 +1,24 @@
 # Agent notes
 
+## Environment variables (required)
+
+`apps/mobile/lib/supabase.ts` throws when `EXPO_PUBLIC_SUPABASE_URL` /
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` are unset — there is deliberately no fallback,
+so a misconfigured build can't come up silently pointed at the wrong database.
+Before running or building anything:
+
+```sh
+cp apps/mobile/.env.example apps/mobile/.env.local
+```
+
+`.env.local` is gitignored and holds the **dev** project's values. Production
+and preview builds ignore it entirely and take their values from the `env`
+blocks in `eas.json` / `.github/workflows/deploy-web.yml`.
+
+Note: Metro caches the inlined values. After changing an `EXPO_PUBLIC_*` var,
+export with `--clear` or you will keep getting the previous project's URL baked
+into the bundle.
+
 ## Running the Playwright e2e suite
 
 The host is NixOS, so Playwright's bundled Chromium download won't run. Browsers
