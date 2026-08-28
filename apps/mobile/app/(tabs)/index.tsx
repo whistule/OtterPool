@@ -250,7 +250,7 @@ export default function CalendarScreen() {
           <EmptyCard
             message={
               rows.length === 0
-                ? 'No upcoming events yet. Add some in the Supabase dashboard.'
+                ? 'No upcoming trips yet. Check back soon.'
                 : 'No events match your filters.'
             }
           />
