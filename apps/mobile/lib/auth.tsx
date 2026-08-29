@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       if (newSession) {
         loadProfile(newSession.user.id);
-        registerForPushNotifications(newSession.user.id).catch((e) => {
+        registerForPushNotifications().catch((e) => {
           console.warn('[push] registration failed:', e);
         });
       } else {
