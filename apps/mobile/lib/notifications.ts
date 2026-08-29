@@ -39,6 +39,13 @@ export async function registerForPushNotifications(userId: string): Promise<void
     console.warn('[push] skipping registration: not a physical device');
     return;
   }
+  // Web push needs a VAPID keypair in app.json, which we don't have — without
+  // one getExpoPushTokenAsync throws rather than returning null. Members on the
+  // web build simply don't get push; everything else on the page works.
+  if (Platform.OS === 'web') {
+    console.warn('[push] skipping registration: web push is not configured');
+    return;
+  }
 
   await ensureAndroidChannel();
 
@@ -131,6 +138,17 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
     }
   } catch (e) {
     push({ step: 'permissions', ok: false, detail: `threw: ${String(e)}` });
+    return steps;
+  }
+
+  // Same reason as registerForPushNotifications: no VAPID key, so asking for a
+  // token on web throws. Report it as a known limitation instead of an error.
+  if (Platform.OS === 'web') {
+    push({
+      step: 'web push',
+      ok: false,
+      detail: 'not configured — needs notification.vapidPublicKey in app.json',
+    });
     return steps;
   }
 
