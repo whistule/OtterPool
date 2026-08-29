@@ -1,0 +1,32 @@
+-- ============================================================
+-- OtterPool — answer the "Security Definer View" lint honestly
+-- ============================================================
+-- Supabase's linter flags calendar_events, my_trip_tally and
+-- event_participants as SECURITY DEFINER views. Only one of the three
+-- should actually change, and the other two are recorded here so the
+-- next person to see the warning does not "fix" them and break the app.
+--
+-- my_trip_tally — SAFE TO FLIP. It already scopes itself with
+--   `s.member_id = auth.uid()`, and every table it reads is visible to
+--   the caller under RLS (own signups; events and categories are
+--   readable by any authenticated member). Running as invoker is a
+--   behavioural no-op, so take it: one fewer warning, honestly.
+--
+-- calendar_events — MUST STAY DEFINER. It left-joins event_signups
+--   purely to compute confirmed_count, but event_signups RLS shows a
+--   member only their own signups. As invoker, every row the caller
+--   cannot see drops out of the aggregate and confirmed_count collapses
+--   to "signups I happen to have" — every trip would look nearly empty
+--   and "N of M left" would offer seats that are already taken. Exposing
+--   an aggregate over rows the caller cannot read individually is what
+--   definer is for. It leaks a count, which is the entire point of it.
+--
+-- event_participants — MUST STAY DEFINER, same shape. As invoker a
+--   member would see only themselves in the participant list, which is
+--   the whole feature gone. It is not an escalation either way: profiles
+--   already carries `SELECT USING (true)` for authenticated, so names,
+--   levels and avatars are readable regardless. The only extra fact the
+--   view adds is who is confirmed on which trip, which is what members
+--   are meant to see.
+
+alter view public.my_trip_tally set (security_invoker = true);
