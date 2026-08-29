@@ -28,7 +28,7 @@ async function ensureAndroidChannel() {
   });
 }
 
-export async function registerForPushNotifications(userId: string): Promise<void> {
+export async function registerForPushNotifications(): Promise<void> {
   // Expo Go on SDK 53+ can't receive remote push. Bail rather than upserting a
   // token that will never be reachable — local notifications still work.
   if (Constants.appOwnership === 'expo') {
@@ -71,14 +71,16 @@ export async function registerForPushNotifications(userId: string): Promise<void
 
   const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 
-  const { error } = await supabase
-    .from('user_push_tokens')
-    .upsert(
-      { expo_push_token: token, user_id: userId, platform },
-      { onConflict: 'expo_push_token' },
-    );
+  // Via an RPC rather than a direct upsert. When a second account signs in on
+  // a device the token row still belongs to the previous user, and `on conflict
+  // do update` has to read that row — which RLS refuses, because the SELECT
+  // policy is scoped to your own rows. See 20260829010000_claim_push_token.sql.
+  const { error } = await supabase.rpc('claim_push_token', {
+    p_token: token,
+    p_platform: platform,
+  });
   if (error) {
-    console.warn('[push] upsert failed:', error.message);
+    console.warn('[push] claim failed:', error.message);
   }
 }
 
@@ -103,7 +105,7 @@ export function routeForNotification(data: Record<string, unknown> | undefined):
 
 export type DiagStep = { step: string; ok: boolean; detail: string };
 
-export async function diagnosePushRegistration(userId: string): Promise<DiagStep[]> {
+export async function diagnosePushRegistration(): Promise<DiagStep[]> {
   const steps: DiagStep[] = [];
   const push = (s: DiagStep) => {
     steps.push(s);
@@ -180,14 +182,12 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
   }
 
   const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
-  const { error } = await supabase
-    .from('user_push_tokens')
-    .upsert(
-      { expo_push_token: token, user_id: userId, platform },
-      { onConflict: 'expo_push_token' },
-    );
+  const { error } = await supabase.rpc('claim_push_token', {
+    p_token: token,
+    p_platform: platform,
+  });
   push({
-    step: 'upsert user_push_tokens',
+    step: 'claim_push_token',
     ok: !error,
     detail: error ? error.message : 'inserted/updated',
   });

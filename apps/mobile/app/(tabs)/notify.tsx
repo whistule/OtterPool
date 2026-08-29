@@ -29,7 +29,7 @@ export default function NotifyScreen() {
     }
     setDiagBusy(true);
     try {
-      const steps = await diagnosePushRegistration(userId);
+      const steps = await diagnosePushRegistration();
       setDiag(steps);
     } catch (e) {
       setDiag([{ step: 'fatal', ok: false, detail: String(e) }]);
