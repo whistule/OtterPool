@@ -332,10 +332,18 @@ So an aspirant is *not* browse-only and *not* limited to a special event subset
 — they get the normal level-gated experience, capped at 3 events.
 
 This adds one new dependency — **trial-count tracking**: the `sign-up` gate gains
-an aspirant branch that counts their trials and, on the 4th, returns a "join to
-continue" prompt instead of confirming. It layers **on top of** the existing
-level check (level first, then the cap). The count needs defining — confirmed
-sign-ups vs attended, and whether cancelling frees a slot (open question 5).
+an aspirant branch that counts their trials and, on the 4th sign-up, returns a
+"join to continue" prompt instead of confirming. It layers **on top of** the
+existing level check (level first, then the cap).
+
+**Count rule (decided):** the tally is **sign-ups, not attendance**, and a
+**cancellation still counts** (no freed slot) — an aspirant gets **3 sign-ups
+total** and can't game it by signing up and cancelling. Implementation: count
+the member's `event_signups` rows created while aspirant, **including withdrawn
+ones**. This relies on a cancellation leaving the row as `withdrawn` rather than
+hard-deleting it — if cancel hard-deletes, use a dedicated increment-only trial
+counter instead. One edge to confirm: does a **leader-declined** sign-up also
+count? (Probably not — they never got the session.)
 
 None of this changes the enforcement model — the level gate and the trial cap
 are both server-side in the `sign-up` function. The UX just surfaces state and a
@@ -400,6 +408,7 @@ exists; the new work is the table, import, and reconcile.
 4. ~~Should `suspended` be set from this flow?~~ **DECIDED: `suspended` is set
    and cleared only from the app admin screen; import/reconcile never changes it
    in either direction (§6).**
-5. ~~What can an aspirant do?~~ **DECIDED: 3 trial events, then join (Join-now
-   opt-in any time).** Remaining sub-question: does a **trial** count on
-   confirmed sign-up or on attendance, and does cancelling free a slot?
+5. ~~What can an aspirant do / how is a trial counted?~~ **DECIDED: 3 trial
+   events (Join-now any time); counted on sign-up, not attendance; a
+   cancellation still counts (no freed slot).** Minor edge to confirm: does a
+   leader-*declined* sign-up count?
