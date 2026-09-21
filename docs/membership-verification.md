@@ -59,6 +59,50 @@ Notes:
 - One row per member. The table is **replaced** on each import (see §4), not
   appended.
 
+### 3a. The migration file (draft)
+
+Schema changes in this repo are **migration files**, applied in timestamp order
+(forward-only — there are no down files by convention). The whole schema for
+this feature is one new file. Timestamp must be later than the current last
+migration (`20260622000000_event_photo_trgm.sql`).
+
+```sql
+-- supabase/migrations/20260921000000_verified_members.sql
+-- ============================================================
+-- OtterPool — Membership verification: verified_members mirror
+-- ============================================================
+-- Mirrors "paid DCKC member this year" from a MemberMojo email export.
+-- Service-role only. See docs/membership-verification.md.
+
+-- ---------- the mirrored list ----------
+create table if not exists public.verified_members (
+  email_norm      text primary key,     -- lower(trim(email))
+  membership_year int,                   -- or an expiry date, per the export
+  imported_at     timestamptz not null default now()
+);
+
+-- RLS ON, NO policies → only the service role (edge functions) can touch it.
+-- service_role bypasses RLS; authenticated/anon get zero rows via the public API.
+alter table public.verified_members enable row level security;
+
+-- ---------- track who manages each member's status ----------
+alter table public.profiles
+  add column if not exists membership_source text
+    not null default 'list'
+    check (membership_source in ('list','manual'));
+
+-- Rollout safety: existing members predate this system. Mark them 'manual' so
+-- the FIRST reconcile can't auto-lapse anyone before they've been matched
+-- against a real export. Matched members move to 'list' via the import/match
+-- flow; unmatched stay 'manual' for an admin to review.
+update public.profiles set membership_source = 'manual';
+```
+
+This is **schema only**. The import, match-on-creation, and reconcile logic
+(§4–§6) live in an edge function / script, not this migration. Applied via the
+Supabase CLI already in the devenv (`supabase db push` / `migration up`, or a
+local `db reset` to rebuild). The e2e workflow reseeds fixtures afterwards.
+
 ---
 
 ## 4. Import flow
@@ -169,7 +213,58 @@ and move to hashed only if minimising breach exposure outweighs operability.
 
 ---
 
-## 9. What this deliberately does NOT do
+## 9. Member-state UX — what people see
+
+The backend gate (the `sign-up` function) already rejects `lapsed` / `suspended`.
+But a raw 403 at the sign-up button is a poor experience — people should **see**
+their state before they hit the wall, and non-members need a clear path in. The
+README already lists "membership renewal popups (aspirant/expiring/expired)" as
+not-yet-built; this is that piece.
+
+### Status → experience
+
+| `profiles.status` | Who | What they see | Event sign-up |
+|---|---|---|---|
+| `active` | Paid member | Normal app, no banners | Full (still subject to level / ceiling / ICE gates) |
+| `aspirant` | New unmatched signup, or prospective/trial member | "Join DCKC to unlock all trips" banner + how to join | **Product decision** — browse-only or trial-limited (below) |
+| `lapsed` | Membership expired | "Your membership has lapsed — renew" prompt, link to MemberMojo | Blocked (already 403) but with a **Renew** CTA, not a dead end |
+| `suspended` | Admin action | "Your account is suspended — contact the club" | Blocked |
+
+### Key touchpoints
+
+1. **Sign-in / calendar** — a status banner (nothing for `active`). Surfaces
+   state early, before the sign-up button.
+2. **Event sign-up CTA** — the important one. Active → normal CTA; aspirant →
+   trial CTA or "Membership required" + join link; lapsed → "Renew to sign up".
+   The button reflects state instead of failing after a tap.
+3. **First run / onboarding** — matched new account → "Welcome, membership
+   confirmed"; unmatched → aspirant welcome + how to join.
+4. **Profile** — show membership status (+ type / renewal date if the export
+   carries it) and a **Renew** link to MemberMojo. (The parity review flagged
+   membership metadata as missing on Profile.)
+5. **Mismatch recovery** — a real member whose email didn't match lands as
+   `aspirant`. Give a "Not recognised? Contact the membership secretary" path so
+   they can be manually verified (§6 override) rather than being silently stuck.
+
+### The product decision: what can a non-member DO?
+
+Needs the club's call — three broad options for `aspirant`:
+
+- **Browse-only** — sees the calendar, cannot sign up at all. Simplest MVP.
+- **Trial-session-limited** — can sign up to N trial sessions (DCKC's "3 trial
+  sessions" concept), then must join. Matches the club model but needs
+  trial-count tracking (a separate feature).
+- **Full access + persistent join nudge** — softest, weakest incentive to pay.
+
+Recommended default: **trial-session-limited** if the club wants the aspirant
+funnel, otherwise **browse-only** for the MVP.
+
+None of this changes the *gate* — it's all about surfacing state and offering a
+path forward. Enforcement stays server-side.
+
+---
+
+## 10. What this deliberately does NOT do
 
 - No renewals, payments, Gift Aid, or member comms — all stay in MemberMojo.
 - No full in-app membership management — that's a separate strategic decision.
@@ -177,15 +272,25 @@ and move to hashed only if minimising breach exposure outweighs operability.
 
 ---
 
-## 10. Implementation checklist (for when approved)
+## 11. Implementation checklist (for when approved)
 
+**Backend / data**
 - [ ] `verified_members` table + RLS (service-role only)
-- [ ] `profiles.membership_source` column (`list` / `manual`)
+- [ ] `profiles.membership_source` column (`list` / `manual`) + rollout backfill
 - [ ] Admin CSV import (normalise, replace-in-transaction, record import)
 - [ ] Match-on-account-creation → set `active` / leave `aspirant`
 - [ ] Reconcile function: upgrade + downgrade, skip `manual` / `aspirant` /
       `suspended`
 - [ ] Confirm Supabase email verification is enabled
+
+**UX (§9)**
+- [ ] Status banner on calendar/sign-in (aspirant / lapsed / suspended)
+- [ ] State-aware event sign-up CTA (join / renew / trial)
+- [ ] First-run: matched "welcome" vs unmatched aspirant onboarding
+- [ ] Profile: membership status + Renew link to MemberMojo
+- [ ] Mismatch recovery: "contact the membership secretary" path
+
+**Testing / ops**
 - [ ] e2e coverage: matched email → active + can sign up; unmatched → aspirant;
       lapsed after reconcile → blocked; manual override survives re-import
 - [ ] Decide cadence (recommend monthly/quarterly) and who runs the import
@@ -196,11 +301,13 @@ exists; the new work is the table, import, and reconcile.
 
 ---
 
-## 11. Open questions for the club
+## 12. Open questions for the club
 
 1. Import **cadence** — monthly / quarterly / annual? Who owns it?
 2. Does the export carry an **expiry date** per member, or just "verified this
    year"? (Affects whether reconcile can be date-driven rather than
-   presence-driven.)
+   presence-driven, and whether "expiring soon" prompts are possible.)
 3. Plaintext (v1) or hashed (v1.1) email storage?
 4. Should `suspended` ever be set from this flow, or only ever by an admin?
+5. **What can an aspirant/non-member do** (§9) — browse-only, trial-limited, or
+   full-with-nudge? Drives how much sign-up UX is needed.
