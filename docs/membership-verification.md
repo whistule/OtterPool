@@ -223,16 +223,17 @@ not-yet-built; this is that piece.
 
 ### Status → experience
 
-| `profiles.status` | Who | What they see | Event sign-up |
+| `profiles.status` | Who | What they see on open | Event sign-up |
 |---|---|---|---|
-| `active` | Paid member | Normal app, no banners | Full (still subject to level / ceiling / ICE gates) |
-| `aspirant` | New unmatched signup, or prospective/trial member | "Join DCKC to unlock all trips" banner + how to join | **Product decision** — browse-only or trial-limited (below) |
-| `lapsed` | Membership expired | "Your membership has lapsed — renew" prompt, link to MemberMojo | Blocked (already 403) but with a **Renew** CTA, not a dead end |
+| `active` | Paid member | **Events (calendar) by default** — unless an *attention item* interrupts first (ICE needs updating · an event-approval update · a level-approval update); see below | Full (still subject to level / ceiling / ICE gates) |
+| `aspirant` | New unmatched signup, or prospective member | "Join DCKC" banner + **"3 trial events before you join"** note, with a **Join now** opt-in | Trial-limited: up to 3 trial events, then must join |
+| `lapsed` | Membership expired | "Your membership has lapsed — renew" prompt → MemberMojo | Blocked (already 403) but with a **Renew** CTA, not a dead end |
 | `suspended` | Admin action | "Your account is suspended — contact the club" | Blocked |
 
 ### Key touchpoints
 
-1. **Sign-in / calendar** — a status banner (nothing for `active`). Surfaces
+1. **Sign-in / landing** — non-`active` states show a status banner; `active`
+   members land on Events unless an attention item interrupts (below). Surfaces
    state early, before the sign-up button.
 2. **Event sign-up CTA** — the important one. Active → normal CTA; aspirant →
    trial CTA or "Membership required" + join link; lapsed → "Renew to sign up".
@@ -246,18 +247,35 @@ not-yet-built; this is that piece.
    `aspirant`. Give a "Not recognised? Contact the membership secretary" path so
    they can be manually verified (§6 override) rather than being silently stuck.
 
-### The product decision: what can a non-member DO?
+### Active-member landing: attention items
 
-Needs the club's call — three broad options for `aspirant`:
+On open, an active member goes straight to **Events** — *unless* one or more
+"attention items" need surfacing first (as a card / interstitial, or a prominent
+strip above the calendar):
 
-- **Browse-only** — sees the calendar, cannot sign up at all. Simplest MVP.
-- **Trial-session-limited** — can sign up to N trial sessions (DCKC's "3 trial
-  sessions" concept), then must join. Matches the club model but needs
-  trial-count tracking (a separate feature).
-- **Full access + persistent join nudge** — softest, weakest incentive to pay.
+1. **ICE needs updating** — incomplete, expired under the 12-month lifecycle, or
+   missing a now-required field. (Ties into the ICE work.)
+2. **Event-approval update** — a `pending_review` sign-up was approved or
+   declined; they should see the outcome.
+3. **Level-approval update** — their level / progression was approved or changed
+   by an admin.
 
-Recommended default: **trial-session-limited** if the club wants the aspirant
-funnel, otherwise **browse-only** for the MVP.
+If none apply → Events directly. This is *in-app* surfacing on open, distinct
+from push notifications (which the app already sends for some of these). Items
+2–3 depend on other features (approval flow, progression); ICE ties to the ICE
+lifecycle — so the landing is a small router that checks each source.
+
+### Aspirant access — DECIDED
+
+Open question 5 is resolved: **trial-limited — 3 trial events, then join**, with
+a **Join now** opt-in available at any time. So aspirant sign-up is *not*
+browse-only; it allows up to 3 events, then converts to the join flow.
+
+This adds one dependency — **trial-count tracking**: count an aspirant's trial
+sign-ups and block the 4th with a "join to continue" prompt. Small, but net-new:
+the `sign-up` gate gains an aspirant branch (count trials → allow / prompt-join),
+and the count must be defined (confirmed sign-ups? attended? does a cancellation
+free a slot?). Flagged in the checklist and open questions.
 
 None of this changes the *gate* — it's all about surfacing state and offering a
 path forward. Enforcement stays server-side.
@@ -284,7 +302,12 @@ path forward. Enforcement stays server-side.
 - [ ] Confirm Supabase email verification is enabled
 
 **UX (§9)**
-- [ ] Status banner on calendar/sign-in (aspirant / lapsed / suspended)
+- [ ] Status banner on sign-in (aspirant / lapsed / suspended)
+- [ ] Active-member landing router: Events by default, else attention item
+      (ICE update · event-approval update · level-approval update)
+- [ ] Aspirant landing: "Join DCKC" banner + "3 trial events" note + Join-now
+- [ ] Trial-count tracking + aspirant branch in the `sign-up` gate (allow ≤3,
+      then prompt to join)
 - [ ] State-aware event sign-up CTA (join / renew / trial)
 - [ ] First-run: matched "welcome" vs unmatched aspirant onboarding
 - [ ] Profile: membership status + Renew link to MemberMojo
@@ -309,5 +332,6 @@ exists; the new work is the table, import, and reconcile.
    presence-driven, and whether "expiring soon" prompts are possible.)
 3. Plaintext (v1) or hashed (v1.1) email storage?
 4. Should `suspended` ever be set from this flow, or only ever by an admin?
-5. **What can an aspirant/non-member do** (§9) — browse-only, trial-limited, or
-   full-with-nudge? Drives how much sign-up UX is needed.
+5. ~~What can an aspirant do?~~ **DECIDED: 3 trial events, then join (Join-now
+   opt-in any time).** Remaining sub-question: does a **trial** count on
+   confirmed sign-up or on attendance, and does cancelling free a slot?
