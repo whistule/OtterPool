@@ -116,10 +116,39 @@ local `db reset` to rebuild). The e2e workflow reseeds fixtures afterwards.
    - record the import (who, when, row count) for traceability.
 3. Immediately run the **reconcile** (§6) so statuses reflect the new list.
 
-**Cadence:** membership is continuous, not annual — people join and lapse
-mid-year. A yearly refresh means someone who lapses in month 2 keeps access for
-10 months. **Recommend monthly or quarterly** re-export/import. Annual is a
-viable *starting* cadence only if the club accepts that staleness.
+### 4a. Keeping imports timely — admin reminders
+
+Rather than rely on the membership admin remembering, the app reminds them when
+a fresh export is due. **Three reminders per year**, timed to the membership
+**renewal date** (when membership actually turns over):
+
+| When | Why |
+|---|---|
+| Renewal date **+ 2 weeks** | Catch the first wave of renewals (and non-renewals → lapses) |
+| Renewal date **+ 4 weeks** | Catch stragglers who renewed late |
+| Renewal date **+ 6 months** | Catch mid-year drift (new joins, off-cycle lapses) |
+
+Delivered to **membership admins** as a push notification + an admin-screen
+attention item: *"Membership export due — pull a fresh list from MemberMojo and
+import it."* (The admin equivalent of the member attention items in §9.)
+
+**Self-clearing.** `verified_members.imported_at` already records the last
+import; a reminder only fires — and only persists — if **no import has happened
+since** that reminder's date. An admin who's already imported isn't nagged.
+
+**Mechanism:** a daily scheduled job (Supabase `pg_cron` or a scheduled edge
+function) checks whether today is on/after a reminder date with no import since,
+and if so notifies membership admins via the existing push infra
+(`user_push_tokens` / `sendPush`).
+
+**Config needed:** the club's **renewal date** — a single annual date the three
+reminders are computed from (needs confirming, e.g. "1 April"). Stored as a
+config value.
+
+**Accepted trade-off:** between the +4-week and +6-month reminders, and after
+the +6-month one, the list can be up to ~6 months stale for an *off-cycle*
+lapse. For a volunteer-run club that's fine — manual override and admin-set
+`lapsed` / `suspended` handle urgent cases at any time.
 
 ---
 
@@ -319,6 +348,8 @@ path forward.
 - [ ] `verified_members` table + RLS (service-role only)
 - [ ] `profiles.membership_source` column (`list` / `manual`) + rollout backfill
 - [ ] Admin CSV import (normalise, replace-in-transaction, record import)
+- [ ] Import-due reminders (§4a): renewal-date config, daily job, self-clearing
+      via `imported_at`, push + admin attention item to membership admins
 - [ ] Match-on-account-creation → set `active` / leave `aspirant`
 - [ ] Reconcile function: upgrade + downgrade, skip `manual` / `aspirant` /
       `suspended`
@@ -349,7 +380,8 @@ exists; the new work is the table, import, and reconcile.
 
 ## 12. Open questions for the club
 
-1. Import **cadence** — monthly / quarterly / annual? Who owns it?
+1. ~~Import cadence?~~ **DECIDED: 3 reminders/year — renewal +2wk, +4wk, +6mo
+   (§4a).** Remaining: confirm the club's **renewal date** to compute them from.
 2. Does the export carry an **expiry date** per member, or just "verified this
    year"? (Affects whether reconcile can be date-driven rather than
    presence-driven, and whether "expiring soon" prompts are possible.)
