@@ -140,6 +140,24 @@ export const CATEGORY_EQUIPMENT: Record<string, string> = {
   ].join('\n'),
 };
 
+// Display a member as first name + surname initial, e.g. "John Smith" -> "John S".
+// Prefers full_name (has first/last); falls back to display_name.
+export function abbreviateName(
+  fullName: string | null,
+  displayName: string | null,
+): string {
+  const source = (fullName ?? displayName ?? '').trim();
+  if (!source) {
+    return 'Member';
+  }
+  const parts = source.split(/\s+/);
+  if (parts.length < 2) {
+    return source;
+  }
+  const initial = parts[parts.length - 1][0]?.toUpperCase() ?? '';
+  return initial ? `${parts[0]} ${initial}` : parts[0];
+}
+
 export function gradeOptionsFor(category: Category | null): readonly string[] | null {
   if (!category) {
     return null;

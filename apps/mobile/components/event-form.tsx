@@ -26,6 +26,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import {
+  abbreviateName,
   CATEGORY_DEFAULTS,
   CATEGORY_EQUIPMENT,
   CATEGORY_TITLE_HINTS,
@@ -82,7 +83,7 @@ export default function EventForm(props: EventFormProps) {
   const [whatToBring, setWhatToBring] = useState('');
   const [whatToBringTouched, setWhatToBringTouched] = useState(false);
   const [assistantId, setAssistantId] = useState<string | null>(null);
-  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const [members, setMembers] = useState<{ id: string; name: string; search: string }[]>([]);
   const [assistantQuery, setAssistantQuery] = useState('');
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
@@ -143,7 +144,11 @@ export default function EventForm(props: EventFormProps) {
       if (!m.error) {
         setMembers(
           ((m.data ?? []) as { id: string; display_name: string | null; full_name: string | null }[]).map(
-            (p) => ({ id: p.id, name: p.display_name ?? p.full_name ?? 'Member' }),
+            (p) => ({
+              id: p.id,
+              name: abbreviateName(p.full_name, p.display_name),
+              search: `${p.full_name ?? ''} ${p.display_name ?? ''}`.toLowerCase(),
+            }),
           ),
         );
       }
@@ -1348,9 +1353,7 @@ export default function EventForm(props: EventFormProps) {
                 {assistantQuery.trim().length >= 2
                   ? members
                       .filter((m) => m.id !== session?.user.id)
-                      .filter((m) =>
-                        m.name.toLowerCase().includes(assistantQuery.trim().toLowerCase()),
-                      )
+                      .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
                       .slice(0, 6)
                       .map((m) => (
                         <Pressable
