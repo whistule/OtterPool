@@ -158,8 +158,19 @@ alter table public.profiles
 Reconcile only downgrades rows where `membership_source = 'list'`. Manual
 overrides (`'manual'`) are left alone and remain visible in the audit log.
 
-**Never downgrade `aspirant`, `suspended`, or trial members** via reconcile —
-absence from the paid list is their *normal* state (see §8).
+**`suspended` is a sticky admin state — reconcile never touches it, in either
+direction.** It's set (and only ever cleared) from the app's admin screen. So:
+- A suspended member who *is* on the paid list must **not** be flipped to
+  `active` by an import.
+- A suspended member must **not** be re-suspended or downgraded to `lapsed`
+  either — the state is owned by the admin, full stop.
+
+Concretely, the reconcile query excludes `status = 'suspended'` from *both* the
+upgrade and downgrade paths (regardless of `membership_source`). Since upgrade
+only moves `aspirant → active` and downgrade only moves `active → lapsed`,
+suspended rows are untouched by construction — but exclude them explicitly so a
+future rule change can't leak. Same protection applies to `aspirant` — absence
+from the paid list is their *normal* state (see §8).
 
 ---
 
@@ -331,7 +342,9 @@ exists; the new work is the table, import, and reconcile.
    year"? (Affects whether reconcile can be date-driven rather than
    presence-driven, and whether "expiring soon" prompts are possible.)
 3. Plaintext (v1) or hashed (v1.1) email storage?
-4. Should `suspended` ever be set from this flow, or only ever by an admin?
+4. ~~Should `suspended` be set from this flow?~~ **DECIDED: `suspended` is set
+   and cleared only from the app admin screen; import/reconcile never changes it
+   in either direction (§6).**
 5. ~~What can an aspirant do?~~ **DECIDED: 3 trial events, then join (Join-now
    opt-in any time).** Remaining sub-question: does a **trial** count on
    confirmed sign-up or on attendance, and does cancelling free a slot?
