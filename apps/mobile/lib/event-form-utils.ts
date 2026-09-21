@@ -27,6 +27,7 @@ export type LoadedEvent = {
   title: string;
   category_id: number;
   description: string | null;
+  what_to_bring: string | null;
   grade_advertised: string | null;
   starts_at: string;
   ends_at: string | null;
@@ -84,6 +85,58 @@ export const CATEGORY_DEFAULTS: Record<
     location: 'Loch Lomond, Balmaha',
   },
   Pinkston: { location: 'Pinkston Watersports Centre, Glasgow' },
+};
+
+// Default "what to bring" lists for regular events, coded in from the club's
+// equipment lists (docs/equipment-lists.json). Pre-filled on create when a
+// category is picked and the field hasn't been edited; the leader can adjust.
+// A line ending in ":" is rendered as a sub-heading; other lines as bullets.
+export const CATEGORY_EQUIPMENT: Record<string, string> = {
+  // Swimming-pool sessions (e.g. Bellahouston)
+  'Pool / Loch Sessions': [
+    'Personal:',
+    'Swimming attire',
+    'T-shirt (worn over swimwear)',
+    'Towel',
+    'Goggles',
+    '',
+    'Available to borrow:',
+    'Club boats',
+    'Paddles',
+    'Spray decks',
+  ].join('\n'),
+
+  // Tuesday evenings on Loch Lomond (Balmaha)
+  'Tuesday Evening - Loch Lomond': [
+    'Personal:',
+    'Shoes suitable for water',
+    'Large towel',
+    'Swimwear',
+    '',
+    'Available to borrow:',
+    'Wetsuits',
+    'Kayaks / boats',
+    'Paddles',
+    'Spray decks',
+    'Buoyancy aids',
+  ].join('\n'),
+
+  // Sea kayak day trips — personal kit each paddler brings (group safety
+  // equipment is the leader's responsibility, not listed here).
+  'Sea Kayak': [
+    'Personal kit:',
+    'Drinking water + hot drink (flask)',
+    'Lunch / snacks',
+    'Dry bag with change of clothes, towel, footwear',
+    'Dry bag for keys / phone',
+    'Waterproof jacket / cag, dry trousers or wet/dry suit',
+    'Non-slip water footwear',
+    'Hats — wind/waterproof and sun',
+    'Gloves & pogies',
+    'Sun cream',
+    'Spray deck & buoyancy aid',
+    'Whistle',
+  ].join('\n'),
 };
 
 export function gradeOptionsFor(category: Category | null): readonly string[] | null {

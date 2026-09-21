@@ -27,6 +27,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import {
   CATEGORY_DEFAULTS,
+  CATEGORY_EQUIPMENT,
   CATEGORY_TITLE_HINTS,
   Category,
   defaultStartIso,
@@ -78,6 +79,8 @@ export default function EventForm(props: EventFormProps) {
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
   const [status, setStatus] = useState<Status>('open');
   const [description, setDescription] = useState('');
+  const [whatToBring, setWhatToBring] = useState('');
+  const [whatToBringTouched, setWhatToBringTouched] = useState(false);
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [originalPhotoPath, setOriginalPhotoPath] = useState<string | null>(null);
@@ -112,7 +115,7 @@ export default function EventForm(props: EventFormProps) {
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
+                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
@@ -171,6 +174,8 @@ export default function EventForm(props: EventFormProps) {
         setApprovalMode(ev.approval_mode);
         setStatus(ev.status === 'draft' ? 'open' : (ev.status as Status));
         setDescription(ev.description ?? '');
+        setWhatToBring(ev.what_to_bring ?? '');
+        setWhatToBringTouched(true);
         setOriginalPhotoPath(ev.photo_path);
         setSeriesId(ev.series_id);
         setLoading(false);
@@ -262,6 +267,11 @@ export default function EventForm(props: EventFormProps) {
       }
       if (defaults?.location && !location.trim()) {
         setLocation(defaults.location);
+      }
+      // Pre-fill the coded-in equipment list for regular events, unless the
+      // leader has already edited the field.
+      if (!whatToBringTouched) {
+        setWhatToBring(CATEGORY_EQUIPMENT[c.name] ?? '');
       }
     }
   };
@@ -394,6 +404,7 @@ export default function EventForm(props: EventFormProps) {
         title: title.trim(),
         category_id: categoryId,
         description: description.trim() || null,
+        what_to_bring: whatToBring.trim() || null,
         grade_advertised: grade.trim() || null,
         location: location.trim() || null,
         meeting_point: meetingPoint.trim() || null,
@@ -445,6 +456,7 @@ export default function EventForm(props: EventFormProps) {
       title: title.trim(),
       category_id: categoryId,
       description: description.trim() || null,
+      what_to_bring: whatToBring.trim() || null,
       grade_advertised: grade.trim() || null,
       location: location.trim() || null,
       meeting_point: meetingPoint.trim() || null,
@@ -1252,6 +1264,34 @@ export default function EventForm(props: EventFormProps) {
                   color: palette.text,
                   borderColor: palette.border,
                   minHeight: 100,
+                  textAlignVertical: 'top',
+                },
+              ]}
+            />
+
+            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+              What to bring (optional)
+            </FieldLabel>
+            <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+              One item per line. A line ending in ":" becomes a heading. Regular
+              events pre-fill the club's list — edit as needed.
+            </Text>
+            <TextInput
+              value={whatToBring}
+              onChangeText={(t) => {
+                setWhatToBring(t);
+                setWhatToBringTouched(true);
+              }}
+              multiline
+              numberOfLines={4}
+              placeholder={'Personal:\nBuoyancy aid\nSpray deck\nWarm layers'}
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.input,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  minHeight: 120,
                   textAlignVertical: 'top',
                 },
               ]}

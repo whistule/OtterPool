@@ -27,6 +27,7 @@ type EventRow = {
   id: string;
   title: string;
   description: string | null;
+  what_to_bring: string | null;
   category_id: number | null;
   grade_advertised: string | null;
   starts_at: string;
@@ -213,7 +214,7 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
+          'id, title, description, what_to_bring, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
         )
         .eq('id', id)
         .maybeSingle(),
@@ -697,6 +698,36 @@ export default function EventDetailScreen() {
             <SectionTitle>Description</SectionTitle>
             <Card>
               <Text style={[styles.body, { color: palette.text }]}>{event.description}</Text>
+            </Card>
+          </>
+        ) : null}
+
+        {/* ---------- What to bring ---------- */}
+        {event.what_to_bring ? (
+          <>
+            <SectionTitle>What to bring</SectionTitle>
+            <Card>
+              {event.what_to_bring
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0)
+                .map((line, i) => {
+                  const isHeading = line.endsWith(':');
+                  return (
+                    <Text
+                      key={i}
+                      style={[
+                        isHeading ? styles.value : styles.body,
+                        {
+                          color: isHeading ? OtterPalette.slateNavy : palette.text,
+                          marginTop: i === 0 ? 0 : isHeading ? 12 : 4,
+                        },
+                      ]}
+                    >
+                      {isHeading ? line : `•  ${line}`}
+                    </Text>
+                  );
+                })}
             </Card>
           </>
         ) : null}
