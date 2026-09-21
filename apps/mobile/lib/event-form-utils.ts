@@ -88,56 +88,102 @@ export const CATEGORY_DEFAULTS: Record<
   Pinkston: { location: 'Pinkston Watersports Centre, Glasgow' },
 };
 
-// Default "what to bring" lists for regular events, coded in from the club's
-// equipment lists (docs/equipment-lists.json). Pre-filled on create when a
-// category is picked and the field hasn't been edited; the leader can adjust.
-// A line ending in ":" is rendered as a sub-heading; other lines as bullets.
+// Standard "what to bring" kit lists, coded in from the club's equipment lists
+// (docs/equipment-lists.json). Offered as a drop-down in the event form so a
+// leader can load a preset and then edit it. A line ending in ":" renders as a
+// sub-heading; other lines as bullets.
+export type KitTemplate = { key: string; label: string; text: string };
+
+export const KIT_TEMPLATES: KitTemplate[] = [
+  {
+    key: 'pool',
+    label: 'Pool session',
+    text: [
+      'Personal:',
+      'Swimming attire',
+      'T-shirt (worn over swimwear)',
+      'Towel',
+      'Goggles',
+      '',
+      'Available to borrow:',
+      'Club boats',
+      'Paddles',
+      'Spray decks',
+    ].join('\n'),
+  },
+  {
+    key: 'loch',
+    label: 'Loch trip',
+    text: [
+      'Personal:',
+      'Shoes suitable for water',
+      'Large towel',
+      'Swimwear',
+      '',
+      'Available to borrow:',
+      'Wetsuits',
+      'Kayaks / boats',
+      'Paddles',
+      'Spray decks',
+      'Buoyancy aids',
+    ].join('\n'),
+  },
+  {
+    key: 'sea_day',
+    label: 'Day sea trip',
+    text: [
+      'Personal kit:',
+      'Drinking water + hot drink (flask)',
+      'Lunch / snacks',
+      'Dry bag with change of clothes, towel, footwear',
+      'Dry bag for keys / phone',
+      'Waterproof jacket / cag, dry trousers or wet/dry suit',
+      'Non-slip water footwear',
+      'Hats — wind/waterproof and sun',
+      'Gloves & pogies',
+      'Sun cream',
+      'Spray deck & buoyancy aid',
+      'Whistle',
+    ].join('\n'),
+  },
+  {
+    key: 'sea_weekend',
+    label: 'Weekend sea trip',
+    text: [
+      'Kayaking kit:',
+      'Kayak (check skeg) + paddle (+ spare)',
+      'Pump',
+      'Drysuit / cag + wetsuit / dry trousers',
+      'Buoyancy aid',
+      'Spraydeck',
+      'Warm hat + cap, paddling thermals',
+      'Wetboots / kayaking shoes, pogies / gloves',
+      'Water + flask, lunch, snacks, emergency food',
+      '',
+      'Overnight kit:',
+      'Tent + poles & pegs',
+      'Sleeping bag (3/4 season) + mat',
+      'Dry bags for clothes & sleeping bag',
+      'Stove + fuel + lighter',
+      'Cutlery, pot/pan, mug, plate',
+      'Food: breakfast, dinner, snacks',
+      'Head-torch + spare batteries',
+      'Change of off-water clothes + warm jacket',
+      'Toiletries / toilet paper / hand sanitiser',
+      'Water — min 2L per night',
+      'Personal first aid + medication (tell 2 people where stored)',
+    ].join('\n'),
+  },
+];
+
+const kitText = (key: string): string => KIT_TEMPLATES.find((t) => t.key === key)?.text ?? '';
+
+// Which preset pre-fills on create for a given category (before the leader
+// picks a different one or edits the field).
 export const CATEGORY_EQUIPMENT: Record<string, string> = {
-  // Swimming-pool sessions (e.g. Bellahouston)
-  'Pool / Loch Sessions': [
-    'Personal:',
-    'Swimming attire',
-    'T-shirt (worn over swimwear)',
-    'Towel',
-    'Goggles',
-    '',
-    'Available to borrow:',
-    'Club boats',
-    'Paddles',
-    'Spray decks',
-  ].join('\n'),
-
-  // Tuesday evenings on Loch Lomond (Balmaha)
-  'Tuesday Evening - Loch Lomond': [
-    'Personal:',
-    'Shoes suitable for water',
-    'Large towel',
-    'Swimwear',
-    '',
-    'Available to borrow:',
-    'Wetsuits',
-    'Kayaks / boats',
-    'Paddles',
-    'Spray decks',
-    'Buoyancy aids',
-  ].join('\n'),
-
-  // Sea kayak day trips — personal kit each paddler brings (group safety
-  // equipment is the leader's responsibility, not listed here).
-  'Sea Kayak': [
-    'Personal kit:',
-    'Drinking water + hot drink (flask)',
-    'Lunch / snacks',
-    'Dry bag with change of clothes, towel, footwear',
-    'Dry bag for keys / phone',
-    'Waterproof jacket / cag, dry trousers or wet/dry suit',
-    'Non-slip water footwear',
-    'Hats — wind/waterproof and sun',
-    'Gloves & pogies',
-    'Sun cream',
-    'Spray deck & buoyancy aid',
-    'Whistle',
-  ].join('\n'),
+  'Pool / Loch Sessions': kitText('pool'),
+  'Tuesday Evening - Loch Lomond': kitText('loch'),
+  'Sea Kayak': kitText('sea_day'),
 };
 
 // Display a member as first name + surname initial, e.g. "John Smith" -> "John S".

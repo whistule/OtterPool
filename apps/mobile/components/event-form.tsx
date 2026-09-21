@@ -39,6 +39,7 @@ import {
   formatPreviewDate,
   gradeOptionsFor,
   groupCategories,
+  KIT_TEMPLATES,
   LEVELS,
   LoadedEvent,
   Status,
@@ -1354,9 +1355,23 @@ export default function EventForm(props: EventFormProps) {
               What to bring (optional)
             </FieldLabel>
             <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-              One item per line. Lines ending with a colon become headings. Regular events pre-fill
-              the club list — edit as needed.
+              Load a standard list, then edit as needed — or type your own. One item per line; a
+              line ending in a colon becomes a heading.
             </Text>
+            <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {KIT_TEMPLATES.map((t) => (
+                <Pressable
+                  key={t.key}
+                  onPress={() => {
+                    setWhatToBring(t.text);
+                    setWhatToBringTouched(true);
+                  }}
+                  style={[styles.chip, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.chipText, { color: palette.text }]}>{t.label}</Text>
+                </Pressable>
+              ))}
+            </Row>
             <TextInput
               value={whatToBring}
               onChangeText={(t) => {
@@ -1379,8 +1394,8 @@ export default function EventForm(props: EventFormProps) {
             />
           </Card>
 
-          {/* ---------- Co-leader ---------- */}
-          <SectionTitle>Co-leader (optional)</SectionTitle>
+          {/* ---------- Assistant leader ---------- */}
+          <SectionTitle>Assistant leader (optional)</SectionTitle>
           <Card>
             {assistantId ? (
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1399,7 +1414,7 @@ export default function EventForm(props: EventFormProps) {
                 <TextInput
                   value={assistantQuery}
                   onChangeText={setAssistantQuery}
-                  placeholder="Search members to add a co-leader"
+                  placeholder="Search members to add an assistant leader"
                   placeholderTextColor={palette.muted}
                   style={[styles.input, { color: palette.text, borderColor: palette.border }]}
                 />
@@ -1426,7 +1441,7 @@ export default function EventForm(props: EventFormProps) {
               </>
             )}
             <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-              A co-leader can edit this event but can&apos;t review sign-ups.
+              An assistant leader can edit this event but can&apos;t review sign-ups.
             </Text>
           </Card>
 
