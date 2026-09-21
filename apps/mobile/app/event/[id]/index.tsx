@@ -638,7 +638,7 @@ export default function EventDetailScreen() {
                 <View>
                   <Text style={[styles.value, { color: palette.text }]}>{assistantName}</Text>
                   <Text style={[styles.muted, { color: palette.muted }]}>
-                    Assistant
+                    Assistant leader
                     {event.assistant?.level
                       ? ` · ${LEVEL_EMOJI[event.assistant.level as ProgressionLevel] ?? ''} ${event.assistant.level}`
                       : ''}

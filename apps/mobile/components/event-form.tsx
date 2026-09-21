@@ -39,6 +39,7 @@ import {
   formatPreviewDate,
   gradeOptionsFor,
   groupCategories,
+  KIT_TEMPLATES,
   LEVELS,
   LoadedEvent,
   Status,
@@ -85,6 +86,8 @@ export default function EventForm(props: EventFormProps) {
   const [description, setDescription] = useState('');
   const [whatToBring, setWhatToBring] = useState('');
   const [whatToBringTouched, setWhatToBringTouched] = useState(false);
+  const [leaderId, setLeaderId] = useState<string | null>(session?.user.id ?? null);
+  const [leaderQuery, setLeaderQuery] = useState('');
   const [assistantId, setAssistantId] = useState<string | null>(null);
   const [members, setMembers] = useState<{ id: string; name: string; search: string }[]>([]);
   const [assistantQuery, setAssistantQuery] = useState('');
@@ -214,6 +217,7 @@ export default function EventForm(props: EventFormProps) {
         setWhatToBring(ev.what_to_bring ?? '');
         setWhatToBringTouched(true);
         setAssistantId(ev.assistant_id ?? null);
+        setLeaderId(ev.leader_id);
         setOriginalPhotoPath(ev.photo_path);
         setSeriesId(ev.series_id);
         setLoading(false);
@@ -457,6 +461,7 @@ export default function EventForm(props: EventFormProps) {
         category_id: categoryId,
         description: description.trim() || null,
         what_to_bring: whatToBring.trim() || null,
+        leader_id: leaderId ?? session?.user.id,
         assistant_id: assistantId,
         grade_advertised: grade.trim() || null,
         location: location.trim() || null,
@@ -527,7 +532,7 @@ export default function EventForm(props: EventFormProps) {
       cost: costNum,
       approval_mode: approvalMode,
       status: 'open' as const,
-      leader_id: session.user.id,
+      leader_id: leaderId ?? session.user.id,
       series_id: newSeriesId,
     };
 
@@ -866,6 +871,101 @@ export default function EventForm(props: EventFormProps) {
                 </>
               );
             })()}
+          </Card>
+
+          {/* ---------- Leaders ---------- */}
+          <SectionTitle>Leaders</SectionTitle>
+          <Card>
+            <FieldLabel palette={palette}>Leader</FieldLabel>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+              {!leaderId || leaderId === session?.user.id
+                ? 'You'
+                : (members.find((m) => m.id === leaderId)?.name ?? 'Selected member')}
+            </Text>
+            {roleFlags(profile).paddlingAdmin ? (
+              <>
+                <TextInput
+                  value={leaderQuery}
+                  onChangeText={setLeaderQuery}
+                  placeholder="Search to assign a different leader"
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.input,
+                    { color: palette.text, borderColor: palette.border, marginTop: 8 },
+                  ]}
+                />
+                {leaderQuery.trim().length >= 2
+                  ? members
+                      .filter((m) => m.id !== leaderId)
+                      .filter((m) => m.search.includes(leaderQuery.trim().toLowerCase()))
+                      .slice(0, 6)
+                      .map((m) => (
+                        <Pressable
+                          key={m.id}
+                          onPress={() => {
+                            setLeaderId(m.id);
+                            setLeaderQuery('');
+                          }}
+                          style={{ paddingVertical: 10 }}
+                        >
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                            {m.name}
+                          </Text>
+                        </Pressable>
+                      ))
+                  : null}
+              </>
+            ) : null}
+
+            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+              Assistant leader (optional)
+            </FieldLabel>
+            {assistantId ? (
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                  {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
+                </Text>
+                <Pressable
+                  onPress={() => setAssistantId(null)}
+                  style={[styles.chip, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.chipText, { color: palette.text }]}>Clear</Text>
+                </Pressable>
+              </Row>
+            ) : (
+              <>
+                <TextInput
+                  value={assistantQuery}
+                  onChangeText={setAssistantQuery}
+                  placeholder="Search members to add an assistant leader"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                />
+                {assistantQuery.trim().length >= 2
+                  ? members
+                      .filter((m) => m.id !== session?.user.id && m.id !== leaderId)
+                      .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
+                      .slice(0, 6)
+                      .map((m) => (
+                        <Pressable
+                          key={m.id}
+                          onPress={() => {
+                            setAssistantId(m.id);
+                            setAssistantQuery('');
+                          }}
+                          style={{ paddingVertical: 10 }}
+                        >
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                            {m.name}
+                          </Text>
+                        </Pressable>
+                      ))
+                  : null}
+              </>
+            )}
+            <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
+              An assistant leader can edit this event but can&apos;t review sign-ups.
+            </Text>
           </Card>
 
           {/* ---------- When ---------- */}
@@ -1354,9 +1454,23 @@ export default function EventForm(props: EventFormProps) {
               What to bring (optional)
             </FieldLabel>
             <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-              One item per line. Lines ending with a colon become headings. Regular events pre-fill
-              the club list — edit as needed.
+              Load a standard list, then edit as needed — or type your own. One item per line; a
+              line ending in a colon becomes a heading.
             </Text>
+            <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {KIT_TEMPLATES.map((t) => (
+                <Pressable
+                  key={t.key}
+                  onPress={() => {
+                    setWhatToBring(t.text);
+                    setWhatToBringTouched(true);
+                  }}
+                  style={[styles.chip, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.chipText, { color: palette.text }]}>{t.label}</Text>
+                </Pressable>
+              ))}
+            </Row>
             <TextInput
               value={whatToBring}
               onChangeText={(t) => {
@@ -1377,57 +1491,6 @@ export default function EventForm(props: EventFormProps) {
                 },
               ]}
             />
-          </Card>
-
-          {/* ---------- Co-leader ---------- */}
-          <SectionTitle>Co-leader (optional)</SectionTitle>
-          <Card>
-            {assistantId ? (
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                  {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
-                </Text>
-                <Pressable
-                  onPress={() => setAssistantId(null)}
-                  style={[styles.chip, { borderColor: palette.border }]}
-                >
-                  <Text style={[styles.chipText, { color: palette.text }]}>Clear</Text>
-                </Pressable>
-              </Row>
-            ) : (
-              <>
-                <TextInput
-                  value={assistantQuery}
-                  onChangeText={setAssistantQuery}
-                  placeholder="Search members to add a co-leader"
-                  placeholderTextColor={palette.muted}
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                />
-                {assistantQuery.trim().length >= 2
-                  ? members
-                      .filter((m) => m.id !== session?.user.id)
-                      .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
-                      .slice(0, 6)
-                      .map((m) => (
-                        <Pressable
-                          key={m.id}
-                          onPress={() => {
-                            setAssistantId(m.id);
-                            setAssistantQuery('');
-                          }}
-                          style={{ paddingVertical: 10 }}
-                        >
-                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                            {m.name}
-                          </Text>
-                        </Pressable>
-                      ))
-                  : null}
-              </>
-            )}
-            <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-              A co-leader can edit this event but can&apos;t review sign-ups.
-            </Text>
           </Card>
 
           {/* ---------- Status (edit only) ---------- */}
