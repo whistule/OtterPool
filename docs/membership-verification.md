@@ -237,7 +237,7 @@ not-yet-built; this is that piece.
 | `profiles.status` | Who | What they see on open | Event sign-up |
 |---|---|---|---|
 | `active` | Paid member | **Events (calendar) by default** — unless an *attention item* interrupts first (ICE needs updating · an event-approval update · a level-approval update); see below | Full (still subject to level / ceiling / ICE gates) |
-| `aspirant` | New unmatched signup, or prospective member | "Join DCKC" banner + **"3 trial events before you join"** note, with a **Join now** opt-in | Trial-limited: up to 3 trial events, then must join |
+| `aspirant` | New unmatched signup, or prospective member | "Join DCKC" banner + **"3 trial events before you join"** note, with a **Join now** opt-in | **Same as members** — browse + sign up gated by *paddling level* (`meetsLevel`); the only extra is a **3-event cap**, then must join |
 | `lapsed` | Membership expired | "Your membership has lapsed — renew" prompt → MemberMojo | Blocked (already 403) but with a **Renew** CTA, not a dead end |
 | `suspended` | Admin action | "Your account is suspended — contact the club" | Blocked |
 
@@ -278,18 +278,30 @@ lifecycle — so the landing is a small router that checks each source.
 
 ### Aspirant access — DECIDED
 
-Open question 5 is resolved: **trial-limited — 3 trial events, then join**, with
-a **Join now** opt-in available at any time. So aspirant sign-up is *not*
-browse-only; it allows up to 3 events, then converts to the join flow.
+Open question 5 is resolved. An aspirant does **the same as any member** —
+browses and signs up for events — with **two independent gates**:
 
-This adds one dependency — **trial-count tracking**: count an aspirant's trial
-sign-ups and block the 4th with a "join to continue" prompt. Small, but net-new:
-the `sign-up` gate gains an aspirant branch (count trials → allow / prompt-join),
-and the count must be defined (confirmed sign-ups? attended? does a cancellation
-free a slot?). Flagged in the checklist and open questions.
+1. **Paddling level** (`meetsLevel`, already built): you can only sign up for
+   events at or below your progression level. A **frog** can only join
+   frog-level events; once they've done a capsize drill and progressed to
+   **duck** (etc.), higher events open up. *This applies to everyone, member or
+   not — it's the progression system, not membership.*
+2. **Trial cap (membership-specific):** an aspirant may sign up for **up to 3
+   events**, then must **join** to continue. A **Join now** opt-in is available
+   at any time.
 
-None of this changes the *gate* — it's all about surfacing state and offering a
-path forward. Enforcement stays server-side.
+So an aspirant is *not* browse-only and *not* limited to a special event subset
+— they get the normal level-gated experience, capped at 3 events.
+
+This adds one new dependency — **trial-count tracking**: the `sign-up` gate gains
+an aspirant branch that counts their trials and, on the 4th, returns a "join to
+continue" prompt instead of confirming. It layers **on top of** the existing
+level check (level first, then the cap). The count needs defining — confirmed
+sign-ups vs attended, and whether cancelling frees a slot (open question 5).
+
+None of this changes the enforcement model — the level gate and the trial cap
+are both server-side in the `sign-up` function. The UX just surfaces state and a
+path forward.
 
 ---
 
