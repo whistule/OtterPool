@@ -1306,8 +1306,8 @@ export default function EventForm(props: EventFormProps) {
               What to bring (optional)
             </FieldLabel>
             <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-              One item per line. A line ending in ":" becomes a heading. Regular
-              events pre-fill the club's list — edit as needed.
+              One item per line. Lines ending with a colon become headings.
+              Regular events pre-fill the club list — edit as needed.
             </Text>
             <TextInput
               value={whatToBring}
