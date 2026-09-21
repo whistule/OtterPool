@@ -43,10 +43,17 @@ type EventRow = {
   status: string;
   approval_mode: string;
   leader_id: string;
+  assistant_id: string | null;
   photo_path: string | null;
   series_id: string | null;
   category?: { name: string } | null;
   leader?: {
+    display_name: string | null;
+    full_name: string | null;
+    level: string;
+    avatar_path: string | null;
+  } | null;
+  assistant?: {
     display_name: string | null;
     full_name: string | null;
     level: string;
@@ -214,7 +221,7 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, what_to_bring, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path)',
+          'id, title, description, what_to_bring, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, assistant_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path), assistant:profiles!events_assistant_id_fkey(display_name, full_name, level, avatar_path)',
         )
         .eq('id', id)
         .maybeSingle(),
@@ -412,11 +419,15 @@ export default function EventDetailScreen() {
   }
 
   const leaderName = event.leader?.display_name ?? event.leader?.full_name ?? '—';
+  const assistantName = event.assistant?.display_name ?? event.assistant?.full_name ?? '—';
   const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
   const isPaid = Number(event.cost) > 0;
   const isLeader = !!session && session.user.id === event.leader_id;
+  const isAssistant = !!session && session.user.id === event.assistant_id;
   // Paddling (and super) admins can manage any event, not just their own.
-  const canManage = isLeader || roleFlags(profile).paddlingAdmin;
+  // The assistant can edit the event, but NOT review sign-ups.
+  const canEdit = isLeader || isAssistant || roleFlags(profile).paddlingAdmin;
+  const canReview = isLeader || roleFlags(profile).paddlingAdmin;
 
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
@@ -453,7 +464,7 @@ export default function EventDetailScreen() {
       : `Pay £${Number(event.cost).toFixed(0)}`;
   }
 
-  const showFooterCta = !isLeader && (!signup || isPending);
+  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
@@ -465,29 +476,33 @@ export default function EventDetailScreen() {
           onBack={() => router.back()}
           backTestID="event-back"
           right={
-            canManage ? (
+            canEdit || canReview ? (
               <Row style={{ gap: 6 }}>
-                <Pressable
-                  testID="event-review-cta"
-                  onPress={() => router.push(`/event/${id}/review`)}
-                  style={[
-                    styles.headerAction,
-                    pendingReviewCount > 0 ? { backgroundColor: OtterPalette.burntOrange } : null,
-                  ]}
-                >
-                  <Text style={styles.headerActionText}>
-                    {pendingReviewCount > 0
-                      ? `Review sign-ups · ${pendingReviewCount}`
-                      : 'Review sign-ups'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  testID="event-edit-cta"
-                  onPress={() => router.push(`/event/${id}/edit`)}
-                  style={styles.headerAction}
-                >
-                  <Text style={styles.headerActionText}>Edit</Text>
-                </Pressable>
+                {canReview ? (
+                  <Pressable
+                    testID="event-review-cta"
+                    onPress={() => router.push(`/event/${id}/review`)}
+                    style={[
+                      styles.headerAction,
+                      pendingReviewCount > 0 ? { backgroundColor: OtterPalette.burntOrange } : null,
+                    ]}
+                  >
+                    <Text style={styles.headerActionText}>
+                      {pendingReviewCount > 0
+                        ? `Review sign-ups · ${pendingReviewCount}`
+                        : 'Review sign-ups'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {canEdit ? (
+                  <Pressable
+                    testID="event-edit-cta"
+                    onPress={() => router.push(`/event/${id}/edit`)}
+                    style={styles.headerAction}
+                  >
+                    <Text style={styles.headerActionText}>Edit</Text>
+                  </Pressable>
+                ) : null}
               </Row>
             ) : null
           }
@@ -628,8 +643,8 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
-        {/* ---------- Leader ---------- */}
-        <SectionTitle>Leader</SectionTitle>
+        {/* ---------- Leader(s) ---------- */}
+        <SectionTitle>{event.assistant_id ? 'Leaders' : 'Leader'}</SectionTitle>
         <Pressable onPress={() => router.push(`/profile/${event.leader_id}`)}>
           <Card>
             <Row style={{ gap: 12 }}>
@@ -653,6 +668,32 @@ export default function EventDetailScreen() {
             </Row>
           </Card>
         </Pressable>
+        {event.assistant_id ? (
+          <Pressable onPress={() => router.push(`/profile/${event.assistant_id}`)}>
+            <Card>
+              <Row style={{ gap: 12 }}>
+                <Avatar
+                  path={event.assistant?.avatar_path ?? null}
+                  size={44}
+                  fallback={
+                    event.assistant?.level
+                      ? LEVEL_EMOJI[event.assistant.level as ProgressionLevel]
+                      : undefined
+                  }
+                />
+                <View>
+                  <Text style={[styles.value, { color: palette.text }]}>{assistantName}</Text>
+                  <Text style={[styles.muted, { color: palette.muted }]}>
+                    Assistant
+                    {event.assistant?.level
+                      ? ` · ${LEVEL_EMOJI[event.assistant.level as ProgressionLevel] ?? ''} ${event.assistant.level}`
+                      : ''}
+                  </Text>
+                </View>
+              </Row>
+            </Card>
+          </Pressable>
+        ) : null}
 
         {/* ---------- Going ---------- */}
         <SectionTitle>

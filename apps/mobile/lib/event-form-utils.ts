@@ -42,6 +42,7 @@ export type LoadedEvent = {
   approval_mode: 'auto' | 'manual_all';
   status: 'draft' | Status;
   leader_id: string;
+  assistant_id: string | null;
   photo_path: string | null;
   series_id: string | null;
 };
