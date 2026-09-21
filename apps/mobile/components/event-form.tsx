@@ -142,11 +142,16 @@ export default function EventForm(props: EventFormProps) {
       }
 
       if (!m.error) {
+        // Leaders (selkie) and admins see full names; everyone else sees the
+        // privacy-abbreviated form ("John S").
+        const canSeeFull = profile?.level === 'selkie' || roleFlags(profile).anyAdmin;
         setMembers(
           ((m.data ?? []) as { id: string; display_name: string | null; full_name: string | null }[]).map(
             (p) => ({
               id: p.id,
-              name: abbreviateName(p.full_name, p.display_name),
+              name: canSeeFull
+                ? (p.full_name ?? p.display_name ?? 'Member')
+                : abbreviateName(p.full_name, p.display_name),
               search: `${p.full_name ?? ''} ${p.display_name ?? ''}`.toLowerCase(),
             }),
           ),
