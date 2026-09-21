@@ -46,7 +46,7 @@ step, and a reconcile job.
 -- Verified paid members mirrored from MemberMojo.
 create table public.verified_members (
   email_norm    text primary key,     -- lower(trim(email)); see §7 for hashed variant
-  membership_year int,                 -- or expiry date, whichever the export gives
+  membership_year int,                 -- optional; cycle year, auto-stamped at import (paste has no dates)
   imported_at   timestamptz not null default now()
 );
 ```
@@ -77,7 +77,7 @@ migration (`20260622000000_event_photo_trgm.sql`).
 -- ---------- the mirrored list ----------
 create table if not exists public.verified_members (
   email_norm      text primary key,     -- lower(trim(email))
-  membership_year int,                   -- or an expiry date, per the export
+  membership_year int,                   -- optional; cycle year, auto-stamped at import
   imported_at     timestamptz not null default now()
 );
 
@@ -107,14 +107,21 @@ local `db reset` to rebuild). The e2e workflow reseeds fixtures afterwards.
 
 ## 4. Import flow
 
-1. Membership secretary exports verified-member emails from MemberMojo (CSV).
-2. An **admin-only import** (edge function or script — the repo already has
-   seed/admin tooling under `supabase/`) loads the CSV:
-   - normalise each email (`lower(trim)`),
-   - **replace** the table contents (truncate + insert, in a transaction) so the
-     table always reflects the latest export,
-   - record the import (who, when, row count) for traceability.
+1. In MemberMojo, the membership admin copies the **email column** of the
+   current-members table.
+2. In an **admin-only import screen** in the app, they **paste the list** into a
+   textarea and hit Import. The handler:
+   - splits on newlines / commas / whitespace, **normalises** each
+     (`lower(trim)`), drops blanks, and **dedupes**,
+   - **replaces** the table contents (truncate + insert, in a transaction) so it
+     always reflects the latest paste,
+   - records the import (who, when, count) and shows a summary
+     (e.g. "312 emails imported, 4 duplicates ignored").
 3. Immediately run the **reconcile** (§6) so statuses reflect the new list.
+
+No file/CSV parsing, no column mapping — just a pasted list of emails. There's
+no per-member expiry data, so reconcile is **presence-based**: on the list =
+member, off the list = not.
 
 ### 4a. Keeping imports timely — admin reminders
 
@@ -349,7 +356,8 @@ path forward.
 **Backend / data**
 - [ ] `verified_members` table + RLS (service-role only)
 - [ ] `profiles.membership_source` column (`list` / `manual`) + rollout backfill
-- [ ] Admin CSV import (normalise, replace-in-transaction, record import)
+- [ ] Admin paste-list import screen (split/normalise/dedupe, replace-in-
+      transaction, record import, show summary)
 - [ ] Import-due reminders (§4a): renewal-date config, daily job, self-clearing
       via `imported_at`, push + admin attention item to membership admins
 - [ ] Match-on-account-creation → set `active` / leave `aspirant`
@@ -385,9 +393,9 @@ exists; the new work is the table, import, and reconcile.
 1. ~~Import cadence?~~ **DECIDED: 3 reminders/year — renewal +2wk, +4wk, +6mo,
    i.e. ~15 Oct / ~29 Oct / ~1 Apr (§4a).** Renewal date = **1 October**; just
    confirm the exact day.
-2. Does the export carry an **expiry date** per member, or just "verified this
-   year"? (Affects whether reconcile can be date-driven rather than
-   presence-driven, and whether "expiring soon" prompts are possible.)
+2. ~~Expiry date in the export?~~ **RESOLVED: no — the admin pastes just the
+   email column, so reconcile is presence-based (§4).** (Trade-off: no
+   "expiring soon" prompts, since there are no per-member dates.)
 3. Plaintext (v1) or hashed (v1.1) email storage?
 4. ~~Should `suspended` be set from this flow?~~ **DECIDED: `suspended` is set
    and cleared only from the app admin screen; import/reconcile never changes it
