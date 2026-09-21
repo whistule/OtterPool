@@ -338,11 +338,14 @@ existing level check (level first, then the cap).
 
 **Count rule (decided):** the tally is **sign-ups, not attendance**, and a
 **cancellation still counts** (no freed slot) — an aspirant gets **3 sign-ups
-total** and can't game it by signing up and cancelling. Implementation: count
-the member's `event_signups` rows created while aspirant, **including withdrawn
-ones**. This relies on a cancellation leaving the row as `withdrawn` rather than
-hard-deleting it — if cancel hard-deletes, use a dedicated increment-only trial
-counter instead. One edge to confirm: does a **leader-declined** sign-up also
+total** and can't game it by signing up and cancelling.
+
+**Implementation (verified):** `cancel-signup` flips a row to `withdrawn` — it
+does *not* delete it — and there's one `event_signups` row per (member, event)
+(a withdrawn row even blocks re-signing to the same event). So the count is just
+`count(event_signups where member_id = X)` **including withdrawn rows** — **no
+separate counter needed**. The cap is only checked for aspirants, so post-join
+sign-ups don't matter. One edge to confirm: does a **leader-declined** sign-up
 count? (Probably not — they never got the session.)
 
 None of this changes the enforcement model — the level gate and the trial cap
