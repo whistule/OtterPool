@@ -122,11 +122,13 @@ Rather than rely on the membership admin remembering, the app reminds them when
 a fresh export is due. **Three reminders per year**, timed to the membership
 **renewal date** (when membership actually turns over):
 
-| When | Why |
-|---|---|
-| Renewal date **+ 2 weeks** | Catch the first wave of renewals (and non-renewals → lapses) |
-| Renewal date **+ 4 weeks** | Catch stragglers who renewed late |
-| Renewal date **+ 6 months** | Catch mid-year drift (new joins, off-cycle lapses) |
+The club's membership year starts **1 October** (to confirm the exact day), so:
+
+| When | Date | Why |
+|---|---|---|
+| Renewal **+ 2 weeks** | ~**15 Oct** | Catch the first wave of renewals (and non-renewals → lapses) |
+| Renewal **+ 4 weeks** | ~**29 Oct** | Catch stragglers who renewed late |
+| Renewal **+ 6 months** | ~**1 Apr** | Catch mid-year drift (new joins, off-cycle lapses) |
 
 Delivered to **membership admins** as a push notification + an admin-screen
 attention item: *"Membership export due — pull a fresh list from MemberMojo and
@@ -141,9 +143,9 @@ function) checks whether today is on/after a reminder date with no import since,
 and if so notifies membership admins via the existing push infra
 (`user_push_tokens` / `sendPush`).
 
-**Config needed:** the club's **renewal date** — a single annual date the three
-reminders are computed from (needs confirming, e.g. "1 April"). Stored as a
-config value.
+**Config needed:** the club's **renewal date** — **1 October** (confirm the exact
+day). Stored as a config value the three reminders are computed from, so it can
+be changed without a code change.
 
 **Accepted trade-off:** between the +4-week and +6-month reminders, and after
 the +6-month one, the list can be up to ~6 months stale for an *off-cycle*
@@ -380,8 +382,9 @@ exists; the new work is the table, import, and reconcile.
 
 ## 12. Open questions for the club
 
-1. ~~Import cadence?~~ **DECIDED: 3 reminders/year — renewal +2wk, +4wk, +6mo
-   (§4a).** Remaining: confirm the club's **renewal date** to compute them from.
+1. ~~Import cadence?~~ **DECIDED: 3 reminders/year — renewal +2wk, +4wk, +6mo,
+   i.e. ~15 Oct / ~29 Oct / ~1 Apr (§4a).** Renewal date = **1 October**; just
+   confirm the exact day.
 2. Does the export carry an **expiry date** per member, or just "verified this
    year"? (Affects whether reconcile can be date-driven rather than
    presence-driven, and whether "expiring soon" prompts are possible.)
