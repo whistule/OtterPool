@@ -28,7 +28,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
 import {
+  abbreviateName,
   CATEGORY_DEFAULTS,
+  CATEGORY_EQUIPMENT,
   CATEGORY_TITLE_HINTS,
   Category,
   defaultStartIso,
@@ -81,6 +83,11 @@ export default function EventForm(props: EventFormProps) {
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
   const [status, setStatus] = useState<Status>('open');
   const [description, setDescription] = useState('');
+  const [whatToBring, setWhatToBring] = useState('');
+  const [whatToBringTouched, setWhatToBringTouched] = useState(false);
+  const [assistantId, setAssistantId] = useState<string | null>(null);
+  const [members, setMembers] = useState<{ id: string; name: string; search: string }[]>([]);
+  const [assistantQuery, setAssistantQuery] = useState('');
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
   const [originalPhotoPath, setOriginalPhotoPath] = useState<string | null>(null);
@@ -110,18 +117,23 @@ export default function EventForm(props: EventFormProps) {
         .select('id, name, default_min_level, default_cost')
         .order('id');
 
+      const memRes = supabase
+        .from('profiles')
+        .select('id, display_name, full_name')
+        .order('full_name');
+
       const evRes =
         isEdit && eventId
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, photo_path, series_id',
+                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, assistant_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null });
 
-      const [c, e] = await Promise.all([catRes, evRes]);
+      const [c, e, m] = await Promise.all([catRes, evRes, memRes]);
       if (cancelled) {
         return;
       }
@@ -132,6 +144,27 @@ export default function EventForm(props: EventFormProps) {
         setCategories((c.data ?? []) as Category[]);
       }
 
+      if (!m.error) {
+        // Leaders (selkie) and admins see full names; everyone else sees the
+        // privacy-abbreviated form ("John S").
+        const canSeeFull = profile?.level === 'selkie' || roleFlags(profile).anyAdmin;
+        setMembers(
+          (
+            (m.data ?? []) as {
+              id: string;
+              display_name: string | null;
+              full_name: string | null;
+            }[]
+          ).map((p) => ({
+            id: p.id,
+            name: canSeeFull
+              ? (p.full_name ?? p.display_name ?? 'Member')
+              : abbreviateName(p.full_name, p.display_name),
+            search: `${p.full_name ?? ''} ${p.display_name ?? ''}`.toLowerCase(),
+          })),
+        );
+      }
+
       if (isEdit) {
         if (e.error || !e.data) {
           setError(e.error?.message ?? 'Event not found');
@@ -139,8 +172,12 @@ export default function EventForm(props: EventFormProps) {
           return;
         }
         const ev = e.data as LoadedEvent;
-        // Leaders edit their own events; paddling/super admins can edit any.
-        if (ev.leader_id !== session.user.id && !roleFlags(profile).paddlingAdmin) {
+        // Leaders and the assistant edit the event; paddling/super admins any.
+        if (
+          ev.leader_id !== session.user.id &&
+          ev.assistant_id !== session.user.id &&
+          !roleFlags(profile).paddlingAdmin
+        ) {
           setForbidden(true);
           setLoading(false);
           return;
@@ -174,6 +211,9 @@ export default function EventForm(props: EventFormProps) {
         setApprovalMode(ev.approval_mode);
         setStatus(ev.status === 'draft' ? 'open' : (ev.status as Status));
         setDescription(ev.description ?? '');
+        setWhatToBring(ev.what_to_bring ?? '');
+        setWhatToBringTouched(true);
+        setAssistantId(ev.assistant_id ?? null);
         setOriginalPhotoPath(ev.photo_path);
         setSeriesId(ev.series_id);
         setLoading(false);
@@ -265,6 +305,11 @@ export default function EventForm(props: EventFormProps) {
       }
       if (defaults?.location && !location.trim()) {
         setLocation(defaults.location);
+      }
+      // Pre-fill the coded-in equipment list for regular events, unless the
+      // leader has already edited the field.
+      if (!whatToBringTouched) {
+        setWhatToBring(CATEGORY_EQUIPMENT[c.name] ?? '');
       }
     }
   };
@@ -411,6 +456,8 @@ export default function EventForm(props: EventFormProps) {
         title: title.trim(),
         category_id: categoryId,
         description: description.trim() || null,
+        what_to_bring: whatToBring.trim() || null,
+        assistant_id: assistantId,
         grade_advertised: grade.trim() || null,
         location: location.trim() || null,
         meeting_point: meetingPoint.trim() || null,
@@ -467,6 +514,8 @@ export default function EventForm(props: EventFormProps) {
       title: title.trim(),
       category_id: categoryId,
       description: description.trim() || null,
+      what_to_bring: whatToBring.trim() || null,
+      assistant_id: assistantId,
       grade_advertised: grade.trim() || null,
       location: location.trim() || null,
       meeting_point: meetingPoint.trim() || null,
@@ -1300,6 +1349,85 @@ export default function EventForm(props: EventFormProps) {
                 },
               ]}
             />
+
+            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+              What to bring (optional)
+            </FieldLabel>
+            <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+              One item per line. Lines ending with a colon become headings. Regular events pre-fill
+              the club list — edit as needed.
+            </Text>
+            <TextInput
+              value={whatToBring}
+              onChangeText={(t) => {
+                setWhatToBring(t);
+                setWhatToBringTouched(true);
+              }}
+              multiline
+              numberOfLines={4}
+              placeholder={'Personal:\nBuoyancy aid\nSpray deck\nWarm layers'}
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.input,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  minHeight: 120,
+                  textAlignVertical: 'top',
+                },
+              ]}
+            />
+          </Card>
+
+          {/* ---------- Co-leader ---------- */}
+          <SectionTitle>Co-leader (optional)</SectionTitle>
+          <Card>
+            {assistantId ? (
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                  {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
+                </Text>
+                <Pressable
+                  onPress={() => setAssistantId(null)}
+                  style={[styles.chip, { borderColor: palette.border }]}
+                >
+                  <Text style={[styles.chipText, { color: palette.text }]}>Clear</Text>
+                </Pressable>
+              </Row>
+            ) : (
+              <>
+                <TextInput
+                  value={assistantQuery}
+                  onChangeText={setAssistantQuery}
+                  placeholder="Search members to add a co-leader"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                />
+                {assistantQuery.trim().length >= 2
+                  ? members
+                      .filter((m) => m.id !== session?.user.id)
+                      .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
+                      .slice(0, 6)
+                      .map((m) => (
+                        <Pressable
+                          key={m.id}
+                          onPress={() => {
+                            setAssistantId(m.id);
+                            setAssistantQuery('');
+                          }}
+                          style={{ paddingVertical: 10 }}
+                        >
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                            {m.name}
+                          </Text>
+                        </Pressable>
+                      ))
+                  : null}
+              </>
+            )}
+            <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
+              A co-leader can edit this event but can&apos;t review sign-ups.
+            </Text>
           </Card>
 
           {/* ---------- Status (edit only) ---------- */}
