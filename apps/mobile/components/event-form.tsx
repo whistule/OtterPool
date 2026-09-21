@@ -149,15 +149,19 @@ export default function EventForm(props: EventFormProps) {
         // privacy-abbreviated form ("John S").
         const canSeeFull = profile?.level === 'selkie' || roleFlags(profile).anyAdmin;
         setMembers(
-          ((m.data ?? []) as { id: string; display_name: string | null; full_name: string | null }[]).map(
-            (p) => ({
-              id: p.id,
-              name: canSeeFull
-                ? (p.full_name ?? p.display_name ?? 'Member')
-                : abbreviateName(p.full_name, p.display_name),
-              search: `${p.full_name ?? ''} ${p.display_name ?? ''}`.toLowerCase(),
-            }),
-          ),
+          (
+            (m.data ?? []) as {
+              id: string;
+              display_name: string | null;
+              full_name: string | null;
+            }[]
+          ).map((p) => ({
+            id: p.id,
+            name: canSeeFull
+              ? (p.full_name ?? p.display_name ?? 'Member')
+              : abbreviateName(p.full_name, p.display_name),
+            search: `${p.full_name ?? ''} ${p.display_name ?? ''}`.toLowerCase(),
+          })),
         );
       }
 
@@ -1350,8 +1354,8 @@ export default function EventForm(props: EventFormProps) {
               What to bring (optional)
             </FieldLabel>
             <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-              One item per line. Lines ending with a colon become headings.
-              Regular events pre-fill the club list — edit as needed.
+              One item per line. Lines ending with a colon become headings. Regular events pre-fill
+              the club list — edit as needed.
             </Text>
             <TextInput
               value={whatToBring}

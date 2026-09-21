@@ -142,10 +142,7 @@ export const CATEGORY_EQUIPMENT: Record<string, string> = {
 
 // Display a member as first name + surname initial, e.g. "John Smith" -> "John S".
 // Prefers full_name (has first/last); falls back to display_name.
-export function abbreviateName(
-  fullName: string | null,
-  displayName: string | null,
-): string {
+export function abbreviateName(fullName: string | null, displayName: string | null): string {
   const source = (fullName ?? displayName ?? '').trim();
   if (!source) {
     return 'Member';
