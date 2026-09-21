@@ -20,11 +20,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { DateTimeField } from '@/components/event-form/date-time-field';
 import { FieldError, FieldLabel } from '@/components/event-form/field-label';
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { EventPhoto } from '@/components/photo';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { writeFailure } from '@/lib/errors';
 import {
   abbreviateName,
   CATEGORY_DEFAULTS,
@@ -46,6 +48,7 @@ import {
 import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatMoney } from '@/lib/money';
 
 export type EventFormMode = 'create' | 'edit';
 
@@ -328,6 +331,20 @@ export default function EventForm(props: EventFormProps) {
     setRemovePhotoFlag(false);
   };
 
+  // New series give every occurrence its own storage object, but series
+  // created before that fix share one path across all of them — and an admin
+  // can point two events at the same file by hand. Bin the object only once no
+  // event row still renders it, so one deletion can't blank out its siblings.
+  const removeEventPhotoIfUnused = async (path: string) => {
+    const { count } = await supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('photo_path', path);
+    if (!count) {
+      await removePhoto('event-photos', path);
+    }
+  };
+
   const submit = async () => {
     if (!session) {
       return;
@@ -459,24 +476,29 @@ export default function EventForm(props: EventFormProps) {
 
       const applyAll = applyToSeries && !!seriesId;
       // This occurrence's own date/status always update just this row.
-      const { error: occErr } = await supabase
+      const { data: occRows, error: occErr } = await supabase
         .from('events')
         .update(applyAll ? perOccurrence : { ...shared, ...perOccurrence })
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .select('id');
       // When applying to the whole series, push the shared fields to every
       // occurrence sharing this series_id.
-      const { error: seriesErr } = applyAll
-        ? await supabase.from('events').update(shared).eq('series_id', seriesId)
-        : { error: null };
+      const { data: seriesRows, error: seriesErr } = applyAll
+        ? await supabase.from('events').update(shared).eq('series_id', seriesId).select('id')
+        : { data: null, error: null };
       setBusy(false);
 
-      const updateError = occErr ?? seriesErr;
+      // An update RLS filtered away returns neither an error nor rows, so
+      // without the row check this navigated to the event as if it had saved.
+      // Only judge the series write when there actually was one.
+      const updateError =
+        writeFailure(occErr, occRows) ?? (applyAll ? writeFailure(seriesErr, seriesRows) : null);
       if (updateError) {
-        setError(updateError.message);
+        setError(updateError);
         return;
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
-        await removePhoto('event-photos', originalPhotoPath);
+        await removeEventPhotoIfUnused(originalPhotoPath);
       }
       router.replace(`/event/${eventId}`);
       return;
@@ -532,17 +554,30 @@ export default function EventForm(props: EventFormProps) {
     const firstId = data?.[0]?.id;
     if (firstId) {
       const ids = (data ?? []).map((r) => r.id);
+      let basePath: string | null = null;
       if (photoAsset) {
         const result = await uploadPhoto('event-photos', firstId, photoAsset);
         if ('error' in result) {
           setError(`Event created, but photo upload failed: ${result.error}`);
         } else {
-          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+          basePath = result.path;
         }
       } else if (selectedSuggestion) {
         const result = await copyPhoto('event-photos', selectedSuggestion, firstId);
         if (!('error' in result)) {
-          await supabase.from('events').update({ photo_path: result.path }).in('id', ids);
+          basePath = result.path;
+        }
+      }
+      if (basePath) {
+        await supabase.from('events').update({ photo_path: basePath }).eq('id', firstId);
+        // Give every occurrence its own storage object rather than pointing
+        // them all at the first one's — otherwise deleting or re-photographing
+        // occurrence 1 removes the file the rest of the series still renders.
+        for (const otherId of ids.slice(1)) {
+          const copy = await copyPhoto('event-photos', basePath, otherId);
+          if (!('error' in copy)) {
+            await supabase.from('events').update({ photo_path: copy.path }).eq('id', otherId);
+          }
         }
       }
     }
@@ -577,15 +612,23 @@ export default function EventForm(props: EventFormProps) {
     await supabase.functions
       .invoke('notify-event-cancelled', { body: { event_id: eventId } })
       .catch((e) => console.warn('[notify-event-cancelled] failed', e));
-    const { error: deleteError } = await supabase.from('events').delete().eq('id', eventId);
+    // Rows back, not just "no error": a delete RLS filtered away is silent, and
+    // this path then bins the photo and navigates home as if the event were
+    // gone — leaving it live on the calendar with no picture.
+    const { data: deleted, error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId)
+      .select('id');
     setBusy(false);
-    if (deleteError) {
+    const deleteFailure = writeFailure(deleteError, deleted);
+    if (deleteFailure) {
       setConfirmDelete(false);
-      setError(deleteError.message);
+      setError(deleteFailure);
       return;
     }
     if (originalPhotoPath) {
-      await removePhoto('event-photos', originalPhotoPath);
+      await removeEventPhotoIfUnused(originalPhotoPath);
     }
     router.replace('/');
   };
@@ -666,6 +709,7 @@ export default function EventForm(props: EventFormProps) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <PageTitle title={screenTitle} />
         <Header onBack={() => router.back()} title={screenTitle} />
         <ScrollView
           style={{ flex: 1 }}
@@ -774,8 +818,8 @@ export default function EventForm(props: EventFormProps) {
             ))}
             {selectedCategory ? (
               <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
-                Default min level: {selectedCategory.default_min_level} · default cost: £
-                {Number(selectedCategory.default_cost).toFixed(0)}
+                Default min level: {selectedCategory.default_min_level} · default cost:{' '}
+                {formatMoney(selectedCategory.default_cost)}
               </Text>
             ) : null}
             <FieldError text={fieldErrors.category} />

@@ -28,7 +28,7 @@ async function ensureAndroidChannel() {
   });
 }
 
-export async function registerForPushNotifications(userId: string): Promise<void> {
+export async function registerForPushNotifications(): Promise<void> {
   // Expo Go on SDK 53+ can't receive remote push. Bail rather than upserting a
   // token that will never be reachable — local notifications still work.
   if (Constants.appOwnership === 'expo') {
@@ -37,6 +37,13 @@ export async function registerForPushNotifications(userId: string): Promise<void
   }
   if (!Device.isDevice) {
     console.warn('[push] skipping registration: not a physical device');
+    return;
+  }
+  // Web push needs a VAPID keypair in app.json, which we don't have — without
+  // one getExpoPushTokenAsync throws rather than returning null. Members on the
+  // web build simply don't get push; everything else on the page works.
+  if (Platform.OS === 'web') {
+    console.warn('[push] skipping registration: web push is not configured');
     return;
   }
 
@@ -64,14 +71,16 @@ export async function registerForPushNotifications(userId: string): Promise<void
 
   const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 
-  const { error } = await supabase
-    .from('user_push_tokens')
-    .upsert(
-      { expo_push_token: token, user_id: userId, platform },
-      { onConflict: 'expo_push_token' },
-    );
+  // Via an RPC rather than a direct upsert. When a second account signs in on
+  // a device the token row still belongs to the previous user, and `on conflict
+  // do update` has to read that row — which RLS refuses, because the SELECT
+  // policy is scoped to your own rows. See 20260829010000_claim_push_token.sql.
+  const { error } = await supabase.rpc('claim_push_token', {
+    p_token: token,
+    p_platform: platform,
+  });
   if (error) {
-    console.warn('[push] upsert failed:', error.message);
+    console.warn('[push] claim failed:', error.message);
   }
 }
 
@@ -96,7 +105,7 @@ export function routeForNotification(data: Record<string, unknown> | undefined):
 
 export type DiagStep = { step: string; ok: boolean; detail: string };
 
-export async function diagnosePushRegistration(userId: string): Promise<DiagStep[]> {
+export async function diagnosePushRegistration(): Promise<DiagStep[]> {
   const steps: DiagStep[] = [];
   const push = (s: DiagStep) => {
     steps.push(s);
@@ -134,6 +143,17 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
     return steps;
   }
 
+  // Same reason as registerForPushNotifications: no VAPID key, so asking for a
+  // token on web throws. Report it as a known limitation instead of an error.
+  if (Platform.OS === 'web') {
+    push({
+      step: 'web push',
+      ok: false,
+      detail: 'not configured — needs notification.vapidPublicKey in app.json',
+    });
+    return steps;
+  }
+
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   push({
     step: 'projectId',
@@ -162,14 +182,12 @@ export async function diagnosePushRegistration(userId: string): Promise<DiagStep
   }
 
   const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
-  const { error } = await supabase
-    .from('user_push_tokens')
-    .upsert(
-      { expo_push_token: token, user_id: userId, platform },
-      { onConflict: 'expo_push_token' },
-    );
+  const { error } = await supabase.rpc('claim_push_token', {
+    p_token: token,
+    p_platform: platform,
+  });
   push({
-    step: 'upsert user_push_tokens',
+    step: 'claim_push_token',
     ok: !error,
     detail: error ? error.message : 'inserted/updated',
   });

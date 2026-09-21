@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
+import { PageTitle } from '@/components/page-title';
 import { Card, Pill, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -73,6 +74,7 @@ export default function MembersScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title="Members" />
       <Header onBack={() => router.back()} title="Members" />
       <View style={[styles.searchWrap, { borderColor: palette.border }]}>
         <TextInput

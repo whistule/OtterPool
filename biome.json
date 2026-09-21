@@ -14,7 +14,9 @@
       "!supabase/migrations",
       "!supabase/functions/_shared/deno_runtime.d.ts",
       "!supabase/test.html",
+      "!supabase/templates",
       "!supabase/seed.sql",
+      "!apps/mobile/expo-env.d.ts",
       "!**/package-lock.json"
     ]
   },

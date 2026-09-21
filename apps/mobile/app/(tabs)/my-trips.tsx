@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
@@ -10,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { formatShortDate, formatShortDateTime } from '@/lib/datetime';
+import { colorForGrade } from '@/lib/progress';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -35,26 +37,16 @@ function bucketFor(
   gradeActual: string | null,
 ): string {
   const name = categoryName ?? '';
-  if (name === 'Sea Kayak - A Trip') {
-    return 'Sea A';
-  }
-  if (name === 'Sea Kayak - B Trip') {
-    return 'Sea B';
-  }
-  if (name === 'Sea Kayak - C Trip') {
-    return 'Sea C';
+  // Graded disciplines read the grade off the event — the category names no
+  // longer carry it. Mirrors the my_trip_tally view.
+  if (name === 'Sea Kayak') {
+    return gradeActual ?? gradeAdvertised ?? 'Sea';
   }
   if (name === 'River Trip') {
     return gradeActual ?? gradeAdvertised ?? 'River';
   }
-  if (name === 'Pinkston - 1 Pump') {
-    return 'P1';
-  }
-  if (name === 'Pinkston - 2 Pumps') {
-    return 'P2';
-  }
-  if (name === 'Pinkston - 3 Pumps') {
-    return 'P3';
+  if (name === 'Pinkston') {
+    return gradeActual ?? gradeAdvertised ?? 'Pinkston';
   }
   if (name.startsWith('Tuesday Evening')) {
     return 'Tuesday';
@@ -78,31 +70,11 @@ function bucketFor(
 }
 
 function colorForBucket(bucket: string): string {
-  if (bucket === 'Sea A') {
-    return OtterPalette.seaTeal[0];
-  }
-  if (bucket === 'Sea B') {
-    return OtterPalette.seaTeal[1];
-  }
-  if (bucket === 'Sea C') {
-    return OtterPalette.seaTeal[2];
-  }
-  if (bucket === 'P1') {
-    return OtterPalette.pinkstonOrange[0];
-  }
-  if (bucket === 'P2') {
-    return OtterPalette.pinkstonOrange[1];
-  }
-  if (bucket === 'P3') {
-    return OtterPalette.pinkstonOrange[2];
-  }
-  if (bucket.startsWith('G')) {
-    return OtterPalette.riverGreen[1];
-  }
+  // Non-grade buckets have no ladder position; everything else is a grade.
   if (bucket === 'Skills' || bucket === 'Training') {
     return OtterPalette.slateNavy;
   }
-  return OtterPalette.lochPool;
+  return colorForGrade(bucket);
 }
 
 export default function MyTripsScreen() {
@@ -179,6 +151,7 @@ export default function MyTripsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="My Trips" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}

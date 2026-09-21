@@ -13,15 +13,21 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Avatar, EventPhoto } from '@/components/photo';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { readErrorMessage } from '@/lib/errors';
+import { formatDateTime, formatFullRange } from '@/lib/datetime';
+import { formatMoney } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 type EventRow = {
   id: string;
@@ -85,46 +91,6 @@ type SignUpResponse = {
 
 type SeriesSibling = { id: string; starts_at: string };
 
-function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function formatDateOnly(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
-function formatTimeOnly(d: Date): string {
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDateTimeFull(d: Date): string {
-  return `${d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  })} · ${formatTimeOnly(d)}`;
-}
-
-function formatRange(startIso: string, endIso: string | null): string {
-  const start = new Date(startIso);
-  if (!endIso) {
-    return formatDateTimeFull(start);
-  }
-  const end = new Date(endIso);
-  if (sameDay(start, end)) {
-    return `${formatDateOnly(start)} · ${formatTimeOnly(start)}–${formatTimeOnly(end)}`;
-  }
-  return `${formatDateTimeFull(start)} → ${formatDateTimeFull(end)}`;
-}
-
 function buildIcs(ev: EventRow): string {
   const stamp = (iso: string) =>
     new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
@@ -174,24 +140,6 @@ function openMaps(query: string) {
     return;
   }
   Linking.openURL(url).catch(() => {});
-}
-
-async function readErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : String(error);
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    try {
-      const body = await (error as { context: Response }).context.clone().json();
-      return body?.error ?? body?.message ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
 }
 
 export default function EventDetailScreen() {
@@ -339,11 +287,9 @@ export default function EventDetailScreen() {
     // Stripe Checkout requires http(s) for success_url / cancel_url, so native
     // can't pass `otterpool://...` directly. On native we route through the
     // payment-return edge function, which 302s into the app's custom scheme.
-    const supabaseUrl =
-      process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
     const returnUrl =
       Platform.OS === 'web' && typeof window !== 'undefined'
-        ? `${window.location.origin}/event/${id}`
+        ? webRouteUrl(`/event/${id}`)
         : `${supabaseUrl}/functions/v1/payment-return?event_id=${id}`;
 
     const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
@@ -358,10 +304,15 @@ export default function EventDetailScreen() {
 
     if (data?.payment?.checkout_url) {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        // Page is navigating away, so leave the button busy.
         window.location.href = data.payment.checkout_url;
-      } else {
-        await Linking.openURL(data.payment.checkout_url);
+        return;
       }
+      // Native keeps this screen mounted behind the browser. Clear busy now,
+      // or the CTA is stuck spinning when the member comes back — load() on
+      // focus doesn't touch it.
+      await Linking.openURL(data.payment.checkout_url).catch(() => {});
+      setBusy(false);
       return;
     }
 
@@ -397,9 +348,7 @@ export default function EventDetailScreen() {
         style={[styles.screen, { backgroundColor: palette.background }]}
         edges={['top']}
       >
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter fill />
       </SafeAreaView>
     );
   }
@@ -411,9 +360,7 @@ export default function EventDetailScreen() {
         edges={['top']}
       >
         <Header onBack={() => router.back()} backTestID="event-back" />
-        <Card>
-          <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>Event not found</Text>
-        </Card>
+        <ErrorCard title="Event not found" />
       </SafeAreaView>
     );
   }
@@ -432,18 +379,23 @@ export default function EventDetailScreen() {
   const isPending = signup?.status === 'pending_payment';
   const isLeaderApproved = isPending && event.approval_mode === 'manual_all';
   const isConfirmed = signup?.status === 'confirmed';
+  // A withdrawn row is the member's own cancellation — the sign-up function
+  // will reuse it, so treat it as if they had never signed up.
+  const isWithdrawn = signup?.status === 'withdrawn';
 
   const statusInfo = signup
     ? isLeaderApproved
       ? {
-          label: `✅ Approved — pay £${Number(event.cost).toFixed(0)} to confirm`,
+          label: `✅ Approved — pay ${formatMoney(event.cost)} to confirm`,
           color: OtterPalette.forest,
         }
       : SIGNUP_STATUS[signup.status as SignupStatus]
     : null;
 
   const canSignUp =
-    (!signup || isPending) && !busy && (event.status === 'open' || event.status === 'full');
+    (!signup || isPending || isWithdrawn) &&
+    !busy &&
+    (event.status === 'open' || event.status === 'full');
 
   let primaryLabel = 'Sign up';
   if (event.status === 'full') {
@@ -460,14 +412,16 @@ export default function EventDetailScreen() {
   }
   if (isPending) {
     primaryLabel = isLeaderApproved
-      ? `Pay £${Number(event.cost).toFixed(0)} to confirm`
-      : `Pay £${Number(event.cost).toFixed(0)}`;
+      ? `Pay ${formatMoney(event.cost)} to confirm`
+      : `Pay ${formatMoney(event.cost)}`;
   }
 
-  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending);
+  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      {/* The trip name is what a shared or bookmarked link should be called. */}
+      <PageTitle title={event.title} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: showFooterCta ? 24 : 32 }}
@@ -534,7 +488,7 @@ export default function EventDetailScreen() {
               textStyle={{ color: '#2a2f33' }}
             />
             <Pill
-              label={isPaid ? `£${Number(event.cost).toFixed(0)}` : 'Free'}
+              label={isPaid ? `${formatMoney(event.cost)}` : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
             />
             <Pill
@@ -568,7 +522,7 @@ export default function EventDetailScreen() {
                   </Text>
                   <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
                     {seriesInfo.next
-                      ? `Next: ${formatDateTimeFull(new Date(seriesInfo.next.starts_at))}`
+                      ? `Next: ${formatDateTime(new Date(seriesInfo.next.starts_at))}`
                       : 'This is the last occurrence in the series'}
                   </Text>
                 </View>
@@ -584,7 +538,7 @@ export default function EventDetailScreen() {
         <SectionTitle>When</SectionTitle>
         <Card>
           <Text style={[styles.value, { color: palette.text }]}>
-            {formatRange(event.starts_at, event.ends_at)}
+            {formatFullRange(event.starts_at, event.ends_at)}
           </Text>
           {isConfirmed && Platform.OS === 'web' ? (
             <Pressable
@@ -780,17 +734,17 @@ export default function EventDetailScreen() {
             <Card style={{ borderColor: statusInfo.color, borderWidth: 1.5 }}>
               <Text style={[styles.value, { color: statusInfo.color }]}>{statusInfo.label}</Text>
               <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                Signed up {formatDateTimeFull(new Date(signup.signed_up_at))}
+                Signed up {formatDateTime(new Date(signup.signed_up_at))}
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Payment received · £{Number(event.cost).toFixed(0)}
+                  Payment received · {formatMoney(event.cost)}
                 </Text>
               ) : null}
               {signup.status === 'pending_payment' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
                   {isLeaderApproved
-                    ? `The leader has approved your sign-up. Pay £${Number(event.cost).toFixed(0)} below to lock in your spot.`
+                    ? `The leader has approved your sign-up. Pay ${formatMoney(event.cost)} below to lock in your spot.`
                     : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
@@ -864,8 +818,8 @@ export default function EventDetailScreen() {
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
               {event.approval_mode === 'manual_all'
-                ? `£${Number(event.cost).toFixed(0)} taken after the leader confirms your spot.`
-                : `Card payment of £${Number(event.cost).toFixed(0)} taken on sign-up.`}
+                ? `${formatMoney(event.cost)} taken after the leader confirms your spot.`
+                : `Card payment of ${formatMoney(event.cost)} taken on sign-up.`}
             </Text>
           ) : null}
         </View>
@@ -876,7 +830,6 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerAction: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -939,7 +892,6 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, fontWeight: '600' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
-  errTitle: { fontSize: 14, fontWeight: '700' },
   linkText: {
     textDecorationLine: 'underline',
   },

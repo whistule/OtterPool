@@ -4,7 +4,8 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { sendPush } from '../_shared/push.ts';
-import { markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { isPaddlingAdmin } from '../_shared/authz.ts';
 
 type ReviewEvent = {
   id: string;
@@ -51,8 +52,10 @@ Deno.serve(async (req) => {
     if (!event) {
       return err('Event not found for sign-up', 404);
     }
-    if (event.leader_id !== user.id) {
-      return err('Only the event leader can review sign-ups', 403);
+    // Paddling admins can review any event's sign-ups, matching the review
+    // screen's gate and the "Paddling admins update signups" RLS policy.
+    if (event.leader_id !== user.id && !(await isPaddlingAdmin(admin, user.id))) {
+      return err('Only the event leader or a paddling admin can review sign-ups', 403);
     }
     if (signup.status !== 'pending_review') {
       return err(`Sign-up is not pending review (status: ${signup.status})`, 409);
@@ -173,18 +176,6 @@ async function routeToWaitlist(
 }
 
 // ---------- Shared helpers ----------
-
-async function isAtCapacity(admin: SupabaseClient, event: ReviewEvent): Promise<boolean> {
-  if (!event.max_participants) {
-    return false;
-  }
-  const { count } = await admin
-    .from('event_signups')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', event.id)
-    .eq('status', 'confirmed');
-  return (count ?? 0) >= event.max_participants;
-}
 
 async function applyReview(
   admin: SupabaseClient,

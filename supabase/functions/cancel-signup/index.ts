@@ -12,7 +12,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { promoteFromWaitlist } from '../_shared/waitlist.ts';
-import { isAdmin } from '../_shared/authz.ts';
+import { isPaddlingAdmin } from '../_shared/authz.ts';
 
 type LoadedSignup = {
   id: string;
@@ -105,5 +105,5 @@ async function canCancel(
   if (signup.leader_id === userId) {
     return true;
   }
-  return await isAdmin(admin, userId);
+  return await isPaddlingAdmin(admin, userId);
 }

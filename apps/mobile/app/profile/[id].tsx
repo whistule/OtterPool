@@ -10,6 +10,7 @@ import {
   JourneyLadder,
 } from '@/components/progress-blocks';
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { Avatar } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
@@ -18,6 +19,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { logAdminAction } from '@/lib/audit';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { writeFailure } from '@/lib/errors';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
@@ -154,16 +156,20 @@ export default function MemberProfileScreen() {
       return;
     }
     setSavingPriv(true);
-    const { error: err } = await supabase.from('member_private').upsert({
-      member_id: id,
-      phone: privForm.phone.trim() || null,
-      dob: privForm.dob.trim() || null,
-      bc_membership_no: privForm.bc_membership_no.trim() || null,
-      medical_notes: privForm.medical_notes.trim() || null,
-    });
+    const { data, error: err } = await supabase
+      .from('member_private')
+      .upsert({
+        member_id: id,
+        phone: privForm.phone.trim() || null,
+        dob: privForm.dob.trim() || null,
+        bc_membership_no: privForm.bc_membership_no.trim() || null,
+        medical_notes: privForm.medical_notes.trim() || null,
+      })
+      .select('member_id');
     setSavingPriv(false);
-    if (err) {
-      setError(err.message);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
     } else {
       setPriv(privForm);
       setPrivForm(null);
@@ -187,10 +193,15 @@ export default function MemberProfileScreen() {
     }
     setSavingLevel(true);
     const prev = profile?.level ?? null;
-    const { error: err } = await supabase.from('profiles').update({ level: next }).eq('id', id);
+    const { data, error: err } = await supabase
+      .from('profiles')
+      .update({ level: next })
+      .eq('id', id)
+      .select('id');
     setSavingLevel(false);
-    if (err) {
-      setError(err.message);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
     } else {
       setProfile((p) => (p ? { ...p, level: next } : p));
       if (session) {
@@ -212,10 +223,15 @@ export default function MemberProfileScreen() {
       return;
     }
     setSavingStatus(true);
-    const { error: err } = await supabase.from('profiles').update({ status: next }).eq('id', id);
+    const { data, error: err } = await supabase
+      .from('profiles')
+      .update({ status: next })
+      .eq('id', id)
+      .select('id');
     setSavingStatus(false);
-    if (err) {
-      setError(err.message);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
     } else {
       setProfile((p) => (p ? { ...p, status: next } : p));
     }
@@ -227,16 +243,20 @@ export default function MemberProfileScreen() {
       return;
     }
     setSavingTrack(track);
+    const prev = ceilings.find((c) => c.track === track)?.ceiling ?? null;
     if (ceiling == null) {
-      const { error: err } = await supabase
+      const { data, error: err } = await supabase
         .from('member_approvals')
         .delete()
         .eq('member_id', id)
-        .eq('track', track);
-      if (err) {
-        setError(err.message);
+        .eq('track', track)
+        .select('track');
+      // Clearing an already-unset ceiling deletes nothing and that's correct,
+      // so only demand a row back when there was one to remove.
+      const failure = prev ? writeFailure(err, data) : (err?.message ?? null);
+      if (failure) {
+        setError(failure);
       } else {
-        const prev = ceilings.find((c) => c.track === track)?.ceiling ?? null;
         setCeilings((cs) => cs.filter((c) => c.track !== track));
         logAdminAction({
           actorId: session.user.id,
@@ -248,17 +268,20 @@ export default function MemberProfileScreen() {
         });
       }
     } else {
-      const { error: err } = await supabase.from('member_approvals').upsert({
-        member_id: id,
-        track,
-        ceiling,
-        set_by: session.user.id,
-        set_at: new Date().toISOString(),
-      });
-      if (err) {
-        setError(err.message);
+      const { data, error: err } = await supabase
+        .from('member_approvals')
+        .upsert({
+          member_id: id,
+          track,
+          ceiling,
+          set_by: session.user.id,
+          set_at: new Date().toISOString(),
+        })
+        .select('track');
+      const failure = writeFailure(err, data);
+      if (failure) {
+        setError(failure);
       } else {
-        const prev = ceilings.find((c) => c.track === track)?.ceiling ?? null;
         setCeilings((cs) => {
           const others = cs.filter((c) => c.track !== track);
           return [...others, { track, ceiling }];
@@ -288,14 +311,16 @@ export default function MemberProfileScreen() {
     }
     const next = !profile?.[column];
     setSavingRole(column);
-    const { error: err } = await supabase
+    const { data, error: err } = await supabase
       .from('profiles')
       .update({ [column]: next })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
     setSavingRole(null);
     setConfirmSuper(false);
-    if (err) {
-      setError(err.message);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
     } else {
       setProfile((p) => (p ? { ...p, [column]: next } : p));
     }
@@ -341,6 +366,7 @@ export default function MemberProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title={name} />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Header onBack={() => router.back()} />
 
@@ -361,6 +387,7 @@ export default function MemberProfileScreen() {
               ) : null}
               <Row style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 <Pill
+                  testID="profile-level-pill"
                   label={`${levelEmoji} ${LEVEL_LABEL[profile.level]}`}
                   color={OtterPalette.slateNavy}
                 />

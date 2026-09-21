@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
+import { webRouteUrl } from '@/lib/urls';
 
 export default function ForgotPasswordScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -34,9 +36,7 @@ export default function ForgotPasswordScreen() {
     setError(null);
 
     const redirectTo =
-      Platform.OS === 'web'
-        ? `${window.location.origin}/reset-password`
-        : Linking.createURL('/reset-password');
+      Platform.OS === 'web' ? webRouteUrl('/reset-password') : Linking.createURL('/reset-password');
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed, {
       redirectTo,
@@ -54,6 +54,7 @@ export default function ForgotPasswordScreen() {
       style={[styles.screen, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
+      <PageTitle title="Forgot password" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

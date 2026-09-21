@@ -15,12 +15,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ManageMembersCard } from '@/components/admin-card';
+import { PageTitle } from '@/components/page-title';
 import { Avatar } from '@/components/photo';
+import { ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { writeFailure } from '@/lib/errors';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
@@ -161,12 +165,15 @@ export default function ProfileScreen() {
       setUploadingAvatar(false);
       return;
     }
-    const { error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await supabase
       .from('profiles')
       .update({ avatar_path: result.path })
-      .eq('id', session.user.id);
-    if (updateErr) {
-      setError(updateErr.message);
+      .eq('id', session.user.id)
+      .select('id');
+    const updateFailure = writeFailure(updateErr, updated);
+    if (updateFailure) {
+      setError(updateFailure);
+      // The row still points at the old avatar, so bin the orphan we uploaded.
       await removePhoto('avatars', result.path);
       setUploadingAvatar(false);
       return;
@@ -204,24 +211,28 @@ export default function ProfileScreen() {
     setError(null);
     setSavingProfile(true);
     // Public fields on profiles; sensitive fields on member_private.
-    const { error: profErr } = await supabase
+    const { data: profRows, error: profErr } = await supabase
       .from('profiles')
       .update({
         full_name: form.full_name.trim() || null,
         display_name: form.display_name.trim() || null,
       })
-      .eq('id', session.user.id);
-    const { error: privErr } = await supabase.from('member_private').upsert({
-      member_id: session.user.id,
-      phone: form.phone.trim() || null,
-      dob: form.dob.trim() || null,
-      bc_membership_no: form.bc_membership_no.trim() || null,
-      medical_notes: form.medical_notes.trim() || null,
-    });
+      .eq('id', session.user.id)
+      .select('id');
+    const { data: privRows, error: privErr } = await supabase
+      .from('member_private')
+      .upsert({
+        member_id: session.user.id,
+        phone: form.phone.trim() || null,
+        dob: form.dob.trim() || null,
+        bc_membership_no: form.bc_membership_no.trim() || null,
+        medical_notes: form.medical_notes.trim() || null,
+      })
+      .select('member_id');
     setSavingProfile(false);
-    const err = profErr ?? privErr;
-    if (err) {
-      setError(err.message);
+    const failure = writeFailure(profErr, profRows) ?? writeFailure(privErr, privRows);
+    if (failure) {
+      setError(failure);
       return;
     }
     await refreshProfile();
@@ -241,6 +252,8 @@ export default function ProfileScreen() {
     const editingId = typeof contactMode === 'object' ? contactMode.id : null;
     if (contactDraft.is_primary) {
       // Demote any existing primary so the unique partial index doesn't fire.
+      // Matching nothing is the normal case when there isn't one yet, so this
+      // one genuinely can't be checked for rows affected.
       let demote = supabase
         .from('emergency_contacts')
         .update({ is_primary: false })
@@ -260,13 +273,15 @@ export default function ProfileScreen() {
       is_primary: contactDraft.is_primary,
     };
     const res = editingId
-      ? await supabase.from('emergency_contacts').update(payload).eq('id', editingId)
+      ? await supabase.from('emergency_contacts').update(payload).eq('id', editingId).select('id')
       : await supabase
           .from('emergency_contacts')
-          .insert({ ...payload, member_id: session.user.id });
+          .insert({ ...payload, member_id: session.user.id })
+          .select('id');
     setSavingContact(false);
-    if (res.error) {
-      setError(res.error.message);
+    const failure = writeFailure(res.error, res.data);
+    if (failure) {
+      setError(failure);
       return;
     }
     setContactDraft(emptyContactDraft);
@@ -276,9 +291,14 @@ export default function ProfileScreen() {
 
   const deleteContact = (c: EmergencyContact) => {
     const doDelete = async () => {
-      const { error: err } = await supabase.from('emergency_contacts').delete().eq('id', c.id);
-      if (err) {
-        setError(err.message);
+      const { data, error: err } = await supabase
+        .from('emergency_contacts')
+        .delete()
+        .eq('id', c.id)
+        .select('id');
+      const failure = writeFailure(err, data);
+      if (failure) {
+        setError(failure);
       } else {
         await loadContacts();
       }
@@ -299,17 +319,21 @@ export default function ProfileScreen() {
     if (!session || c.is_primary) {
       return;
     }
+    // Demoting matches nothing when there's no primary yet — expected, so it
+    // stays unchecked. Promoting `c` must affect its row.
     await supabase
       .from('emergency_contacts')
       .update({ is_primary: false })
       .eq('member_id', session.user.id)
       .eq('is_primary', true);
-    const { error: err } = await supabase
+    const { data, error: err } = await supabase
       .from('emergency_contacts')
       .update({ is_primary: true })
-      .eq('id', c.id);
-    if (err) {
-      setError(err.message);
+      .eq('id', c.id)
+      .select('id');
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
     } else {
       await loadContacts();
     }
@@ -319,9 +343,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <TopBar title="Profile" subtitle="Your details and settings" />
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.tint} />
-        </View>
+        <LoadingCenter />
       </SafeAreaView>
     );
   }
@@ -332,6 +354,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="Profile" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -381,20 +404,9 @@ export default function ProfileScreen() {
             </Row>
           </Card>
 
-          {error ? (
-            <Card>
-              <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>{error}</Text>
-            </Card>
-          ) : null}
+          {error ? <ErrorCard title={error} /> : null}
 
-          {roleFlags(profile).anyAdmin ? (
-            <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
-              <Card style={styles.adminCard}>
-                <Text style={styles.adminKicker}>Admin</Text>
-                <Text style={styles.adminAction}>Manage members ›</Text>
-              </Card>
-            </Pressable>
-          ) : null}
+          {roleFlags(profile).anyAdmin ? <ManageMembersCard /> : null}
 
           <SectionTitle>Personal details</SectionTitle>
           {editing && form ? (
@@ -594,6 +606,16 @@ export default function ProfileScreen() {
             </Text>
           </Card>
 
+          <SectionTitle>About</SectionTitle>
+          <Pressable onPress={() => router.push('/about')} testID="profile-about">
+            <Card>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[styles.body, { color: palette.text }]}>About OtterPool</Text>
+                <Text style={[styles.body, { color: palette.muted }]}>›</Text>
+              </Row>
+            </Card>
+          </Pressable>
+
           <SectionTitle>Session</SectionTitle>
           <Pressable onPress={() => supabase.auth.signOut()} testID="profile-sign-out">
             <Card>
@@ -774,7 +796,6 @@ function DetailRow({
 }
 
 const styles = StyleSheet.create({
-  center: { padding: 32, alignItems: 'center' },
   name: { fontSize: 20, fontWeight: '700' },
   email: { fontSize: 12, marginTop: 2 },
   fieldRow: { paddingVertical: 12 },
@@ -785,7 +806,6 @@ const styles = StyleSheet.create({
   addLink: { fontSize: 14, fontWeight: '700' },
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
-  errTitle: { fontSize: 14, fontWeight: '700' },
   avatarBadge: {
     position: 'absolute',
     right: -2,
@@ -800,16 +820,6 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-  adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
-  adminKicker: {
-    color: '#ffffff',
-    opacity: 0.7,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  adminAction: { color: '#ffffff', fontSize: 16, fontWeight: '700', marginTop: 4 },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   input: {
     borderWidth: 1,

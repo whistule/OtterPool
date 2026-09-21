@@ -25,14 +25,22 @@ jobs:
       run:
         working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: apps/mobile/package-lock.json
       - run: npm ci
+      # Set explicitly rather than relying on a default baked into the source:
+      # the Pages site is the live web app, so it must reach the *production*
+      # project. lib/supabase.ts throws when these are missing, so a bad config
+      # fails the build here instead of shipping a site pointed at dev.
+      # Publishable (anon) keys are safe in the clear — RLS is the boundary.
       - run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://cunkkdbfylimkktwgfle.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_rTTVgC0tiQNEGi93uru3jQ_ePzJyWrD
       # GitHub Pages runs Jekyll, which drops underscore-prefixed dirs
       # (_expo/) — .nojekyll disables that so the JS/CSS bundle is served.
       - run: touch dist/.nojekyll
@@ -41,7 +49,7 @@ jobs:
       # 404.html for any unmatched path — point it at the app shell so the
       # client router can take over and render the route (URL preserved).
       - run: cp dist/index.html dist/404.html
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: apps/mobile/dist
 
@@ -53,4 +61,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -22,11 +22,15 @@ async function signIn(page: Page, email: string) {
   });
 }
 
-// Member rows on /members are testID-prefixed; filtering by hasText scopes
-// to a specific row regardless of where else the name might be rendered
-// (e.g. the calendar tab is still mounted under expo-router).
+// Member rows on /members are testID-prefixed; filtering scopes to a specific
+// row regardless of where else the name might be rendered (e.g. the calendar
+// tab is still mounted under expo-router). The match must be exact: hasText is
+// a substring test, so 'E2E Member' also matched the 'E2E Membership Admin'
+// fixture and every count assertion below came back one too high.
 function memberRow(page: Page, displayName: string) {
-  return page.locator('[data-testid^="member-row-"]:visible').filter({ hasText: displayName });
+  return page
+    .locator('[data-testid^="member-row-"]:visible')
+    .filter({ has: page.getByText(displayName, { exact: true }) });
 }
 
 test.describe('members list — admin', () => {

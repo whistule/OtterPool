@@ -116,7 +116,13 @@ async function handlePaymentFailed(
 ): Promise<Response> {
   const signupId = pi.metadata?.signup_id;
   if (signupId) {
-    await admin.from('event_signups').update({ payment_status: 'failed' }).eq('id', signupId);
+    // Same guard as the cancel handler — don't stamp 'failed' onto a seat
+    // that a later PaymentIntent already paid for.
+    await admin
+      .from('event_signups')
+      .update({ payment_status: 'failed' })
+      .eq('id', signupId)
+      .eq('status', 'pending_payment');
   }
   return jsonOk();
 }
@@ -129,10 +135,15 @@ async function handlePaymentCanceled(
   if (!signupId) {
     return jsonOk();
   }
+  // Only withdraw a seat that is still awaiting payment. A member who
+  // abandons one checkout and pays on a second attempt has two PaymentIntents
+  // carrying the same signup_id — without this guard the first one expiring
+  // withdraws the seat they already paid for.
   const { data: cancelled } = await admin
     .from('event_signups')
     .update({ payment_status: 'canceled', status: 'withdrawn' })
     .eq('id', signupId)
+    .eq('status', 'pending_payment')
     .select('event_id')
     .maybeSingle();
 

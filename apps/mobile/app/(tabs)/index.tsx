@@ -11,16 +11,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
-import { useAuth } from '@/lib/auth';
+import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
-import { LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
+import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatCost } from '@/lib/money';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
 type Discipline = (typeof DISCIPLINES)[number];
@@ -69,31 +71,22 @@ function categoryToDiscipline(category: string): Discipline {
 }
 
 function pillForCategory(row: CalendarRow): { label: string; color: string } {
-  const grade = row.grade_advertised;
-  const cat = row.category;
-  if (cat === 'Sea Kayak') {
-    const colours: Record<string, string> = {
-      'Sea A': OtterPalette.seaTeal[0],
-      'Sea B': OtterPalette.seaTeal[1],
-      'Sea C': OtterPalette.seaTeal[2],
-    };
-    return { label: grade ?? 'Sea', color: colours[grade ?? ''] ?? OtterPalette.seaTeal[1] };
+  // A grade is the most specific thing we can show, and colorForGrade is the
+  // single source of truth for its colour.
+  if (row.grade_advertised) {
+    return { label: row.grade_advertised, color: colorForGrade(row.grade_advertised) };
   }
-  if (cat === 'River Trip') {
-    return { label: grade ?? 'River', color: OtterPalette.riverGreen[1] };
+  // Ungraded: fall back to a per-discipline label and mid-ramp colour.
+  if (row.category === 'Sea Kayak') {
+    return { label: 'Sea', color: OtterPalette.seaTeal[1] };
   }
-  if (cat === 'Pinkston') {
-    const colours: Record<string, string> = {
-      P1: OtterPalette.pinkstonOrange[0],
-      P2: OtterPalette.pinkstonOrange[1],
-      P3: OtterPalette.pinkstonOrange[2],
-    };
-    return {
-      label: grade ?? 'Pinkston',
-      color: colours[grade ?? ''] ?? OtterPalette.pinkstonOrange[1],
-    };
+  if (row.category === 'River Trip') {
+    return { label: 'River', color: OtterPalette.riverGreen[1] };
   }
-  return { label: grade ?? cat, color: OtterPalette.lochPool };
+  if (row.category === 'Pinkston') {
+    return { label: 'Pinkston', color: OtterPalette.pinkstonOrange[1] };
+  }
+  return { label: row.category, color: OtterPalette.lochPool };
 }
 
 function formatPlaces(row: CalendarRow): string {
@@ -107,17 +100,12 @@ function formatPlaces(row: CalendarRow): string {
   return `${left} of ${row.max_participants} left`;
 }
 
-function formatCost(cost: number): string {
-  if (cost === 0) {
-    return 'Free';
-  }
-  return `£${Number(cost).toFixed(0)}`;
-}
-
 export default function CalendarScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { profile } = useAuth();
-  const canCreate = profile?.level === 'selkie';
+  // Same gate the create form enforces (components/event-form.tsx): Selkies
+  // create events, and paddling/super admins can too whatever their level.
+  const canCreate = profile?.level === 'selkie' || roleFlags(profile).paddlingAdmin;
   const [active, setActive] = useState<Discipline>('All');
   const [query, setQuery] = useState('');
   const [openToMe, setOpenToMe] = useState(false);
@@ -170,6 +158,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title="Calendar" />
       {canCreate ? (
         <Pressable
           testID="calendar-create-event"
@@ -261,7 +250,7 @@ export default function CalendarScreen() {
           <EmptyCard
             message={
               rows.length === 0
-                ? 'No upcoming events yet. Add some in the Supabase dashboard.'
+                ? 'No upcoming trips yet. Check back soon.'
                 : 'No events match your filters.'
             }
           />

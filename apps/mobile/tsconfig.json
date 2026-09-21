@@ -6,5 +6,10 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  // *.test.ts runs under `node --test` (see npm run test:money), not Metro. It
+  // imports node: builtins and a .ts extension, neither of which this app-facing
+  // config allows — and adding @types/node here just to typecheck assertions on
+  // string literals isn't worth loosening the app's settings for.
+  "exclude": ["**/*.test.ts"]
 }

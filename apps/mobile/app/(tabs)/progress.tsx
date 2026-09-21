@@ -1,6 +1,5 @@
-import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -11,9 +10,11 @@ import {
   JourneyLadder,
   StatRow,
 } from '@/components/progress-blocks';
+import { ManageMembersCard } from '@/components/admin-card';
+import { PageTitle } from '@/components/page-title';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
-import { Card, SectionTitle, TopBar } from '@/components/wireframe';
-import { Colors, OtterPalette } from '@/constants/theme';
+import { SectionTitle, TopBar } from '@/components/wireframe';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
@@ -46,7 +47,7 @@ export default function ProgressScreen() {
       setError(profRes.error.message);
     }
     setCreatedAt((profRes.data as { created_at: string } | null)?.created_at ?? null);
-    setTally(((tallyRes.data ?? []) as TallyRow[]) ?? []);
+    setTally((tallyRes.data ?? []) as TallyRow[]);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
   }, [session]);
 
@@ -64,6 +65,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+      <PageTitle title="Progress" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
@@ -77,14 +79,7 @@ export default function ProgressScreen() {
           <ErrorCard title="Couldn't load progress" message={error} />
         ) : (
           <>
-            {isAdmin ? (
-              <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
-                <Card style={styles.adminCard}>
-                  <Text style={styles.adminKicker}>Admin</Text>
-                  <Text style={styles.adminAction}>Manage members ›</Text>
-                </Card>
-              </Pressable>
-            ) : null}
+            {isAdmin ? <ManageMembersCard /> : null}
 
             <CurrentLevelCard level={level} createdAt={createdAt} />
             <StatRow {...totals} />
@@ -104,21 +99,3 @@ export default function ProgressScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  adminCard: { backgroundColor: OtterPalette.slateNavy, borderColor: OtterPalette.slateNavy },
-  adminKicker: {
-    color: '#ffffff',
-    opacity: 0.7,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  adminAction: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-});

@@ -4,14 +4,18 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { formatShortDateTime } from '@/lib/datetime';
+import { readErrorMessage } from '@/lib/errors';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
+import { formatMoney } from '@/lib/money';
 
 type EventRow = {
   id: string;
@@ -35,34 +39,6 @@ type PendingSignup = {
     status: string;
   } | null;
 };
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-async function readErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : String(error);
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    try {
-      const body = await (error as { context: Response }).context.clone().json();
-      return body?.error ?? body?.message ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}
 
 export default function ReviewSignupsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -176,6 +152,7 @@ export default function ReviewSignupsScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
+      <PageTitle title="Review sign-ups" />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Header onBack={() => router.back()} />
 
@@ -184,8 +161,8 @@ export default function ReviewSignupsScreen() {
           <Text style={[styles.subtitle, { color: palette.muted }]}>{event.title}</Text>
           {isPaid ? (
             <Text style={[styles.note, { color: palette.muted, marginTop: 8 }]}>
-              Confirming a member will prompt them for £{Number(event.cost).toFixed(0)} payment to
-              complete sign-up.
+              Confirming a member will prompt them for {formatMoney(event.cost)} payment to complete
+              sign-up.
             </Text>
           ) : null}
         </View>
@@ -228,7 +205,7 @@ export default function ReviewSignupsScreen() {
                 >
                   <Text style={[styles.memberName, { color: palette.text }]}>{name}</Text>
                   <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
-                    Signed up {formatDateTime(s.signed_up_at)} · tap to view profile
+                    Signed up {formatShortDateTime(s.signed_up_at)} · tap to view profile
                   </Text>
                 </Pressable>
 
