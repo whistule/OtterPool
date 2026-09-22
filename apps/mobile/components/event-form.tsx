@@ -66,7 +66,7 @@ export default function EventForm(props: EventFormProps) {
   const isCreate = !isEdit;
   const eventId = isEdit ? props.eventId : null;
   // Create is a guided 4-step wizard; edit stays a single scrolling page.
-  const CREATE_STEPS = ['Basics', 'Cost', 'Photo', 'Review'];
+  const CREATE_STEPS = ['What', 'When', 'Who', 'Logistics'];
   const [step, setStep] = useState(1);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -604,7 +604,7 @@ export default function EventForm(props: EventFormProps) {
         .catch((e) => console.warn('[notify-event-created] failed', e));
     }
     if (firstId) {
-      router.replace(`/event/${firstId}`);
+      router.replace(`/event/${firstId}?created=1`);
     } else {
       router.back();
     }
@@ -890,7 +890,11 @@ export default function EventForm(props: EventFormProps) {
                   );
                 })()}
               </Card>
+            </>
+          )}
 
+          {(!isCreate || step === 3) && (
+            <>
               {/* ---------- Leaders ---------- */}
               <SectionTitle>Leaders</SectionTitle>
               <Card>
@@ -989,7 +993,11 @@ export default function EventForm(props: EventFormProps) {
                   An assistant leader can edit this event but can&apos;t review sign-ups.
                 </Text>
               </Card>
+            </>
+          )}
 
+          {(!isCreate || step === 2) && (
+            <>
               {/* ---------- When ---------- */}
               <SectionTitle>When</SectionTitle>
               <Card>
@@ -1216,7 +1224,11 @@ export default function EventForm(props: EventFormProps) {
                   </>
                 ) : null}
               </Card>
+            </>
+          )}
 
+          {(!isCreate || step === 4) && (
+            <>
               {/* ---------- Where ---------- */}
               <SectionTitle>Where</SectionTitle>
               <Card>
@@ -1294,7 +1306,7 @@ export default function EventForm(props: EventFormProps) {
             </>
           )}
 
-          {(!isCreate || step === 2) && (
+          {(!isCreate || step === 3) && (
             <>
               {/* ---------- Capacity & cost ---------- */}
               <SectionTitle>Capacity & cost</SectionTitle>
@@ -1396,7 +1408,7 @@ export default function EventForm(props: EventFormProps) {
             </>
           )}
 
-          {(!isCreate || step === 3) && (
+          {(!isCreate || step === 1) && (
             <>
               {/* ---------- Photo & description ---------- */}
               <SectionTitle>Photo & description</SectionTitle>
@@ -1490,10 +1502,16 @@ export default function EventForm(props: EventFormProps) {
                     },
                   ]}
                 />
+              </Card>
+            </>
+          )}
 
-                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-                  What to bring (optional)
-                </FieldLabel>
+          {(!isCreate || step === 4) && (
+            <>
+              {/* ---------- What to bring ---------- */}
+              <SectionTitle>What to bring</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>What to bring (optional)</FieldLabel>
                 <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
                   Load a standard list, then edit as needed — or type your own. One item per line; a
                   line ending in a colon becomes a heading.
@@ -1535,43 +1553,6 @@ export default function EventForm(props: EventFormProps) {
               </Card>
             </>
           )}
-
-          {isCreate && step === 4 ? (
-            <>
-              <SectionTitle>Review</SectionTitle>
-              <Card>
-                <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>
-                  {title.trim() || 'Untitled event'}
-                </Text>
-                <Text style={[styles.hint, { color: palette.muted, marginTop: 4 }]}>
-                  {categories.find((c) => c.id === categoryId)?.name ?? 'No category'}
-                  {grade ? ` · ${grade}` : ''}
-                </Text>
-                <Text style={{ color: palette.text, marginTop: 10 }}>
-                  🗓 {formatPreviewDate(new Date(startsAt))}
-                </Text>
-                {location.trim() ? (
-                  <Text style={{ color: palette.text, marginTop: 4 }}>📍 {location.trim()}</Text>
-                ) : null}
-                <Text style={{ color: palette.text, marginTop: 4 }}>
-                  🧑‍🏫{'  '}
-                  {leaderId === session?.user.id || !leaderId
-                    ? 'You'
-                    : (members.find((m) => m.id === leaderId)?.name ?? 'Leader')}
-                  {assistantId
-                    ? ` + ${members.find((m) => m.id === assistantId)?.name ?? 'assistant'}`
-                    : ''}
-                </Text>
-                <Text style={{ color: palette.text, marginTop: 4 }}>
-                  {Number(cost) > 0 ? `£${cost}` : 'Free'}
-                  {maxParticipants ? ` · up to ${maxParticipants} paddlers` : ''}
-                </Text>
-                <Text style={[styles.hint, { color: palette.muted, marginTop: 12 }]}>
-                  Press Publish to create the event. You can edit any of it afterwards.
-                </Text>
-              </Card>
-            </>
-          ) : null}
 
           {/* ---------- Status (edit only) ---------- */}
           {isEdit ? (
