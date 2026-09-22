@@ -51,12 +51,10 @@ const LEVELS: LevelInfo[] = [
       sea: 'Flat calm, sheltered water only. Still finding stability in the boat.',
       river: 'Flat water and very gentle Grade 1 only.',
     },
-    accessLabel: 'What you can join',
+    accessLabel: 'What you can join — until your capsize drill',
     access: [
-      { dot: 'all', text: 'Tuesday Evening sessions — Loch Lomond and All Away' },
-      { dot: 'pool', text: 'Pinkston 1 pump sessions' },
-      { dot: 'all', text: 'Pool and skills sessions' },
-      { dot: 'sea', text: 'Second Saturday paddles — Sea Grade A, with leader approval' },
+      { dot: 'all', text: 'Loch Lomond — Tuesday evening sessions' },
+      { dot: 'all', text: 'Pool sessions' },
     ],
     advanceLabel: 'Advancing to Duck',
     advanceText:
