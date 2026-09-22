@@ -62,6 +62,17 @@ function formatDob(iso: string | null): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatSubmitted(iso: string | null): string {
+  if (!iso) {
+    return '';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function isValidDob(s: string): boolean {
   if (!s) {
     return true;
@@ -93,6 +104,13 @@ export default function ProfileScreen() {
     is_primary: boolean;
   }>({ name: '', relationship: '', phone: '', email: '', address: '', is_primary: false });
   const [savingContact, setSavingContact] = useState(false);
+
+  // Paddling-experience summary (own section, saved separately from the
+  // personal-details form so the review flow stays self-contained).
+  const [expEditing, setExpEditing] = useState(false);
+  const [expDraft, setExpDraft] = useState('');
+  const [savingExp, setSavingExp] = useState(false);
+  const [requestingReview, setRequestingReview] = useState(false);
 
   const emptyContactDraft = {
     name: '',
@@ -241,6 +259,57 @@ export default function ProfileScreen() {
     }
     await refreshProfile();
     setEditing(false);
+  };
+
+  const beginEditExperience = () => {
+    setExpDraft(profile?.paddling_experience ?? '');
+    setExpEditing(true);
+    setError(null);
+  };
+
+  const saveExperience = async () => {
+    if (!session) {
+      return;
+    }
+    setError(null);
+    setSavingExp(true);
+    const { data, error: err } = await supabase
+      .from('member_private')
+      .upsert({ member_id: session.user.id, paddling_experience: expDraft.trim() || null })
+      .select('member_id');
+    setSavingExp(false);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    await refreshProfile();
+    setExpEditing(false);
+  };
+
+  const requestReview = async () => {
+    if (!session) {
+      return;
+    }
+    setError(null);
+    setRequestingReview(true);
+    // Upsert only the request flag + timestamp; PostgREST's ON CONFLICT
+    // updates just these columns, so phone/medical etc. are left intact.
+    const { data, error: err } = await supabase
+      .from('member_private')
+      .upsert({
+        member_id: session.user.id,
+        experience_review_requested: true,
+        experience_submitted_at: new Date().toISOString(),
+      })
+      .select('member_id');
+    setRequestingReview(false);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    await refreshProfile();
   };
 
   const saveContact = async () => {
@@ -508,6 +577,116 @@ export default function ProfileScreen() {
               </Pressable>
             </Card>
           )}
+
+          <SectionTitle>Paddling experience</SectionTitle>
+          <Card>
+            {expEditing ? (
+              <>
+                <Text style={[styles.body, { color: palette.text, marginBottom: 8 }]}>
+                  Help a coach set your starting level. The more specific and honest, the better:
+                </Text>
+                <Text style={[styles.expHint, { color: palette.muted }]}>
+                  {'• How long you’ve paddled, and how often\n'}
+                  {'• Where your last three trips were (put-in → take-out, roughly when)\n'}
+                  {'• The trickiest conditions you’ve handled — and what you did\n'}
+                  {'• Your boat(s), make and model\n'}
+                  {'• Your roll — reliable both sides? White water / surf, or pool only?\n'}
+                  {'• Any awards, and the coaches or clubs you’ve paddled with'}
+                </Text>
+                <TextInput
+                  value={expDraft}
+                  onChangeText={setExpDraft}
+                  multiline
+                  placeholder="Write a few honest lines about your paddling…"
+                  placeholderTextColor={palette.muted}
+                  testID="experience-input"
+                  style={[
+                    styles.input,
+                    {
+                      color: palette.text,
+                      borderColor: palette.border,
+                      minHeight: 140,
+                      textAlignVertical: 'top',
+                    },
+                  ]}
+                />
+                <Row style={{ gap: 8, marginTop: 8 }}>
+                  <Pressable
+                    testID="experience-save"
+                    onPress={saveExperience}
+                    disabled={savingExp}
+                    style={[styles.primaryBtn, savingExp && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.primaryBtnText}>{savingExp ? 'Saving…' : 'Save'}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setExpEditing(false);
+                      setError(null);
+                    }}
+                    disabled={savingExp}
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.ghostBtnText, { color: palette.text }]}>Cancel</Text>
+                  </Pressable>
+                </Row>
+              </>
+            ) : (
+              <>
+                {profile.paddling_experience ? (
+                  <Text style={[styles.body, { color: palette.text, lineHeight: 20 }]}>
+                    {profile.paddling_experience}
+                  </Text>
+                ) : (
+                  <Text style={[styles.empty, { color: palette.muted }]}>
+                    New to OtterPool, or joining from another club? Add a short summary of your
+                    paddling so a coach can set your level.
+                  </Text>
+                )}
+                {profile.experience_review_requested ? (
+                  <Text style={[styles.reviewState, { color: OtterPalette.forest }]}>
+                    {`✓ Sent for review${
+                      profile.experience_submitted_at
+                        ? ` · ${formatSubmitted(profile.experience_submitted_at)}`
+                        : ''
+                    }. A coach will set your level soon.`}
+                  </Text>
+                ) : profile.experience_reviewed_at ? (
+                  <Text style={[styles.reviewState, { color: palette.muted }]}>
+                    {`Reviewed · ${formatSubmitted(
+                      profile.experience_reviewed_at,
+                    )}. Ask a coach if your level looks wrong.`}
+                  </Text>
+                ) : null}
+                <Row style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  <Pressable
+                    testID="experience-edit"
+                    onPress={beginEditExperience}
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.ghostBtnText, { color: palette.text }]}>
+                      {profile.paddling_experience ? 'Edit' : 'Add experience'}
+                    </Text>
+                  </Pressable>
+                  {profile.experience_review_requested ? null : (
+                    <Pressable
+                      testID="experience-request-review"
+                      onPress={requestReview}
+                      disabled={requestingReview || !profile.paddling_experience}
+                      style={[
+                        styles.primaryBtn,
+                        (requestingReview || !profile.paddling_experience) && { opacity: 0.6 },
+                      ]}
+                    >
+                      <Text style={styles.primaryBtnText}>
+                        {requestingReview ? 'Sending…' : 'Request a level review'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </Row>
+              </>
+            )}
+          </Card>
 
           <SectionTitle>Emergency contacts</SectionTitle>
           {contacts.length === 0 && contactMode !== 'new' ? (
@@ -830,6 +1009,8 @@ const styles = StyleSheet.create({
   },
   avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
+  expHint: { fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  reviewState: { fontSize: 13, fontWeight: '600', marginTop: 10 },
   input: {
     borderWidth: 1,
     borderRadius: 10,

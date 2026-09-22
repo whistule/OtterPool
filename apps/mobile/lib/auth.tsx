@@ -44,6 +44,10 @@ export type Profile = {
   dob: string | null;
   bc_membership_no: string | null;
   medical_notes: string | null;
+  paddling_experience: string | null;
+  experience_review_requested: boolean;
+  experience_submitted_at: string | null;
+  experience_reviewed_at: string | null;
   avatar_path: string | null;
 };
 
@@ -79,18 +83,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle(),
       supabase
         .from('member_private')
-        .select('phone, dob, bc_membership_no, medical_notes')
+        .select(
+          'phone, dob, bc_membership_no, medical_notes, paddling_experience, experience_review_requested, experience_submitted_at, experience_reviewed_at',
+        )
         .eq('member_id', userId)
         .maybeSingle(),
     ]);
     if (!profRes.error && profRes.data) {
       const priv = privRes.data ?? {};
       setProfile({
-        ...(profRes.data as Omit<Profile, 'phone' | 'dob' | 'bc_membership_no' | 'medical_notes'>),
+        ...(profRes.data as Omit<
+          Profile,
+          | 'phone'
+          | 'dob'
+          | 'bc_membership_no'
+          | 'medical_notes'
+          | 'paddling_experience'
+          | 'experience_review_requested'
+          | 'experience_submitted_at'
+          | 'experience_reviewed_at'
+        >),
         phone: (priv as { phone?: string | null }).phone ?? null,
         dob: (priv as { dob?: string | null }).dob ?? null,
         bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
         medical_notes: (priv as { medical_notes?: string | null }).medical_notes ?? null,
+        paddling_experience:
+          (priv as { paddling_experience?: string | null }).paddling_experience ?? null,
+        experience_review_requested:
+          (priv as { experience_review_requested?: boolean | null }).experience_review_requested ??
+          false,
+        experience_submitted_at:
+          (priv as { experience_submitted_at?: string | null }).experience_submitted_at ?? null,
+        experience_reviewed_at:
+          (priv as { experience_reviewed_at?: string | null }).experience_reviewed_at ?? null,
       });
       // Match-on-sign-in: an aspirant whose (confirmed) email is on the
       // verified-members list is upgraded to active server-side. Reflect it
