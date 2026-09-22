@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { type DayCell, DateStrip } from '@/components/date-strip';
 import { MembershipPopup } from '@/components/membership-popup';
 import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
@@ -57,6 +58,11 @@ type CalendarRow = {
   photo_path: string | null;
   confirmed_count: number;
 };
+
+const WEEKDAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const dateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const keyFromIso = (iso: string) => dateKey(new Date(iso));
 
 function categoryToDiscipline(category: string): Discipline {
   if (category.startsWith('Sea Kayak')) {
@@ -112,9 +118,17 @@ export default function CalendarScreen() {
   // create events, and paddling/super admins can too whatever their level.
   const canCreate = profile?.level === 'selkie' || roleFlags(profile).paddlingAdmin;
   const [active, setActive] = useState<Discipline>('All');
+  const [subFilter, setSubFilter] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [rows, setRows] = useState<CalendarRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Switching discipline resets its sub-category (grades differ per discipline).
+  const selectDiscipline = (d: Discipline) => {
+    setActive(d);
+    setSubFilter(null);
+  };
 
   const load = React.useCallback(async () => {
     setError(null);
@@ -142,6 +156,9 @@ export default function CalendarScreen() {
       if (active !== 'All' && categoryToDiscipline(r.category) !== active) {
         return false;
       }
+      if (subFilter && r.grade_advertised !== subFilter) {
+        return false;
+      }
       if (q.length > 0) {
         const hay = `${r.title} ${r.location ?? ''} ${r.leader_name ?? ''}`.toLowerCase();
         if (!hay.includes(q)) {
@@ -150,7 +167,62 @@ export default function CalendarScreen() {
       }
       return true;
     });
-  }, [rows, active, query]);
+  }, [rows, active, subFilter, query]);
+
+  // Grades present in the active discipline → the dynamic sub-category filter.
+  // Derived from the events themselves, so it only ever offers real options.
+  const subCategories = useMemo(() => {
+    if (!rows || active === 'All') {
+      return [];
+    }
+    const seen = new Set<string>();
+    for (const r of rows) {
+      if (categoryToDiscipline(r.category) === active && r.grade_advertised) {
+        seen.add(r.grade_advertised);
+      }
+    }
+    return [...seen].sort();
+  }, [rows, active]);
+
+  // Per-day info for the fortnight strip, from the (discipline/sub/search)
+  // filtered set — so the pills reflect the current filters.
+  const days = useMemo<DayCell[]>(() => {
+    const counts = new Map<string, { count: number; color?: string }>();
+    for (const r of filtered ?? []) {
+      const key = keyFromIso(r.starts_at);
+      const cur = counts.get(key);
+      if (cur) {
+        cur.count += 1;
+      } else {
+        counts.set(key, { count: 1, color: pillForCategory(r).color });
+      }
+    }
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const todayKey = dateKey(start);
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const key = dateKey(d);
+      const info = counts.get(key);
+      return {
+        key,
+        weekday: WEEKDAY[d.getDay()],
+        day: d.getDate(),
+        count: info?.count ?? 0,
+        color: info?.color,
+        isToday: key === todayKey,
+      };
+    });
+  }, [filtered]);
+
+  // The list actually shown: the filtered set, narrowed to a picked day.
+  const visible = useMemo(() => {
+    if (!filtered) {
+      return null;
+    }
+    return selectedDay ? filtered.filter((r) => keyFromIso(r.starts_at) === selectedDay) : filtered;
+  }, [filtered, selectedDay]);
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
@@ -194,7 +266,7 @@ export default function CalendarScreen() {
           {DISCIPLINES.map((d) => {
             const isActive = active === d;
             return (
-              <Pressable key={d} onPress={() => setActive(d)} style={styles.disciplineBtn}>
+              <Pressable key={d} onPress={() => selectDiscipline(d)} style={styles.disciplineBtn}>
                 <Row style={{ gap: 5, alignItems: 'center' }}>
                   {DISCIPLINE_COLOR[d] ? (
                     <View style={[styles.discDot, { backgroundColor: DISCIPLINE_COLOR[d] }]} />
@@ -222,22 +294,71 @@ export default function CalendarScreen() {
           })}
         </View>
 
-        <SectionTitle>Upcoming</SectionTitle>
+        {subCategories.length > 0 ? (
+          <View style={styles.subRow}>
+            {subCategories.map((g) => {
+              const on = subFilter === g;
+              const color = DISCIPLINE_COLOR[active] ?? OtterPalette.slateNavy;
+              return (
+                <Pressable
+                  key={g}
+                  testID={`subcat-${g}`}
+                  onPress={() => setSubFilter(on ? null : g)}
+                  style={[
+                    styles.subChip,
+                    { borderColor: color, backgroundColor: on ? color : 'transparent' },
+                  ]}
+                >
+                  <Text style={[styles.subChipText, { color: on ? '#fff' : color }]}>{g}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
+        <DateStrip
+          days={days}
+          selected={selectedDay}
+          onSelect={setSelectedDay}
+          mutedColor={palette.muted}
+          textColor={palette.text}
+          borderColor={palette.border}
+          background={palette.background}
+        />
+
+        <SectionTitle>
+          {selectedDay
+            ? new Date(`${selectedDay}T00:00:00`).toLocaleDateString('en-GB', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+              })
+            : 'Upcoming'}
+        </SectionTitle>
+        {selectedDay ? (
+          <Pressable onPress={() => setSelectedDay(null)} style={styles.showAll}>
+            <Text style={[styles.showAllText, { color: OtterPalette.slateNavy }]}>
+              Show all days
+            </Text>
+          </Pressable>
+        ) : null}
 
         {rows == null ? (
           <LoadingCenter />
         ) : error ? (
           <ErrorCard title="Couldn't load events" message={error} />
-        ) : (filtered ?? []).length === 0 ? (
+        ) : (visible ?? []).length === 0 ? (
           <EmptyCard
             message={
               rows.length === 0
                 ? 'No upcoming trips yet. Check back soon.'
-                : 'No events match your filters.'
+                : selectedDay
+                  ? 'No events on this day.'
+                  : 'No events match your filters.'
             }
           />
         ) : (
-          (filtered ?? []).map((ev) => {
+          (visible ?? []).map((ev) => {
             const pill = pillForCategory(ev);
             const levelEmoji = LEVEL_EMOJI[ev.min_level as ProgressionLevel] ?? '🦆';
             return (
@@ -326,6 +447,17 @@ const styles = StyleSheet.create({
   disciplineBtn: { paddingVertical: 6 },
   discDot: { width: 8, height: 8, borderRadius: 4 },
   disciplineText: { fontSize: 14, fontWeight: '500' },
+  subRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  subChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5 },
+  subChipText: { fontSize: 13, fontWeight: '600' },
+  showAll: { alignSelf: 'flex-end', paddingHorizontal: 20, marginTop: -6, marginBottom: 4 },
+  showAllText: { fontSize: 13, fontWeight: '700' },
   disciplineTextActive: { fontWeight: '700' },
   disciplineUnderline: {
     height: 2,

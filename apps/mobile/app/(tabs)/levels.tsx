@@ -51,12 +51,10 @@ const LEVELS: LevelInfo[] = [
       sea: 'Flat calm, sheltered water only. Still finding stability in the boat.',
       river: 'Flat water and very gentle Grade 1 only.',
     },
-    accessLabel: 'What you can join',
+    accessLabel: 'What you can join — until your capsize drill',
     access: [
-      { dot: 'all', text: 'Tuesday Evening sessions — Loch Lomond and All Away' },
-      { dot: 'pool', text: 'Pinkston 1 pump sessions' },
-      { dot: 'all', text: 'Pool and skills sessions' },
-      { dot: 'sea', text: 'Second Saturday paddles — Sea Grade A, with leader approval' },
+      { dot: 'all', text: 'Loch Lomond — Tuesday evening sessions' },
+      { dot: 'all', text: 'Pool sessions' },
     ],
     advanceLabel: 'Advancing to Duck',
     advanceText:
@@ -81,11 +79,11 @@ const LEVELS: LevelInfo[] = [
     },
     accessLabel: 'What you can join',
     access: [
-      { dot: 'all', text: 'Everything at Frog level' },
-      { dot: 'sea', text: 'Sea Grade A and B trips, with leader approval' },
-      { dot: 'pool', text: 'Pinkston 1 and 2 pump sessions' },
-      { dot: 'river', text: 'River trips up to Grade 2/3, with leader approval' },
-      { dot: 'all', text: 'Training and qualification courses' },
+      { dot: 'all', text: 'Everything at Frog level (pool + loch sessions)' },
+      { dot: 'all', text: 'All Away trips' },
+      { dot: 'pool', text: 'Pinkston introductory night' },
+      { dot: 'sea', text: 'Second Saturday paddles — with leader approval' },
+      { dot: 'sea', text: 'Sea Grade A trips — with leader approval' },
     ],
     advanceLabel: 'Advancing to Otter',
     advanceText:
