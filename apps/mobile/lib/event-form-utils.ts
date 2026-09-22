@@ -324,6 +324,26 @@ export function abbreviateName(fullName: string | null, displayName: string | nu
   return initial ? `${parts[0]} ${initial}` : parts[0];
 }
 
+// Flat colour-dot category picker (matches the create-event prototype). Maps
+// each DB category to a short chip label + a discipline dot colour; unknown
+// categories fall back to their raw name and the navy dot.
+export const CATEGORY_CHIP: Record<string, { label: string; color: string }> = {
+  'Sea Kayak': { label: 'Sea Kayak', color: OtterPalette.seaTeal[1] },
+  'River Trip': { label: 'River', color: OtterPalette.riverGreen[1] },
+  Pinkston: { label: 'Pinkston', color: OtterPalette.pinkstonOrange[1] },
+  'Tuesday Evening - Loch Lomond': { label: 'Tue Evening — Loch', color: OtterPalette.lochPool },
+  'Tuesday Evening - All Away': { label: 'Tue Evening — Away', color: OtterPalette.lochPool },
+  'Night Paddle': { label: 'Night Paddle', color: OtterPalette.lochPool },
+  'Pool / Loch Sessions': { label: 'Pool session', color: OtterPalette.lochPool },
+  'Second Saturday Paddle': { label: '2nd Saturday', color: OtterPalette.seaTeal[1] },
+  'Skills Sessions / MicroSessions': { label: 'Skills', color: OtterPalette.burntOrange },
+  'Training / Qualifications': { label: 'Training', color: OtterPalette.burntOrange },
+};
+
+export function categoryChip(name: string): { label: string; color: string } {
+  return CATEGORY_CHIP[name] ?? { label: name, color: OtterPalette.slateNavy };
+}
+
 export function gradeOptionsFor(category: Category | null): readonly string[] | null {
   if (!category) {
     return null;

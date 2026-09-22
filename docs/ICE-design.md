@@ -196,9 +196,31 @@ chase before departure" warning for free.
 - **Confirmed only** — waitlisted/pending excluded (correct for a waterside
   headcount).
 
-### Known limitation
-`events` has a **single `leader_id`** → **co-leaders/assistants get nothing**.
-Acceptable for v1; flag it.
+### Who gets ICE access — leader, assistant, and (planned) a session team
+`events` now has a `leader_id` **and** an optional `assistant_id`, so ICE access
+should extend to both. But some events have **no single leader** — e.g. the
+volunteer-run Tuesday pool sessions, owned by a shared "DCKC Club" account with
+several helpers on the night. There, one leader (+ one assistant) isn't enough,
+and the people who actually need a new member's ICE are whichever volunteers are
+running that session.
+
+**Planned model:** ICE access for an event = its **leader** + **assistant** +
+an explicit **session team** — a per-event list of people who get ICE for that
+event. This generalises the single-assistant field to a list, and fits drop-in
+sessions where responsibility is shared.
+
+- **Storage:** a join table, e.g. `event_ice_contacts (event_id, member_id)`
+  (or extend the assistant concept to many), set via a multi-select picker like
+  the assistant one.
+- **Access:** `can_view_event_ice` extends from `leader_id = auth.uid()` to also
+  allow the assistant and anyone in the session team — still only during the
+  event window.
+- **Pool sessions:** the regular volunteers get added to that team, so they can
+  see a new member's ICE on the night even though "DCKC Club" is the nominal
+  owner.
+
+Until the team list is built, ICE access is leader (+ assistant); the
+session-team list is the next increment.
 
 ### Design freeze
 No new `SELECT` policy is added to `emergency_contacts` / `member_private` —
