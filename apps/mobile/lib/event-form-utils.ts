@@ -329,21 +329,44 @@ export function abbreviateName(fullName: string | null, displayName: string | nu
 // Flat colour-dot category picker (matches the create-event prototype). Maps
 // each DB category to a short chip label + a discipline dot colour; unknown
 // categories fall back to their raw name and the navy dot.
+// Distinct dot colours per discipline so every category is tell-apart-able:
+// sea = teal, river = bright green, pinkston = orange, pool = slate,
+// loch = deep green, skills = navy, training = deep red.
 export const CATEGORY_CHIP: Record<string, { label: string; color: string }> = {
   'Sea Kayak': { label: 'Sea Kayak', color: OtterPalette.seaTeal[1] },
   'River Trip': { label: 'River', color: OtterPalette.riverGreen[1] },
-  Pinkston: { label: 'Pinkston', color: OtterPalette.pinkstonOrange[1] },
-  'Tuesday Evening - Loch Lomond': { label: 'Tue Evening — Loch', color: OtterPalette.lochPool },
-  'Tuesday Evening - All Away': { label: 'Tue Evening — Away', color: OtterPalette.lochPool },
+  Pinkston: { label: 'Pinkston', color: OtterPalette.pinkstonOrange[0] },
+  'Tuesday Evening - Loch Lomond': { label: 'Tue Evening — Loch', color: OtterPalette.forest },
+  'Tuesday Evening - All Away': { label: 'Tue Evening — Away', color: OtterPalette.forest },
   'Night Paddle': { label: 'Night Paddle', color: OtterPalette.lochPool },
   'Pool / Loch Sessions': { label: 'Pool session', color: OtterPalette.lochPool },
-  'Second Saturday Paddle': { label: '2nd Saturday', color: OtterPalette.seaTeal[1] },
-  'Skills Sessions / MicroSessions': { label: 'Skills', color: OtterPalette.burntOrange },
-  'Training / Qualifications': { label: 'Training', color: OtterPalette.burntOrange },
+  'Second Saturday Paddle': { label: '2nd Saturday', color: OtterPalette.seaTeal[2] },
+  'Skills Sessions / MicroSessions': { label: 'Skills', color: OtterPalette.slateNavy },
+  'Training / Qualifications': { label: 'Training', color: OtterPalette.ice },
 };
 
+// Keyword fallbacks so category *variants* (e.g. "Sea Kayak - B Trip",
+// "Pinkston - 2 Pumps") still get the right discipline colour/label rather
+// than the navy default.
+const CATEGORY_KEYWORDS: { match: string; chip: { label: string; color: string } }[] = [
+  { match: 'sea kayak', chip: { label: 'Sea Kayak', color: OtterPalette.seaTeal[1] } },
+  { match: 'pinkston', chip: { label: 'Pinkston', color: OtterPalette.pinkstonOrange[0] } },
+  { match: 'river', chip: { label: 'River', color: OtterPalette.riverGreen[1] } },
+  { match: 'loch', chip: { label: 'Loch', color: OtterPalette.forest } },
+  { match: 'pool', chip: { label: 'Pool', color: OtterPalette.lochPool } },
+  { match: 'skills', chip: { label: 'Skills', color: OtterPalette.slateNavy } },
+  { match: 'training', chip: { label: 'Training', color: OtterPalette.ice } },
+  { match: 'night', chip: { label: 'Night Paddle', color: OtterPalette.lochPool } },
+];
+
 export function categoryChip(name: string): { label: string; color: string } {
-  return CATEGORY_CHIP[name] ?? { label: name, color: OtterPalette.slateNavy };
+  const exact = CATEGORY_CHIP[name];
+  if (exact) {
+    return exact;
+  }
+  const lower = name.toLowerCase();
+  const kw = CATEGORY_KEYWORDS.find((k) => lower.includes(k.match));
+  return kw ? kw.chip : { label: name, color: OtterPalette.slateNavy };
 }
 
 export function gradeOptionsFor(category: Category | null): readonly string[] | null {

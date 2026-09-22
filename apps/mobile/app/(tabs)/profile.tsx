@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import Constants from 'expo-constants';
 import { ManageMembersCard } from '@/components/admin-card';
 import { MembershipBanner } from '@/components/membership-banner';
 import { PageTitle } from '@/components/page-title';
@@ -67,6 +68,8 @@ function isValidDob(s: string): boolean {
   }
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(s).getTime());
 }
+
+const appVersion = Constants.expoConfig?.version ?? '';
 
 export default function ProfileScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
@@ -625,6 +628,8 @@ export default function ProfileScreen() {
               <Text style={[styles.signOut, { color: OtterPalette.ice }]}>Sign out</Text>
             </Card>
           </Pressable>
+
+          <Text style={[styles.version, { color: palette.muted }]}>OtterPool v{appVersion}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -809,6 +814,7 @@ const styles = StyleSheet.create({
   addLink: { fontSize: 14, fontWeight: '700' },
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
+  version: { fontSize: 12, textAlign: 'center', marginTop: 16 },
   avatarBadge: {
     position: 'absolute',
     right: -2,
