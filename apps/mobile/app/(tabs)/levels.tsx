@@ -232,6 +232,12 @@ export default function LevelsScreen() {
       </ScrollView>
 
       <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 40 }}>
+        <Text style={[styles.intro, { color: palette.muted }]}>
+          Levels aren't badges or rewards — they're a mutual system of trust. They reflect your
+          experience and help leaders make good decisions about who's ready for which trips, so
+          everyone stays safe on the water.
+        </Text>
+
         {LEVELS.map((lv) => {
           const isMine = myLevel === lv.id;
           return (
@@ -334,6 +340,13 @@ export default function LevelsScreen() {
 }
 
 const styles = StyleSheet.create({
+  intro: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
   navBar: { flexGrow: 0, borderBottomWidth: 1 },
   navContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   navPill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
