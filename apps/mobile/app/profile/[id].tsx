@@ -20,6 +20,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { logAdminAction } from '@/lib/audit';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
+import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
@@ -70,6 +71,24 @@ const EMPTY_PRIVATE: PrivateFields = {
   medical_notes: '',
 };
 
+type Experience = {
+  experience_answers: ExperienceAnswers | null;
+  experience_review_requested: boolean;
+  experience_submitted_at: string | null;
+  experience_reviewed_at: string | null;
+};
+
+function formatDate(iso: string | null): string {
+  if (!iso) {
+    return '';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 type RoleColumn = 'is_admin' | 'is_membership_admin' | 'is_paddling_admin';
 
 const ROLE_DEFS: { column: RoleColumn; label: string }[] = [
@@ -89,6 +108,8 @@ export default function MemberProfileScreen() {
   const [privForm, setPrivForm] = useState<PrivateFields | null>(null);
   const [savingPriv, setSavingPriv] = useState(false);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  const [experience, setExperience] = useState<Experience | null>(null);
+  const [markingReviewed, setMarkingReviewed] = useState(false);
   const [ceilings, setCeilings] = useState<Ceiling[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingLevel, setSavingLevel] = useState(false);
@@ -148,8 +169,49 @@ export default function MemberProfileScreen() {
       });
       setContacts((contactRes.data ?? []) as EmergencyContact[]);
     }
+
+    // Paddling admins (who set the level) read the member's self-declared
+    // paddling experience via an RPC that exposes only these fields.
+    if (roleFlags(viewerProfile).paddlingAdmin) {
+      const { data: expData } = await supabase.rpc('admin_member_experience', {
+        p_member_id: id,
+      });
+      setExperience((expData as Experience[] | null)?.[0] ?? null);
+    }
     setLoading(false);
   }, [id, session, viewerProfile]);
+
+  const markReviewed = async () => {
+    if (!id) {
+      return;
+    }
+    setMarkingReviewed(true);
+    const { error: err } = await supabase.rpc('admin_mark_experience_reviewed', {
+      p_member_id: id,
+    });
+    setMarkingReviewed(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setExperience((e) =>
+      e
+        ? {
+            ...e,
+            experience_review_requested: false,
+            experience_reviewed_at: new Date().toISOString(),
+          }
+        : e,
+    );
+    if (session) {
+      logAdminAction({
+        actorId: session.user.id,
+        targetType: 'profile',
+        targetId: id,
+        action: 'experience_reviewed',
+      });
+    }
+  };
 
   const savePrivateFields = async () => {
     if (!id || !privForm) {
@@ -418,6 +480,58 @@ export default function MemberProfileScreen() {
               </Text>
             </Card>
           </Pressable>
+        ) : null}
+
+        {canEditLevel &&
+        experience &&
+        (hasAnyAnswer(experience.experience_answers) || experience.experience_review_requested) ? (
+          <>
+            <SectionTitle>Paddling experience</SectionTitle>
+            <Card>
+              <Row style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                {experience.experience_review_requested ? (
+                  <Pill label="Review requested" color={OtterPalette.burntOrange} />
+                ) : experience.experience_reviewed_at ? (
+                  <Pill label="Reviewed" color={OtterPalette.forest} />
+                ) : null}
+                {experience.experience_submitted_at ? (
+                  <Text style={[styles.muted, { color: palette.muted }]}>
+                    {`Submitted ${formatDate(experience.experience_submitted_at)}`}
+                  </Text>
+                ) : null}
+              </Row>
+              {hasAnyAnswer(experience.experience_answers) ? (
+                EXPERIENCE_QUESTIONS.filter(
+                  (q) => (experience.experience_answers?.[q.key] ?? '').trim().length > 0,
+                ).map((q) => (
+                  <View key={q.key} style={{ marginTop: 12 }}>
+                    <Text style={[styles.fieldLabel, { color: palette.muted }]}>{q.label}</Text>
+                    <Text
+                      style={[styles.muted, { color: palette.text, fontSize: 14, lineHeight: 20 }]}
+                    >
+                      {experience.experience_answers?.[q.key]}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={[styles.muted, { color: palette.muted, fontSize: 14, marginTop: 10 }]}>
+                  No answers written yet.
+                </Text>
+              )}
+              {experience.experience_review_requested ? (
+                <Pressable
+                  onPress={markingReviewed ? undefined : markReviewed}
+                  disabled={markingReviewed}
+                  testID="mark-reviewed-cta"
+                  style={[styles.editCta, styles.btnPad, { marginTop: 12 }]}
+                >
+                  <Text style={styles.editCtaText}>
+                    {markingReviewed ? 'Saving…' : 'Mark as reviewed'}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </Card>
+          </>
         ) : null}
 
         {canMembership ? (

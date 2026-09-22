@@ -27,6 +27,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
+import {
+  cleanAnswers,
+  EXPERIENCE_QUESTIONS,
+  type ExperienceAnswers,
+  hasAnyAnswer,
+} from '@/lib/experience';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
@@ -62,6 +68,17 @@ function formatDob(iso: string | null): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatSubmitted(iso: string | null): string {
+  if (!iso) {
+    return '';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function isValidDob(s: string): boolean {
   if (!s) {
     return true;
@@ -93,6 +110,13 @@ export default function ProfileScreen() {
     is_primary: boolean;
   }>({ name: '', relationship: '', phone: '', email: '', address: '', is_primary: false });
   const [savingContact, setSavingContact] = useState(false);
+
+  // Paddling-experience summary (own section, saved separately from the
+  // personal-details form so the review flow stays self-contained).
+  const [expEditing, setExpEditing] = useState(false);
+  const [expDraft, setExpDraft] = useState<ExperienceAnswers>({});
+  const [savingExp, setSavingExp] = useState(false);
+  const [requestingReview, setRequestingReview] = useState(false);
 
   const emptyContactDraft = {
     name: '',
@@ -241,6 +265,61 @@ export default function ProfileScreen() {
     }
     await refreshProfile();
     setEditing(false);
+  };
+
+  const beginEditExperience = () => {
+    setExpDraft({ ...(profile?.experience_answers ?? {}) });
+    setExpEditing(true);
+    setError(null);
+  };
+
+  const saveExperience = async () => {
+    if (!session) {
+      return;
+    }
+    setError(null);
+    setSavingExp(true);
+    const cleaned = cleanAnswers(expDraft);
+    const { data, error: err } = await supabase
+      .from('member_private')
+      .upsert({
+        member_id: session.user.id,
+        experience_answers: hasAnyAnswer(cleaned) ? cleaned : null,
+      })
+      .select('member_id');
+    setSavingExp(false);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    await refreshProfile();
+    setExpEditing(false);
+  };
+
+  const requestReview = async () => {
+    if (!session) {
+      return;
+    }
+    setError(null);
+    setRequestingReview(true);
+    // Upsert only the request flag + timestamp; PostgREST's ON CONFLICT
+    // updates just these columns, so phone/medical etc. are left intact.
+    const { data, error: err } = await supabase
+      .from('member_private')
+      .upsert({
+        member_id: session.user.id,
+        experience_review_requested: true,
+        experience_submitted_at: new Date().toISOString(),
+      })
+      .select('member_id');
+    setRequestingReview(false);
+    const failure = writeFailure(err, data);
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    await refreshProfile();
   };
 
   const saveContact = async () => {
@@ -508,6 +587,117 @@ export default function ProfileScreen() {
               </Pressable>
             </Card>
           )}
+
+          <SectionTitle>Paddling experience</SectionTitle>
+          <Card>
+            {expEditing ? (
+              <>
+                <Text style={[styles.body, { color: palette.text, marginBottom: 12 }]}>
+                  Help a coach set your starting level. The more specific and honest, the better —
+                  answer what applies, skip what doesn’t.
+                </Text>
+                {EXPERIENCE_QUESTIONS.map((q) => (
+                  <FormField
+                    key={q.key}
+                    label={q.label}
+                    value={expDraft[q.key] ?? ''}
+                    onChangeText={(v) => setExpDraft({ ...expDraft, [q.key]: v })}
+                    placeholder={q.placeholder}
+                    multiline={q.multiline}
+                    testID={`experience-field-${q.key}`}
+                  />
+                ))}
+                <Row style={{ gap: 8, marginTop: 8 }}>
+                  <Pressable
+                    testID="experience-save"
+                    onPress={saveExperience}
+                    disabled={savingExp}
+                    style={[styles.primaryBtn, savingExp && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.primaryBtnText}>{savingExp ? 'Saving…' : 'Save'}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setExpEditing(false);
+                      setError(null);
+                    }}
+                    disabled={savingExp}
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.ghostBtnText, { color: palette.text }]}>Cancel</Text>
+                  </Pressable>
+                </Row>
+              </>
+            ) : (
+              <>
+                {hasAnyAnswer(profile.experience_answers) ? (
+                  EXPERIENCE_QUESTIONS.filter(
+                    (q) => (profile.experience_answers?.[q.key] ?? '').trim().length > 0,
+                  ).map((q) => (
+                    <View key={q.key} style={{ marginBottom: 12 }}>
+                      <Text style={[styles.fieldLabel, { color: palette.muted }]}>{q.label}</Text>
+                      <Text
+                        style={[
+                          styles.fieldValue,
+                          { color: palette.text, fontSize: 14, lineHeight: 20 },
+                        ]}
+                      >
+                        {profile.experience_answers?.[q.key]}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.empty, { color: palette.muted }]}>
+                    Been paddling a while, or joining from another club? Tell us about it — answer a
+                    few questions and a coach can help establish your level.
+                  </Text>
+                )}
+                {profile.experience_review_requested ? (
+                  <Text style={[styles.reviewState, { color: OtterPalette.forest }]}>
+                    {`✓ Sent for review${
+                      profile.experience_submitted_at
+                        ? ` · ${formatSubmitted(profile.experience_submitted_at)}`
+                        : ''
+                    }. A coach will set your level soon.`}
+                  </Text>
+                ) : profile.experience_reviewed_at ? (
+                  <Text style={[styles.reviewState, { color: palette.muted }]}>
+                    {`Reviewed · ${formatSubmitted(
+                      profile.experience_reviewed_at,
+                    )}. Ask a coach if your level looks wrong.`}
+                  </Text>
+                ) : null}
+                <Row style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  <Pressable
+                    testID="experience-edit"
+                    onPress={beginEditExperience}
+                    style={[styles.ghostBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.ghostBtnText, { color: palette.text }]}>
+                      {hasAnyAnswer(profile.experience_answers) ? 'Edit answers' : 'Add experience'}
+                    </Text>
+                  </Pressable>
+                  {profile.experience_review_requested ? null : (
+                    <Pressable
+                      testID="experience-request-review"
+                      onPress={requestReview}
+                      disabled={requestingReview || !hasAnyAnswer(profile.experience_answers)}
+                      style={[
+                        styles.primaryBtn,
+                        (requestingReview || !hasAnyAnswer(profile.experience_answers)) && {
+                          opacity: 0.6,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.primaryBtnText}>
+                        {requestingReview ? 'Sending…' : 'Request a level review'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </Row>
+              </>
+            )}
+          </Card>
 
           <SectionTitle>Emergency contacts</SectionTitle>
           {contacts.length === 0 && contactMode !== 'new' ? (
@@ -830,6 +1020,7 @@ const styles = StyleSheet.create({
   },
   avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
+  reviewState: { fontSize: 13, fontWeight: '600', marginTop: 10 },
   input: {
     borderWidth: 1,
     borderRadius: 10,

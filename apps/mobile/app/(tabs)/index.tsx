@@ -16,7 +16,7 @@ import { MembershipPopup } from '@/components/membership-popup';
 import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
-import { Card, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
+import { Card, Pill, Row, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
@@ -294,28 +294,6 @@ export default function CalendarScreen() {
           })}
         </View>
 
-        {subCategories.length > 0 ? (
-          <View style={styles.subRow}>
-            {subCategories.map((g) => {
-              const on = subFilter === g;
-              const color = DISCIPLINE_COLOR[active] ?? OtterPalette.slateNavy;
-              return (
-                <Pressable
-                  key={g}
-                  testID={`subcat-${g}`}
-                  onPress={() => setSubFilter(on ? null : g)}
-                  style={[
-                    styles.subChip,
-                    { borderColor: color, backgroundColor: on ? color : 'transparent' },
-                  ]}
-                >
-                  <Text style={[styles.subChipText, { color: on ? '#fff' : color }]}>{g}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
         <DateStrip
           days={days}
           selected={selectedDay}
@@ -326,15 +304,38 @@ export default function CalendarScreen() {
           background={palette.background}
         />
 
-        <SectionTitle>
-          {selectedDay
-            ? new Date(`${selectedDay}T00:00:00`).toLocaleDateString('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-              })
-            : 'Upcoming'}
-        </SectionTitle>
+        <View style={styles.listHeader}>
+          <Text style={[styles.listHeading, { color: palette.text }]}>
+            {selectedDay
+              ? new Date(`${selectedDay}T00:00:00`).toLocaleDateString('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })
+              : 'Upcoming'}
+          </Text>
+          {subCategories.length > 0 ? (
+            <View style={styles.subRowInline}>
+              {subCategories.map((g) => {
+                const on = subFilter === g;
+                const color = DISCIPLINE_COLOR[active] ?? OtterPalette.slateNavy;
+                return (
+                  <Pressable
+                    key={g}
+                    testID={`subcat-${g}`}
+                    onPress={() => setSubFilter(on ? null : g)}
+                    style={[
+                      styles.subChip,
+                      { borderColor: color, backgroundColor: on ? color : 'transparent' },
+                    ]}
+                  >
+                    <Text style={[styles.subChipText, { color: on ? '#fff' : color }]}>{g}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
         {selectedDay ? (
           <Pressable onPress={() => setSelectedDay(null)} style={styles.showAll}>
             <Text style={[styles.showAllText, { color: OtterPalette.slateNavy }]}>
@@ -447,12 +448,29 @@ const styles = StyleSheet.create({
   disciplineBtn: { paddingVertical: 6 },
   discDot: { width: 8, height: 8, borderRadius: 4 },
   disciplineText: { fontSize: 14, fontWeight: '500' },
-  subRow: {
+  listHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 8,
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  listHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    opacity: 0.6,
+  },
+  subRowInline: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    flexShrink: 1,
+    justifyContent: 'flex-end',
   },
   subChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5 },
   subChipText: { fontSize: 13, fontWeight: '600' },

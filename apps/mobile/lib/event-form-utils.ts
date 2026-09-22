@@ -337,12 +337,12 @@ export const CATEGORY_CHIP: Record<string, { label: string; color: string }> = {
   'River Trip': { label: 'River', color: OtterPalette.riverGreen[1] },
   Pinkston: { label: 'Pinkston', color: OtterPalette.pinkstonOrange[0] },
   'Tuesday Evening - Loch Lomond': { label: 'Tue Evening — Loch', color: OtterPalette.forest },
-  'Tuesday Evening - All Away': { label: 'Tue Evening — Away', color: OtterPalette.forest },
+  'Tuesday Evening - All Away': { label: 'Tue Evening — All Away', color: OtterPalette.forest },
   'Night Paddle': { label: 'Night Paddle', color: OtterPalette.lochPool },
   'Pool / Loch Sessions': { label: 'Pool session', color: OtterPalette.lochPool },
   'Second Saturday Paddle': { label: '2nd Saturday', color: OtterPalette.seaTeal[2] },
-  'Skills Sessions / MicroSessions': { label: 'Skills', color: OtterPalette.slateNavy },
-  'Training / Qualifications': { label: 'Training', color: OtterPalette.ice },
+  'Skills Sessions / MicroSessions': { label: 'MicroSession', color: OtterPalette.slateNavy },
+  'Training / Qualifications': { label: 'Training and quals', color: OtterPalette.ice },
 };
 
 // Keyword fallbacks so category *variants* (e.g. "Sea Kayak - B Trip",
@@ -354,8 +354,8 @@ const CATEGORY_KEYWORDS: { match: string; chip: { label: string; color: string }
   { match: 'river', chip: { label: 'River', color: OtterPalette.riverGreen[1] } },
   { match: 'loch', chip: { label: 'Loch', color: OtterPalette.forest } },
   { match: 'pool', chip: { label: 'Pool', color: OtterPalette.lochPool } },
-  { match: 'skills', chip: { label: 'Skills', color: OtterPalette.slateNavy } },
-  { match: 'training', chip: { label: 'Training', color: OtterPalette.ice } },
+  { match: 'skills', chip: { label: 'MicroSession', color: OtterPalette.slateNavy } },
+  { match: 'training', chip: { label: 'Training and quals', color: OtterPalette.ice } },
   { match: 'night', chip: { label: 'Night Paddle', color: OtterPalette.lochPool } },
 ];
 

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -241,6 +242,21 @@ export default function LevelsScreen() {
           everyone stays safe on the water.
         </Text>
 
+        <Pressable onPress={() => router.push('/profile')} testID="levels-experience-cta">
+          <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
+            <Text style={[styles.ctaTitle, { color: OtterPalette.forest }]}>
+              Paddled a while already?
+            </Text>
+            <Text style={[styles.ctaBody, { color: palette.text }]}>
+              If you've been paddling a while and would like to tell us about it to help us
+              establish your level, you can do that on your profile.
+            </Text>
+            <Text style={[styles.ctaLink, { color: OtterPalette.slateNavy }]}>
+              Tell us your experience ›
+            </Text>
+          </Card>
+        </Pressable>
+
         {LEVELS.map((lv) => {
           const isMine = myLevel === lv.id;
           return (
@@ -366,6 +382,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
   },
+  ctaTitle: { fontSize: 15, fontWeight: '700' },
+  ctaBody: { fontSize: 13, lineHeight: 19, marginTop: 6 },
+  ctaLink: { fontSize: 14, fontWeight: '700', marginTop: 10 },
   navBar: { flexGrow: 0, borderBottomWidth: 1 },
   navContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   navPill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
