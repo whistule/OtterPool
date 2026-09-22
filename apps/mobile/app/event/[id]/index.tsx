@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -92,8 +92,6 @@ type SignUpResponse = {
   payment?: { checkout_url: string; amount_pence: number };
 };
 
-type SeriesSibling = { id: string; starts_at: string };
-
 function buildIcs(ev: EventRow): string {
   const stamp = (iso: string) =>
     new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
@@ -160,7 +158,6 @@ export default function EventDetailScreen() {
   const [signup, setSignup] = useState<Signup | null>(null);
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [series, setSeries] = useState<SeriesSibling[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
@@ -215,16 +212,6 @@ export default function EventDetailScreen() {
       setParticipants((participantsRes.data as Participant[]) ?? []);
     }
 
-    if (ev?.series_id) {
-      const { data: siblings } = await supabase
-        .from('events')
-        .select('id, starts_at')
-        .eq('series_id', ev.series_id)
-        .order('starts_at', { ascending: true });
-      setSeries((siblings as SeriesSibling[]) ?? []);
-    } else {
-      setSeries([]);
-    }
     setLoading(false);
   }, [id, session]);
 
@@ -268,20 +255,6 @@ export default function EventDetailScreen() {
       cancelEventReminder(event.id).catch(() => {});
     }
   }, [signup?.status, event]);
-
-  const seriesInfo = useMemo(() => {
-    if (!event?.series_id || series.length < 2) {
-      return null;
-    }
-    const idx = series.findIndex((s) => s.id === event.id);
-    const now = new Date();
-    const next = series.find((s, i) => i > idx && new Date(s.starts_at) > now);
-    return {
-      index: idx + 1,
-      total: series.length,
-      next,
-    };
-  }, [event, series]);
 
   const handleSignUp = async () => {
     if (!id) {
@@ -557,41 +530,6 @@ export default function EventDetailScreen() {
         {/* Membership status — shows aspirants their remaining trial, warns
             near expiry, etc., right where they're about to sign up. */}
         <MembershipBanner />
-
-        {/* ---------- Series banner ---------- */}
-        {seriesInfo ? (
-          <Pressable
-            disabled={!seriesInfo.next}
-            onPress={() =>
-              seriesInfo.next ? router.push(`/event/${seriesInfo.next.id}`) : undefined
-            }
-            testID="event-series-next"
-          >
-            <Card
-              style={{
-                borderColor: OtterPalette.slateNavy,
-                borderWidth: 1.5,
-                backgroundColor: palette.surface,
-              }}
-            >
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={[styles.value, { color: palette.text }]}>
-                    Repeats · {seriesInfo.index} of {seriesInfo.total}
-                  </Text>
-                  <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
-                    {seriesInfo.next
-                      ? `Next: ${formatDateTime(new Date(seriesInfo.next.starts_at))}`
-                      : 'This is the last occurrence in the series'}
-                  </Text>
-                </View>
-                {seriesInfo.next ? (
-                  <Text style={[styles.value, { color: OtterPalette.slateNavy }]}>›</Text>
-                ) : null}
-              </Row>
-            </Card>
-          </Pressable>
-        ) : null}
 
         {/* ---------- When ---------- */}
         <SectionTitle>When</SectionTitle>

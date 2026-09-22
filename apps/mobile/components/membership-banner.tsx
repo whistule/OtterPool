@@ -5,8 +5,10 @@ import { OtterPalette } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
-// DCKC's MemberMojo join / renew page. TODO: confirm the exact URL with the club.
-export const MEMBERMOJO_URL = 'https://dckc.membermojo.co.uk';
+// DCKC's MemberMojo pages. Renewals go to the renew page; new joiners go to
+// the club's MemberMojo home, which offers the join options.
+export const MEMBERMOJO_RENEW_URL = 'https://membermojo.co.uk/dckc/renew';
+export const MEMBERMOJO_JOIN_URL = 'https://membermojo.co.uk/dckc';
 
 const TRIAL_LIMIT = 3;
 const EXPIRY_WARN_DAYS = 42; // 6 weeks
@@ -86,7 +88,8 @@ export function MembershipBanner() {
     return null;
   }
 
-  const openJoin = () => openExternal(MEMBERMOJO_URL);
+  const openJoin = () => openExternal(MEMBERMOJO_JOIN_URL);
+  const openRenew = () => openExternal(MEMBERMOJO_RENEW_URL);
   const content = ((): BannerContent | null => {
     if (status === 'suspended') {
       return {
@@ -100,7 +103,7 @@ export function MembershipBanner() {
         tone: OtterPalette.burntOrange,
         title: 'Your DCKC membership has lapsed',
         body: 'Renew to sign up for events again.',
-        action: { label: 'Renew membership', onPress: openJoin },
+        action: { label: 'Renew membership', onPress: openRenew },
       };
     }
     if (status === 'aspirant') {
@@ -129,7 +132,7 @@ export function MembershipBanner() {
           tone: OtterPalette.burntOrange,
           title: `Your membership lapses on ${formatDate(expires)}`,
           body: 'Renew now so you don’t lose access to events.',
-          action: { label: 'Renew membership', onPress: openJoin },
+          action: { label: 'Renew membership', onPress: openRenew },
         };
       }
     }
