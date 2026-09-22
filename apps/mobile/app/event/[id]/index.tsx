@@ -143,10 +143,11 @@ function openMaps(query: string) {
 }
 
 export default function EventDetailScreen() {
-  const { id, paid, cancelled } = useLocalSearchParams<{
+  const { id, paid, cancelled, created } = useLocalSearchParams<{
     id: string;
     paid?: string;
     cancelled?: string;
+    created?: string;
   }>();
   const palette = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
@@ -461,6 +462,29 @@ export default function EventDetailScreen() {
             ) : null
           }
         />
+
+        {/* ---------- Just-published confirmation ---------- */}
+        {created === '1' && canEdit ? (
+          <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
+            <Text style={[styles.value, { color: OtterPalette.forest }]}>✓ Published</Text>
+            <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
+              This is exactly what members see. You can change anything.
+            </Text>
+            <Pressable
+              testID="event-published-edit"
+              onPress={() => router.push(`/event/${id}/edit`)}
+              style={{
+                marginTop: 10,
+                backgroundColor: OtterPalette.slateNavy,
+                borderRadius: 10,
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Edit event</Text>
+            </Pressable>
+          </Card>
+        ) : null}
 
         {/* ---------- Hero with title overlay ---------- */}
         <View style={styles.hero}>
