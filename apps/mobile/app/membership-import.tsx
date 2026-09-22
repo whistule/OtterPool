@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,11 +35,38 @@ export default function MembershipImportScreen() {
   const isMembershipAdmin = roleFlags(profile).membershipAdmin;
 
   const [paste, setPaste] = useState('');
+  const [fileName, setFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
   const parsed = useMemo(() => parseMemberPaste(paste), [paste]);
+
+  const canPickFile = Platform.OS === 'web' && typeof document !== 'undefined';
+
+  // Read the chosen CSV locally in the browser and feed its text through the
+  // same parser as a paste. The file itself never leaves the device — only the
+  // parsed {email, expires} rows are sent to Supabase on Import.
+  const pickFile = () => {
+    if (!canPickFile) {
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,text/csv,text/plain';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        return;
+      }
+      const text = await file.text();
+      setPaste(text);
+      setSummary(null);
+      setError(null);
+      setFileName(file.name);
+    };
+    input.click();
+  };
 
   if (!isMembershipAdmin) {
     return (
@@ -81,18 +109,42 @@ export default function MembershipImportScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 12 }}>
         <Card>
           <Text style={[styles.body, { color: palette.text }]}>
-            Paste the members export from MemberMojo — the whole CSV is fine (email, "Expires on"
+            Import the members export from MemberMojo — the whole CSV is fine (email, "Expires on"
             and "Membership state" columns are picked out automatically). Only members whose state
             is Active are imported. Importing replaces the whole list and re-checks everyone's
             membership.
           </Text>
         </Card>
 
+        {canPickFile ? (
+          <>
+            <Pressable
+              testID="membership-import-choose-file"
+              onPress={pickFile}
+              style={[styles.chooseBtn, { borderColor: OtterPalette.slateNavy }]}
+            >
+              <Text style={[styles.chooseBtnText, { color: OtterPalette.slateNavy }]}>
+                ⬆ Choose CSV file…
+              </Text>
+            </Pressable>
+            {fileName ? (
+              <Text style={[styles.fileNote, { color: palette.muted }]}>
+                Loaded {fileName} — check the count below, then Import.
+              </Text>
+            ) : (
+              <Text style={[styles.fileNote, { color: palette.muted }]}>
+                …or paste the list below.
+              </Text>
+            )}
+          </>
+        ) : null}
+
         <TextInput
           value={paste}
           onChangeText={(t) => {
             setPaste(t);
             setSummary(null);
+            setFileName(null);
           }}
           placeholder={'alice@example.com\t30/09/2027\nbob@example.com\t30/09/2027'}
           placeholderTextColor={palette.muted}
@@ -183,4 +235,12 @@ const styles = StyleSheet.create({
   },
   primaryBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  chooseBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  chooseBtnText: { fontSize: 15, fontWeight: '700' },
+  fileNote: { fontSize: 12, textAlign: 'center' },
 });
