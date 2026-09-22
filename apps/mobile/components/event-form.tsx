@@ -19,6 +19,7 @@ import type * as ImagePicker from 'expo-image-picker';
 import { v4 as uuidv4 } from 'uuid';
 import { DateTimeField } from '@/components/event-form/date-time-field';
 import { FieldError, FieldLabel } from '@/components/event-form/field-label';
+import { StepProgress } from '@/components/event-form/step-progress';
 import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
@@ -62,7 +63,11 @@ export default function EventForm(props: EventFormProps) {
   const { width } = useWindowDimensions();
   const wideLayout = width >= 600;
   const isEdit = props.mode === 'edit';
+  const isCreate = !isEdit;
   const eventId = isEdit ? props.eventId : null;
+  // Create is a guided 4-step wizard; edit stays a single scrolling page.
+  const CREATE_STEPS = ['Basics', 'Cost', 'Photo', 'Review'];
+  const [step, setStep] = useState(1);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -720,6 +725,7 @@ export default function EventForm(props: EventFormProps) {
       >
         <PageTitle title={screenTitle} />
         <Header onBack={() => router.back()} title={screenTitle} />
+        {isCreate ? <StepProgress steps={CREATE_STEPS} current={step} onJump={setStep} /> : null}
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 32 }}
@@ -770,327 +776,249 @@ export default function EventForm(props: EventFormProps) {
             </>
           ) : null}
 
-          {/* ---------- The basics ---------- */}
-          <SectionTitle>The basics</SectionTitle>
-          <Card>
-            <FieldLabel palette={palette}>Title</FieldLabel>
-            <TextInput
-              value={title}
-              onChangeText={(t) => {
-                setTitle(t);
-                if (fieldErrors.title) {
-                  setFieldErrors((e) => ({ ...e, title: undefined }));
-                }
-              }}
-              placeholder={titlePlaceholder}
-              placeholderTextColor={palette.muted}
-              style={fieldStyle('title')}
-            />
-            <FieldError text={fieldErrors.title} />
-
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              Category
-            </FieldLabel>
-            {groupCategories(categories).map((group) => (
-              <View key={group.label} style={{ marginBottom: 10 }}>
-                <Text
-                  style={[styles.groupLabel, { color: palette.muted, borderColor: palette.border }]}
-                >
-                  {group.label}
-                </Text>
-                <View style={styles.chipWrap}>
-                  {group.items.map(({ category, label }) => {
-                    const isActive = category.id === categoryId;
-                    return (
-                      <Pressable
-                        key={category.id}
-                        testID={`category-chip-${category.id}`}
-                        onPress={() => onPickCategory(category)}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
-                        >
-                          {label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-            {selectedCategory ? (
-              <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
-                Default min level: {selectedCategory.default_min_level} · default cost:{' '}
-                {formatMoney(selectedCategory.default_cost)}
-              </Text>
-            ) : null}
-            <FieldError text={fieldErrors.category} />
-
-            {(() => {
-              const opts = gradeOptionsFor(selectedCategory);
-              if (!opts) {
-                return null;
-              }
-              return (
-                <>
-                  <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-                    Grade
-                  </FieldLabel>
-                  <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-                    {opts.map((g) => {
-                      const isActive = g === grade;
-                      return (
-                        <Pressable
-                          key={g}
-                          testID={`grade-chip-${g}`}
-                          onPress={() => setGrade(g)}
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                              borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
-                          >
-                            {g}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </Row>
-                </>
-              );
-            })()}
-          </Card>
-
-          {/* ---------- Leaders ---------- */}
-          <SectionTitle>Leaders</SectionTitle>
-          <Card>
-            <FieldLabel palette={palette}>Leader</FieldLabel>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-              {!leaderId || leaderId === session?.user.id
-                ? 'You'
-                : (members.find((m) => m.id === leaderId)?.name ?? 'Selected member')}
-            </Text>
-            {roleFlags(profile).paddlingAdmin ? (
-              <>
+          {(!isCreate || step === 1) && (
+            <>
+              {/* ---------- The basics ---------- */}
+              <SectionTitle>The basics</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Title</FieldLabel>
                 <TextInput
-                  value={leaderQuery}
-                  onChangeText={setLeaderQuery}
-                  placeholder="Search to assign a different leader"
-                  placeholderTextColor={palette.muted}
-                  style={[
-                    styles.input,
-                    { color: palette.text, borderColor: palette.border, marginTop: 8 },
-                  ]}
-                />
-                {leaderQuery.trim().length >= 2
-                  ? members
-                      .filter((m) => m.id !== leaderId)
-                      .filter((m) => m.search.includes(leaderQuery.trim().toLowerCase()))
-                      .slice(0, 6)
-                      .map((m) => (
-                        <Pressable
-                          key={m.id}
-                          onPress={() => {
-                            setLeaderId(m.id);
-                            setLeaderQuery('');
-                          }}
-                          style={{ paddingVertical: 10 }}
-                        >
-                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                            {m.name}
-                          </Text>
-                        </Pressable>
-                      ))
-                  : null}
-              </>
-            ) : null}
-
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              Assistant leader (optional)
-            </FieldLabel>
-            {assistantId ? (
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                  {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
-                </Text>
-                <Pressable
-                  onPress={() => setAssistantId(null)}
-                  style={[styles.chip, { borderColor: palette.border }]}
-                >
-                  <Text style={[styles.chipText, { color: palette.text }]}>Clear</Text>
-                </Pressable>
-              </Row>
-            ) : (
-              <>
-                <TextInput
-                  value={assistantQuery}
-                  onChangeText={setAssistantQuery}
-                  placeholder="Search members to add an assistant leader"
-                  placeholderTextColor={palette.muted}
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                />
-                {assistantQuery.trim().length >= 2
-                  ? members
-                      .filter((m) => m.id !== session?.user.id && m.id !== leaderId)
-                      .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
-                      .slice(0, 6)
-                      .map((m) => (
-                        <Pressable
-                          key={m.id}
-                          onPress={() => {
-                            setAssistantId(m.id);
-                            setAssistantQuery('');
-                          }}
-                          style={{ paddingVertical: 10 }}
-                        >
-                          <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
-                            {m.name}
-                          </Text>
-                        </Pressable>
-                      ))
-                  : null}
-              </>
-            )}
-            <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-              An assistant leader can edit this event but can&apos;t review sign-ups.
-            </Text>
-          </Card>
-
-          {/* ---------- When ---------- */}
-          <SectionTitle>When</SectionTitle>
-          <Card>
-            {/* Single-day uses a quick duration; multi-day uses an explicit end. */}
-            <FieldLabel palette={palette}>Length</FieldLabel>
-            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-              {(
-                [
-                  { value: false, label: 'Single day' },
-                  { value: true, label: 'Multi-day' },
-                ] as const
-              ).map((opt) => {
-                const isActive = opt.value === multiDay;
-                return (
-                  <Pressable
-                    key={String(opt.value)}
-                    testID={`event-multiday-${opt.value ? 'on' : 'off'}`}
-                    onPress={() => {
-                      setMultiDay(opt.value);
-                      setFieldErrors((e) => ({ ...e, duration: undefined, endsAt: undefined }));
-                      // Seed a sensible end (next day, same time) when enabling.
-                      if (opt.value && !endsAt) {
-                        const s = new Date(startsAt);
-                        if (!isNaN(s.getTime())) {
-                          s.setDate(s.getDate() + 1);
-                          setEndsAt(toLocalIsoMinutes(s));
-                        }
-                      }
-                    }}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                        borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </Row>
-
-            <View
-              style={[
-                { marginTop: 14 },
-                wideLayout && !multiDay
-                  ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }
-                  : null,
-              ]}
-            >
-              <View style={wideLayout && !multiDay ? { flex: 2 } : null}>
-                <FieldLabel palette={palette}>Starts at</FieldLabel>
-                <DateTimeField
-                  value={startsAt}
-                  onChange={(v) => {
-                    setStartsAt(v);
-                    if (fieldErrors.startsAt) {
-                      setFieldErrors((e) => ({ ...e, startsAt: undefined }));
+                  value={title}
+                  onChangeText={(t) => {
+                    setTitle(t);
+                    if (fieldErrors.title) {
+                      setFieldErrors((e) => ({ ...e, title: undefined }));
                     }
                   }}
-                  style={fieldStyle('startsAt')}
-                  placeholderColor={palette.muted}
+                  placeholder={titlePlaceholder}
+                  placeholderTextColor={palette.muted}
+                  style={fieldStyle('title')}
                 />
-                <FieldError text={fieldErrors.startsAt} />
-              </View>
-              {!multiDay ? (
-                <View style={[wideLayout ? { flex: 1 } : { marginTop: 14 }]}>
-                  <FieldLabel palette={palette}>Duration (hours)</FieldLabel>
-                  <TextInput
-                    value={durationHours}
-                    onChangeText={(t) => {
-                      setDurationHours(t);
-                      if (fieldErrors.duration) {
-                        setFieldErrors((e) => ({ ...e, duration: undefined }));
-                      }
-                    }}
-                    keyboardType="decimal-pad"
-                    placeholder="2"
-                    placeholderTextColor={palette.muted}
-                    style={fieldStyle('duration')}
-                  />
-                  <FieldError text={fieldErrors.duration} />
-                </View>
-              ) : (
-                <View style={{ marginTop: 14 }}>
-                  <FieldLabel palette={palette}>Ends at</FieldLabel>
-                  <DateTimeField
-                    value={endsAt}
-                    onChange={(v) => {
-                      setEndsAt(v);
-                      if (fieldErrors.endsAt) {
-                        setFieldErrors((e) => ({ ...e, endsAt: undefined }));
-                      }
-                    }}
-                    style={fieldStyle('endsAt')}
-                    placeholderColor={palette.muted}
-                  />
-                  <FieldError text={fieldErrors.endsAt} />
-                </View>
-              )}
-            </View>
+                <FieldError text={fieldErrors.title} />
 
-            {!isEdit ? (
-              <>
                 <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-                  Repeat
+                  Category
                 </FieldLabel>
+                {groupCategories(categories).map((group) => (
+                  <View key={group.label} style={{ marginBottom: 10 }}>
+                    <Text
+                      style={[
+                        styles.groupLabel,
+                        { color: palette.muted, borderColor: palette.border },
+                      ]}
+                    >
+                      {group.label}
+                    </Text>
+                    <View style={styles.chipWrap}>
+                      {group.items.map(({ category, label }) => {
+                        const isActive = category.id === categoryId;
+                        return (
+                          <Pressable
+                            key={category.id}
+                            testID={`category-chip-${category.id}`}
+                            onPress={() => onPickCategory(category)}
+                            style={[
+                              styles.chip,
+                              {
+                                backgroundColor: isActive
+                                  ? OtterPalette.slateNavy
+                                  : palette.surface,
+                                borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                            >
+                              {label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+                {selectedCategory ? (
+                  <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
+                    Default min level: {selectedCategory.default_min_level} · default cost:{' '}
+                    {formatMoney(selectedCategory.default_cost)}
+                  </Text>
+                ) : null}
+                <FieldError text={fieldErrors.category} />
+
+                {(() => {
+                  const opts = gradeOptionsFor(selectedCategory);
+                  if (!opts) {
+                    return null;
+                  }
+                  return (
+                    <>
+                      <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                        Grade
+                      </FieldLabel>
+                      <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                        {opts.map((g) => {
+                          const isActive = g === grade;
+                          return (
+                            <Pressable
+                              key={g}
+                              testID={`grade-chip-${g}`}
+                              onPress={() => setGrade(g)}
+                              style={[
+                                styles.chip,
+                                {
+                                  backgroundColor: isActive
+                                    ? OtterPalette.slateNavy
+                                    : palette.surface,
+                                  borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.chipText,
+                                  { color: isActive ? '#fff' : palette.text },
+                                ]}
+                              >
+                                {g}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </Row>
+                    </>
+                  );
+                })()}
+              </Card>
+
+              {/* ---------- Leaders ---------- */}
+              <SectionTitle>Leaders</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Leader</FieldLabel>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                  {!leaderId || leaderId === session?.user.id
+                    ? 'You'
+                    : (members.find((m) => m.id === leaderId)?.name ?? 'Selected member')}
+                </Text>
+                {roleFlags(profile).paddlingAdmin ? (
+                  <>
+                    <TextInput
+                      value={leaderQuery}
+                      onChangeText={setLeaderQuery}
+                      placeholder="Search to assign a different leader"
+                      placeholderTextColor={palette.muted}
+                      style={[
+                        styles.input,
+                        { color: palette.text, borderColor: palette.border, marginTop: 8 },
+                      ]}
+                    />
+                    {leaderQuery.trim().length >= 2
+                      ? members
+                          .filter((m) => m.id !== leaderId)
+                          .filter((m) => m.search.includes(leaderQuery.trim().toLowerCase()))
+                          .slice(0, 6)
+                          .map((m) => (
+                            <Pressable
+                              key={m.id}
+                              onPress={() => {
+                                setLeaderId(m.id);
+                                setLeaderQuery('');
+                              }}
+                              style={{ paddingVertical: 10 }}
+                            >
+                              <Text
+                                style={{ fontSize: 15, fontWeight: '600', color: palette.text }}
+                              >
+                                {m.name}
+                              </Text>
+                            </Pressable>
+                          ))
+                      : null}
+                  </>
+                ) : null}
+
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  Assistant leader (optional)
+                </FieldLabel>
+                {assistantId ? (
+                  <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: palette.text }}>
+                      {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
+                    </Text>
+                    <Pressable
+                      onPress={() => setAssistantId(null)}
+                      style={[styles.chip, { borderColor: palette.border }]}
+                    >
+                      <Text style={[styles.chipText, { color: palette.text }]}>Clear</Text>
+                    </Pressable>
+                  </Row>
+                ) : (
+                  <>
+                    <TextInput
+                      value={assistantQuery}
+                      onChangeText={setAssistantQuery}
+                      placeholder="Search members to add an assistant leader"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                    {assistantQuery.trim().length >= 2
+                      ? members
+                          .filter((m) => m.id !== session?.user.id && m.id !== leaderId)
+                          .filter((m) => m.search.includes(assistantQuery.trim().toLowerCase()))
+                          .slice(0, 6)
+                          .map((m) => (
+                            <Pressable
+                              key={m.id}
+                              onPress={() => {
+                                setAssistantId(m.id);
+                                setAssistantQuery('');
+                              }}
+                              style={{ paddingVertical: 10 }}
+                            >
+                              <Text
+                                style={{ fontSize: 15, fontWeight: '600', color: palette.text }}
+                              >
+                                {m.name}
+                              </Text>
+                            </Pressable>
+                          ))
+                      : null}
+                  </>
+                )}
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
+                  An assistant leader can edit this event but can&apos;t review sign-ups.
+                </Text>
+              </Card>
+
+              {/* ---------- When ---------- */}
+              <SectionTitle>When</SectionTitle>
+              <Card>
+                {/* Single-day uses a quick duration; multi-day uses an explicit end. */}
+                <FieldLabel palette={palette}>Length</FieldLabel>
                 <Row style={{ gap: 8, flexWrap: 'wrap' }}>
                   {(
                     [
-                      { value: false, label: 'One-off' },
-                      { value: true, label: 'Repeats' },
+                      { value: false, label: 'Single day' },
+                      { value: true, label: 'Multi-day' },
                     ] as const
                   ).map((opt) => {
-                    const isActive = opt.value === repeatEnabled;
+                    const isActive = opt.value === multiDay;
                     return (
                       <Pressable
                         key={String(opt.value)}
-                        testID={`event-repeat-${opt.value ? 'on' : 'off'}`}
-                        onPress={() => setRepeatEnabled(opt.value)}
+                        testID={`event-multiday-${opt.value ? 'on' : 'off'}`}
+                        onPress={() => {
+                          setMultiDay(opt.value);
+                          setFieldErrors((e) => ({ ...e, duration: undefined, endsAt: undefined }));
+                          // Seed a sensible end (next day, same time) when enabling.
+                          if (opt.value && !endsAt) {
+                            const s = new Date(startsAt);
+                            if (!isNaN(s.getTime())) {
+                              s.setDate(s.getDate() + 1);
+                              setEndsAt(toLocalIsoMinutes(s));
+                            }
+                          }
+                        }}
                         style={[
                           styles.chip,
                           {
@@ -1108,16 +1036,85 @@ export default function EventForm(props: EventFormProps) {
                     );
                   })}
                 </Row>
-                {repeatEnabled ? (
-                  <View style={{ marginTop: 12 }}>
+
+                <View
+                  style={[
+                    { marginTop: 14 },
+                    wideLayout && !multiDay
+                      ? { flexDirection: 'row', gap: 12, alignItems: 'flex-start' }
+                      : null,
+                  ]}
+                >
+                  <View style={wideLayout && !multiDay ? { flex: 2 } : null}>
+                    <FieldLabel palette={palette}>Starts at</FieldLabel>
+                    <DateTimeField
+                      value={startsAt}
+                      onChange={(v) => {
+                        setStartsAt(v);
+                        if (fieldErrors.startsAt) {
+                          setFieldErrors((e) => ({ ...e, startsAt: undefined }));
+                        }
+                      }}
+                      style={fieldStyle('startsAt')}
+                      placeholderColor={palette.muted}
+                    />
+                    <FieldError text={fieldErrors.startsAt} />
+                  </View>
+                  {!multiDay ? (
+                    <View style={[wideLayout ? { flex: 1 } : { marginTop: 14 }]}>
+                      <FieldLabel palette={palette}>Duration (hours)</FieldLabel>
+                      <TextInput
+                        value={durationHours}
+                        onChangeText={(t) => {
+                          setDurationHours(t);
+                          if (fieldErrors.duration) {
+                            setFieldErrors((e) => ({ ...e, duration: undefined }));
+                          }
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder="2"
+                        placeholderTextColor={palette.muted}
+                        style={fieldStyle('duration')}
+                      />
+                      <FieldError text={fieldErrors.duration} />
+                    </View>
+                  ) : (
+                    <View style={{ marginTop: 14 }}>
+                      <FieldLabel palette={palette}>Ends at</FieldLabel>
+                      <DateTimeField
+                        value={endsAt}
+                        onChange={(v) => {
+                          setEndsAt(v);
+                          if (fieldErrors.endsAt) {
+                            setFieldErrors((e) => ({ ...e, endsAt: undefined }));
+                          }
+                        }}
+                        style={fieldStyle('endsAt')}
+                        placeholderColor={palette.muted}
+                      />
+                      <FieldError text={fieldErrors.endsAt} />
+                    </View>
+                  )}
+                </View>
+
+                {!isEdit ? (
+                  <>
+                    <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                      Repeat
+                    </FieldLabel>
                     <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-                      {(['weekly', 'fortnightly'] as const).map((freq) => {
-                        const isActive = freq === repeatFrequency;
+                      {(
+                        [
+                          { value: false, label: 'One-off' },
+                          { value: true, label: 'Repeats' },
+                        ] as const
+                      ).map((opt) => {
+                        const isActive = opt.value === repeatEnabled;
                         return (
                           <Pressable
-                            key={freq}
-                            testID={`event-repeat-${freq}`}
-                            onPress={() => setRepeatFrequency(freq)}
+                            key={String(opt.value)}
+                            testID={`event-repeat-${opt.value ? 'on' : 'off'}`}
+                            onPress={() => setRepeatEnabled(opt.value)}
                             style={[
                               styles.chip,
                               {
@@ -1131,367 +1128,450 @@ export default function EventForm(props: EventFormProps) {
                             <Text
                               style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
                             >
-                              {freq === 'weekly' ? 'Every week' : 'Every 2 weeks'}
+                              {opt.label}
                             </Text>
                           </Pressable>
                         );
                       })}
                     </Row>
-                    <FieldLabel palette={palette} style={{ marginTop: 12 }}>
-                      Total occurrences (incl. the first)
-                    </FieldLabel>
-                    <TextInput
-                      value={repeatCount}
-                      onChangeText={(t) => {
-                        setRepeatCount(t);
-                        if (fieldErrors.repeatCount) {
-                          setFieldErrors((e) => ({ ...e, repeatCount: undefined }));
-                        }
-                      }}
-                      keyboardType="number-pad"
-                      testID="event-repeat-count"
-                      placeholder="4"
-                      placeholderTextColor={palette.muted}
-                      style={fieldStyle('repeatCount')}
-                    />
-                    <FieldError text={fieldErrors.repeatCount} />
-                    {occurrencePreview.length > 0 ? (
-                      <View
-                        style={{
-                          marginTop: 10,
-                          padding: 10,
-                          borderRadius: 8,
-                          backgroundColor: palette.surface,
-                          borderWidth: 1,
-                          borderColor: palette.border,
-                        }}
-                      >
-                        <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-                          Preview (first {occurrencePreview.length} of {Number(repeatCount)})
-                        </Text>
-                        {occurrencePreview.map((d, i) => (
-                          <Text
-                            key={i}
-                            style={[styles.body, { color: palette.text, marginTop: 2 }]}
+                    {repeatEnabled ? (
+                      <View style={{ marginTop: 12 }}>
+                        <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                          {(['weekly', 'fortnightly'] as const).map((freq) => {
+                            const isActive = freq === repeatFrequency;
+                            return (
+                              <Pressable
+                                key={freq}
+                                testID={`event-repeat-${freq}`}
+                                onPress={() => setRepeatFrequency(freq)}
+                                style={[
+                                  styles.chip,
+                                  {
+                                    backgroundColor: isActive
+                                      ? OtterPalette.slateNavy
+                                      : palette.surface,
+                                    borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.chipText,
+                                    { color: isActive ? '#fff' : palette.text },
+                                  ]}
+                                >
+                                  {freq === 'weekly' ? 'Every week' : 'Every 2 weeks'}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </Row>
+                        <FieldLabel palette={palette} style={{ marginTop: 12 }}>
+                          Total occurrences (incl. the first)
+                        </FieldLabel>
+                        <TextInput
+                          value={repeatCount}
+                          onChangeText={(t) => {
+                            setRepeatCount(t);
+                            if (fieldErrors.repeatCount) {
+                              setFieldErrors((e) => ({ ...e, repeatCount: undefined }));
+                            }
+                          }}
+                          keyboardType="number-pad"
+                          testID="event-repeat-count"
+                          placeholder="4"
+                          placeholderTextColor={palette.muted}
+                          style={fieldStyle('repeatCount')}
+                        />
+                        <FieldError text={fieldErrors.repeatCount} />
+                        {occurrencePreview.length > 0 ? (
+                          <View
+                            style={{
+                              marginTop: 10,
+                              padding: 10,
+                              borderRadius: 8,
+                              backgroundColor: palette.surface,
+                              borderWidth: 1,
+                              borderColor: palette.border,
+                            }}
                           >
-                            · {formatPreviewDate(d)}
-                          </Text>
-                        ))}
-                        <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
-                          Each occurrence is a separate event with its own sign-ups.
-                        </Text>
+                            <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+                              Preview (first {occurrencePreview.length} of {Number(repeatCount)})
+                            </Text>
+                            {occurrencePreview.map((d, i) => (
+                              <Text
+                                key={i}
+                                style={[styles.body, { color: palette.text, marginTop: 2 }]}
+                              >
+                                · {formatPreviewDate(d)}
+                              </Text>
+                            ))}
+                            <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
+                              Each occurrence is a separate event with its own sign-ups.
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     ) : null}
-                  </View>
+                  </>
                 ) : null}
-              </>
-            ) : null}
-          </Card>
+              </Card>
 
-          {/* ---------- Where ---------- */}
-          <SectionTitle>Where</SectionTitle>
-          <Card>
-            <FieldLabel palette={palette}>Location</FieldLabel>
-            <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g. Loch Lomond, Balmaha"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-            />
-            <Text style={[styles.hint, { color: palette.muted, marginTop: 16 }]}>
-              Meet points (optional) — e.g. collect gear at one place, put the boats in at another.
-              Times are 24h (HH:MM).
-            </Text>
-
-            <Row style={{ gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
-              <View style={{ flex: 2 }}>
-                <FieldLabel palette={palette}>Gear collection</FieldLabel>
+              {/* ---------- Where ---------- */}
+              <SectionTitle>Where</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Location</FieldLabel>
                 <TextInput
-                  value={meetingPoint}
-                  onChangeText={setMeetingPoint}
-                  placeholder="e.g. Club container, Balloch"
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="e.g. Loch Lomond, Balmaha"
                   placeholderTextColor={palette.muted}
                   style={[styles.input, { color: palette.text, borderColor: palette.border }]}
                 />
-              </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel palette={palette}>Time</FieldLabel>
-                <TextInput
-                  value={meetingTime}
-                  onChangeText={(t) => {
-                    setMeetingTime(t);
-                    if (fieldErrors.meetingTime) {
-                      setFieldErrors((e) => ({ ...e, meetingTime: undefined }));
-                    }
-                  }}
-                  placeholder="18:00"
-                  placeholderTextColor={palette.muted}
-                  style={fieldStyle('meetingTime')}
-                />
-              </View>
-            </Row>
-            <FieldError text={fieldErrors.meetingTime} />
-
-            <Row style={{ gap: 12, marginTop: 12, alignItems: 'flex-start' }}>
-              <View style={{ flex: 2 }}>
-                <FieldLabel palette={palette}>Put-in</FieldLabel>
-                <TextInput
-                  value={putInPoint}
-                  onChangeText={setPutInPoint}
-                  placeholder="e.g. Loch Ard village hall"
-                  placeholderTextColor={palette.muted}
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel palette={palette}>Time</FieldLabel>
-                <TextInput
-                  value={putInTime}
-                  onChangeText={(t) => {
-                    setPutInTime(t);
-                    if (fieldErrors.putInTime) {
-                      setFieldErrors((e) => ({ ...e, putInTime: undefined }));
-                    }
-                  }}
-                  placeholder="18:45"
-                  placeholderTextColor={palette.muted}
-                  style={fieldStyle('putInTime')}
-                />
-              </View>
-            </Row>
-            <FieldError text={fieldErrors.putInTime} />
-          </Card>
-
-          {/* ---------- Capacity & cost ---------- */}
-          <SectionTitle>Capacity & cost</SectionTitle>
-          <Card>
-            <FieldLabel palette={palette}>Minimum level</FieldLabel>
-            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-              {LEVELS.map((lv) => {
-                const isActive = lv === minLevel;
-                return (
-                  <Pressable
-                    key={lv}
-                    onPress={() => {
-                      setMinLevel(lv);
-                      setMinLevelTouched(true);
-                    }}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                        borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
-                      {LEVEL_EMOJI[lv]} {lv}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </Row>
-
-            <Row style={{ gap: 12, marginTop: 14 }}>
-              <View style={{ flex: 1 }}>
-                <FieldLabel palette={palette}>Max participants</FieldLabel>
-                <TextInput
-                  value={maxParticipants}
-                  onChangeText={(t) => {
-                    setMaxParticipants(t);
-                    if (fieldErrors.maxParticipants) {
-                      setFieldErrors((e) => ({ ...e, maxParticipants: undefined }));
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  placeholder="no cap"
-                  placeholderTextColor={palette.muted}
-                  style={fieldStyle('maxParticipants')}
-                />
-                <FieldError text={fieldErrors.maxParticipants} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel palette={palette}>Cost (£)</FieldLabel>
-                <TextInput
-                  value={cost}
-                  onChangeText={(t) => {
-                    setCost(t);
-                    if (fieldErrors.cost) {
-                      setFieldErrors((e) => ({ ...e, cost: undefined }));
-                    }
-                  }}
-                  keyboardType="decimal-pad"
-                  placeholder="0"
-                  placeholderTextColor={palette.muted}
-                  style={fieldStyle('cost')}
-                />
-                <FieldError text={fieldErrors.cost} />
-              </View>
-            </Row>
-
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              Approval mode
-            </FieldLabel>
-            <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-              {(['auto', 'manual_all'] as const).map((mode) => {
-                const isActive = mode === approvalMode;
-                return (
-                  <Pressable
-                    key={mode}
-                    onPress={() => setApprovalMode(mode)}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                        borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}>
-                      {mode === 'auto' ? 'Auto-approve (uses ceiling)' : 'Manual review all'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </Row>
-          </Card>
-
-          {/* ---------- Photo & description ---------- */}
-          <SectionTitle>Photo & description</SectionTitle>
-          <Card>
-            <FieldLabel palette={palette}>Photo (optional)</FieldLabel>
-            {photoAsset ? (
-              <Image
-                source={{ uri: photoAsset.uri }}
-                style={styles.photoPreview}
-                contentFit="cover"
-              />
-            ) : selectedSuggestion ? (
-              <EventPhoto path={selectedSuggestion} height={140} style={{ marginBottom: 10 }} />
-            ) : showExistingPhoto ? (
-              <EventPhoto path={originalPhotoPath} height={140} style={{ marginBottom: 10 }} />
-            ) : null}
-            <Row style={{ gap: 8 }}>
-              <Pressable
-                testID="event-pick-photo"
-                onPress={onPickPhoto}
-                style={[
-                  styles.chip,
-                  { backgroundColor: palette.surface, borderColor: palette.border },
-                ]}
-              >
-                <Text style={[styles.chipText, { color: palette.text }]}>
-                  {photoAsset || selectedSuggestion || originalPhotoPath
-                    ? 'Change photo'
-                    : 'Pick photo'}
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 16 }]}>
+                  Meet points (optional) — e.g. collect gear at one place, put the boats in at
+                  another. Times are 24h (HH:MM).
                 </Text>
-              </Pressable>
-              {photoAsset || selectedSuggestion || (originalPhotoPath && !removePhotoFlag) ? (
-                <Pressable
-                  onPress={onClearPhoto}
-                  style={[
-                    styles.chip,
-                    { backgroundColor: palette.surface, borderColor: palette.border },
-                  ]}
-                >
-                  <Text style={[styles.chipText, { color: palette.muted }]}>Remove</Text>
-                </Pressable>
-              ) : null}
-            </Row>
 
-            {photoSuggestions.length > 0 && !photoAsset ? (
-              <View style={{ marginTop: 12 }}>
-                <FieldLabel palette={palette}>Reuse a photo from a similar event</FieldLabel>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
-                >
-                  {photoSuggestions.map((path) => {
-                    const isSel = path === selectedSuggestion;
+                <Row style={{ gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
+                  <View style={{ flex: 2 }}>
+                    <FieldLabel palette={palette}>Gear collection</FieldLabel>
+                    <TextInput
+                      value={meetingPoint}
+                      onChangeText={setMeetingPoint}
+                      placeholder="e.g. Club container, Balloch"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <FieldLabel palette={palette}>Time</FieldLabel>
+                    <TextInput
+                      value={meetingTime}
+                      onChangeText={(t) => {
+                        setMeetingTime(t);
+                        if (fieldErrors.meetingTime) {
+                          setFieldErrors((e) => ({ ...e, meetingTime: undefined }));
+                        }
+                      }}
+                      placeholder="18:00"
+                      placeholderTextColor={palette.muted}
+                      style={fieldStyle('meetingTime')}
+                    />
+                  </View>
+                </Row>
+                <FieldError text={fieldErrors.meetingTime} />
+
+                <Row style={{ gap: 12, marginTop: 12, alignItems: 'flex-start' }}>
+                  <View style={{ flex: 2 }}>
+                    <FieldLabel palette={palette}>Put-in</FieldLabel>
+                    <TextInput
+                      value={putInPoint}
+                      onChangeText={setPutInPoint}
+                      placeholder="e.g. Loch Ard village hall"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <FieldLabel palette={palette}>Time</FieldLabel>
+                    <TextInput
+                      value={putInTime}
+                      onChangeText={(t) => {
+                        setPutInTime(t);
+                        if (fieldErrors.putInTime) {
+                          setFieldErrors((e) => ({ ...e, putInTime: undefined }));
+                        }
+                      }}
+                      placeholder="18:45"
+                      placeholderTextColor={palette.muted}
+                      style={fieldStyle('putInTime')}
+                    />
+                  </View>
+                </Row>
+                <FieldError text={fieldErrors.putInTime} />
+              </Card>
+            </>
+          )}
+
+          {(!isCreate || step === 2) && (
+            <>
+              {/* ---------- Capacity & cost ---------- */}
+              <SectionTitle>Capacity & cost</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Minimum level</FieldLabel>
+                <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {LEVELS.map((lv) => {
+                    const isActive = lv === minLevel;
                     return (
                       <Pressable
-                        key={path}
-                        onPress={() => onPickSuggestion(path)}
-                        testID={`photo-suggestion-${path}`}
-                        style={{
-                          borderWidth: 2,
-                          borderRadius: 12,
-                          borderColor: isSel ? OtterPalette.slateNavy : 'transparent',
+                        key={lv}
+                        onPress={() => {
+                          setMinLevel(lv);
+                          setMinLevelTouched(true);
                         }}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                          },
+                        ]}
                       >
-                        <EventPhoto path={path} height={80} thumb />
+                        <Text
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
+                          {LEVEL_EMOJI[lv]} {lv}
+                        </Text>
                       </Pressable>
                     );
                   })}
-                </ScrollView>
-              </View>
-            ) : null}
+                </Row>
 
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              Description (optional)
-            </FieldLabel>
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              placeholder="What members should know"
-              placeholderTextColor={palette.muted}
-              style={[
-                styles.input,
-                {
-                  color: palette.text,
-                  borderColor: palette.border,
-                  minHeight: 100,
-                  textAlignVertical: 'top',
-                },
-              ]}
-            />
+                <Row style={{ gap: 12, marginTop: 14 }}>
+                  <View style={{ flex: 1 }}>
+                    <FieldLabel palette={palette}>Max participants</FieldLabel>
+                    <TextInput
+                      value={maxParticipants}
+                      onChangeText={(t) => {
+                        setMaxParticipants(t);
+                        if (fieldErrors.maxParticipants) {
+                          setFieldErrors((e) => ({ ...e, maxParticipants: undefined }));
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      placeholder="no cap"
+                      placeholderTextColor={palette.muted}
+                      style={fieldStyle('maxParticipants')}
+                    />
+                    <FieldError text={fieldErrors.maxParticipants} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <FieldLabel palette={palette}>Cost (£)</FieldLabel>
+                    <TextInput
+                      value={cost}
+                      onChangeText={(t) => {
+                        setCost(t);
+                        if (fieldErrors.cost) {
+                          setFieldErrors((e) => ({ ...e, cost: undefined }));
+                        }
+                      }}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor={palette.muted}
+                      style={fieldStyle('cost')}
+                    />
+                    <FieldError text={fieldErrors.cost} />
+                  </View>
+                </Row>
 
-            <FieldLabel palette={palette} style={{ marginTop: 14 }}>
-              What to bring (optional)
-            </FieldLabel>
-            <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
-              Load a standard list, then edit as needed — or type your own. One item per line; a
-              line ending in a colon becomes a heading.
-            </Text>
-            <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              {KIT_TEMPLATES.map((t) => (
-                <Pressable
-                  key={t.key}
-                  onPress={() => {
-                    setWhatToBring(t.text);
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  Approval mode
+                </FieldLabel>
+                <Row style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {(['auto', 'manual_all'] as const).map((mode) => {
+                    const isActive = mode === approvalMode;
+                    return (
+                      <Pressable
+                        key={mode}
+                        onPress={() => setApprovalMode(mode)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
+                        >
+                          {mode === 'auto' ? 'Auto-approve (uses ceiling)' : 'Manual review all'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </Row>
+              </Card>
+            </>
+          )}
+
+          {(!isCreate || step === 3) && (
+            <>
+              {/* ---------- Photo & description ---------- */}
+              <SectionTitle>Photo & description</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Photo (optional)</FieldLabel>
+                {photoAsset ? (
+                  <Image
+                    source={{ uri: photoAsset.uri }}
+                    style={styles.photoPreview}
+                    contentFit="cover"
+                  />
+                ) : selectedSuggestion ? (
+                  <EventPhoto path={selectedSuggestion} height={140} style={{ marginBottom: 10 }} />
+                ) : showExistingPhoto ? (
+                  <EventPhoto path={originalPhotoPath} height={140} style={{ marginBottom: 10 }} />
+                ) : null}
+                <Row style={{ gap: 8 }}>
+                  <Pressable
+                    testID="event-pick-photo"
+                    onPress={onPickPhoto}
+                    style={[
+                      styles.chip,
+                      { backgroundColor: palette.surface, borderColor: palette.border },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: palette.text }]}>
+                      {photoAsset || selectedSuggestion || originalPhotoPath
+                        ? 'Change photo'
+                        : 'Pick photo'}
+                    </Text>
+                  </Pressable>
+                  {photoAsset || selectedSuggestion || (originalPhotoPath && !removePhotoFlag) ? (
+                    <Pressable
+                      onPress={onClearPhoto}
+                      style={[
+                        styles.chip,
+                        { backgroundColor: palette.surface, borderColor: palette.border },
+                      ]}
+                    >
+                      <Text style={[styles.chipText, { color: palette.muted }]}>Remove</Text>
+                    </Pressable>
+                  ) : null}
+                </Row>
+
+                {photoSuggestions.length > 0 && !photoAsset ? (
+                  <View style={{ marginTop: 12 }}>
+                    <FieldLabel palette={palette}>Reuse a photo from a similar event</FieldLabel>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
+                    >
+                      {photoSuggestions.map((path) => {
+                        const isSel = path === selectedSuggestion;
+                        return (
+                          <Pressable
+                            key={path}
+                            onPress={() => onPickSuggestion(path)}
+                            testID={`photo-suggestion-${path}`}
+                            style={{
+                              borderWidth: 2,
+                              borderRadius: 12,
+                              borderColor: isSel ? OtterPalette.slateNavy : 'transparent',
+                            }}
+                          >
+                            <EventPhoto path={path} height={80} thumb />
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                ) : null}
+
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  Description (optional)
+                </FieldLabel>
+                <TextInput
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  placeholder="What members should know"
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.input,
+                    {
+                      color: palette.text,
+                      borderColor: palette.border,
+                      minHeight: 100,
+                      textAlignVertical: 'top',
+                    },
+                  ]}
+                />
+
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  What to bring (optional)
+                </FieldLabel>
+                <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+                  Load a standard list, then edit as needed — or type your own. One item per line; a
+                  line ending in a colon becomes a heading.
+                </Text>
+                <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                  {KIT_TEMPLATES.map((t) => (
+                    <Pressable
+                      key={t.key}
+                      onPress={() => {
+                        setWhatToBring(t.text);
+                        setWhatToBringTouched(true);
+                      }}
+                      style={[styles.chip, { borderColor: palette.border }]}
+                    >
+                      <Text style={[styles.chipText, { color: palette.text }]}>{t.label}</Text>
+                    </Pressable>
+                  ))}
+                </Row>
+                <TextInput
+                  value={whatToBring}
+                  onChangeText={(t) => {
+                    setWhatToBring(t);
                     setWhatToBringTouched(true);
                   }}
-                  style={[styles.chip, { borderColor: palette.border }]}
-                >
-                  <Text style={[styles.chipText, { color: palette.text }]}>{t.label}</Text>
-                </Pressable>
-              ))}
-            </Row>
-            <TextInput
-              value={whatToBring}
-              onChangeText={(t) => {
-                setWhatToBring(t);
-                setWhatToBringTouched(true);
-              }}
-              multiline
-              numberOfLines={4}
-              placeholder={'Personal:\nBuoyancy aid\nSpray deck\nWarm layers'}
-              placeholderTextColor={palette.muted}
-              style={[
-                styles.input,
-                {
-                  color: palette.text,
-                  borderColor: palette.border,
-                  minHeight: 120,
-                  textAlignVertical: 'top',
-                },
-              ]}
-            />
-          </Card>
+                  multiline
+                  numberOfLines={4}
+                  placeholder={'Personal:\nBuoyancy aid\nSpray deck\nWarm layers'}
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.input,
+                    {
+                      color: palette.text,
+                      borderColor: palette.border,
+                      minHeight: 120,
+                      textAlignVertical: 'top',
+                    },
+                  ]}
+                />
+              </Card>
+            </>
+          )}
+
+          {isCreate && step === 4 ? (
+            <>
+              <SectionTitle>Review</SectionTitle>
+              <Card>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: palette.text }}>
+                  {title.trim() || 'Untitled event'}
+                </Text>
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 4 }]}>
+                  {categories.find((c) => c.id === categoryId)?.name ?? 'No category'}
+                  {grade ? ` · ${grade}` : ''}
+                </Text>
+                <Text style={{ color: palette.text, marginTop: 10 }}>
+                  🗓 {formatPreviewDate(new Date(startsAt))}
+                </Text>
+                {location.trim() ? (
+                  <Text style={{ color: palette.text, marginTop: 4 }}>📍 {location.trim()}</Text>
+                ) : null}
+                <Text style={{ color: palette.text, marginTop: 4 }}>
+                  🧑‍🏫{'  '}
+                  {leaderId === session?.user.id || !leaderId
+                    ? 'You'
+                    : (members.find((m) => m.id === leaderId)?.name ?? 'Leader')}
+                  {assistantId
+                    ? ` + ${members.find((m) => m.id === assistantId)?.name ?? 'assistant'}`
+                    : ''}
+                </Text>
+                <Text style={{ color: palette.text, marginTop: 4 }}>
+                  {Number(cost) > 0 ? `£${cost}` : 'Free'}
+                  {maxParticipants ? ` · up to ${maxParticipants} paddlers` : ''}
+                </Text>
+                <Text style={[styles.hint, { color: palette.muted, marginTop: 12 }]}>
+                  Press Publish to create the event. You can edit any of it afterwards.
+                </Text>
+              </Card>
+            </>
+          ) : null}
 
           {/* ---------- Status (edit only) ---------- */}
           {isEdit ? (
@@ -1592,21 +1672,68 @@ export default function EventForm(props: EventFormProps) {
               {error}
             </Text>
           ) : null}
-          <Pressable
-            testID={isEdit ? 'event-edit-submit' : 'event-create-submit'}
-            onPress={busy ? undefined : submit}
-            disabled={busy}
-            style={[
-              styles.primaryBtn,
-              { backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.7 : 1 },
-            ]}
-          >
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryBtnText}>{submitLabel}</Text>
-            )}
-          </Pressable>
+          {isCreate ? (
+            <Row style={{ gap: 10 }}>
+              {step > 1 ? (
+                <Pressable
+                  testID="event-step-back"
+                  onPress={() => setStep(step - 1)}
+                  style={[
+                    styles.primaryBtn,
+                    {
+                      flex: 1,
+                      backgroundColor: palette.surface,
+                      borderWidth: 1.5,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.primaryBtnText, { color: palette.text }]}>Back</Text>
+                </Pressable>
+              ) : null}
+              {step < 4 ? (
+                <Pressable
+                  testID="event-step-next"
+                  onPress={() => setStep(step + 1)}
+                  style={[styles.primaryBtn, { flex: 1, backgroundColor: OtterPalette.slateNavy }]}
+                >
+                  <Text style={styles.primaryBtnText}>Next</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  testID="event-create-submit"
+                  onPress={busy ? undefined : submit}
+                  disabled={busy}
+                  style={[
+                    styles.primaryBtn,
+                    { flex: 1, backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.7 : 1 },
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Publish event</Text>
+                  )}
+                </Pressable>
+              )}
+            </Row>
+          ) : (
+            <Pressable
+              testID="event-edit-submit"
+              onPress={busy ? undefined : submit}
+              disabled={busy}
+              style={[
+                styles.primaryBtn,
+                { backgroundColor: OtterPalette.slateNavy, opacity: busy ? 0.7 : 1 },
+              ]}
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{submitLabel}</Text>
+              )}
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
