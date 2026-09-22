@@ -81,9 +81,10 @@ export default function MembershipImportScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 12 }}>
         <Card>
           <Text style={[styles.body, { color: palette.text }]}>
-            Paste the member list copied from MemberMojo — one member per line, each with their
-            email and renewal/expiry date (tab- or comma-separated). Importing replaces the whole
-            list and re-checks everyone's membership.
+            Paste the members export from MemberMojo — the whole CSV is fine (email, "Expires on"
+            and "Membership state" columns are picked out automatically). Only members whose state
+            is Active are imported. Importing replaces the whole list and re-checks everyone's
+            membership.
           </Text>
         </Card>
 
@@ -106,11 +107,11 @@ export default function MembershipImportScreen() {
         {paste.trim() ? (
           <Card>
             <Text style={[styles.body, { color: palette.text }]}>
-              {parsed.rows.length} member{parsed.rows.length === 1 ? '' : 's'} detected
-              {parsed.noDate > 0
-                ? ` · ${parsed.noDate} with no readable date (they'll have no expiry)`
-                : ' · all with an expiry date'}
-              .
+              {parsed.rows.length} active member{parsed.rows.length === 1 ? '' : 's'} detected
+              {parsed.skippedInactive > 0
+                ? ` · ${parsed.skippedInactive} skipped (not active)`
+                : ''}
+              {parsed.noDate > 0 ? ` · ${parsed.noDate} with no readable expiry date` : ''}.
             </Text>
           </Card>
         ) : null}

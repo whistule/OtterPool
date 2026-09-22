@@ -1,11 +1,15 @@
 // Parsing for the membership-verification import screen.
 //
-// The membership admin copies two columns out of MemberMojo — email and the
-// member's renewal/expiry date — and pastes them in. MemberMojo copies as
-// tab-separated columns, but people also paste commas or stray spacing, and
-// dates come in UK order (30/09/2027) or ISO. This turns that mess into a
-// clean [{ email, expires }] array for `import_verified_members`, with dates
-// normalised to ISO 'YYYY-MM-DD' (expires is null when no date was parseable).
+// The membership admin exports the current members from MemberMojo and pastes
+// them in. That export is a full CSV with many columns, quoted fields that
+// contain commas and newlines, and (crucially) several date columns — so we
+// can't just grab "the first date" (that's Date of birth). We read the header
+// row and pull the Email, "Expires on" and "Membership state" columns by name,
+// keeping only rows whose state is Active (paid up). A simpler two-column paste
+// (email + date, tab- or comma-separated, no header) still works as a fallback.
+//
+// Output is a clean [{ email, expires }] array for `import_verified_members`,
+// dates normalised to ISO 'YYYY-MM-DD' (expires null when none was parseable).
 
 export type ParsedMemberRow = { email: string; expires: string | null };
 
@@ -13,6 +17,7 @@ export type ParseResult = {
   rows: ParsedMemberRow[];
   withDate: number; // rows that carried a parseable expiry
   noDate: number; // rows with an email but no usable date
+  skippedInactive: number; // export rows dropped because state wasn't Active
 };
 
 const MONTHS: Record<string, number> = {
@@ -58,17 +63,14 @@ export function parseMemberDate(raw: string): string | null {
   if (!s) {
     return null;
   }
-  // ISO first — unambiguous.
   const isoM = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
   if (isoM) {
     return iso(Number(isoM[1]), Number(isoM[2]), Number(isoM[3]));
   }
-  // UK numeric: day first.
   const ukM = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/.exec(s);
   if (ukM) {
     return iso(Number(ukM[3]), Number(ukM[2]), Number(ukM[1]));
   }
-  // Spelled month: "30 Sep 2027" / "30 September 2027" / "Sep 30 2027".
   const words = s.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
   if (words.length === 3) {
     const nums = words.filter((w) => /^\d+$/.test(w)).map(Number);
@@ -79,11 +81,8 @@ export function parseMemberDate(raw: string): string | null {
       ? (MONTHS[monWord.slice(0, 4).toLowerCase()] ?? MONTHS[monWord.slice(0, 3).toLowerCase()])
       : undefined;
     if (month && nums.length === 2) {
-      // Bigger number is the year; the other is the day.
       const [a, b] = nums;
-      const year = Math.max(a, b);
-      const day = Math.min(a, b);
-      return iso(year, month, day);
+      return iso(Math.max(a, b), month, Math.min(a, b));
     }
   }
   return null;
@@ -92,25 +91,119 @@ export function parseMemberDate(raw: string): string | null {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Parse a full paste into clean rows. Each non-blank line is split on
- * tabs/commas (or whitespace as a fallback); the email is the token that looks
- * like one, the expiry is the first other token that parses as a date. Lines
- * with no email are dropped; emails are lowercased and de-duped (keeping the
- * furthest expiry).
+ * A minimal RFC-4180-ish CSV tokeniser: handles quoted fields, commas and
+ * newlines inside quotes, and "" escapes. Returns rows of raw string fields.
  */
-export function parseMemberPaste(text: string): ParseResult {
-  const byEmail = new Map<string, string | null>();
-  let noDate = 0;
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  let sawContent = false;
 
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inQuotes = true;
+      sawContent = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+      sawContent = true;
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') {
+        i++;
+      }
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+      sawContent = false;
+    } else {
+      field += c;
+      sawContent = true;
+    }
+  }
+  if (sawContent || field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function dedupe(pairs: ParsedMemberRow[], skippedInactive: number): ParseResult {
+  const byEmail = new Map<string, string | null>();
+  for (const { email, expires } of pairs) {
+    const existing = byEmail.get(email);
+    // Keep the furthest expiry when an email appears more than once.
+    if (existing === undefined || (expires && (!existing || expires > existing))) {
+      byEmail.set(email, expires);
+    }
+  }
+  const rows: ParsedMemberRow[] = [];
+  let noDate = 0;
+  for (const [email, expires] of byEmail) {
+    rows.push({ email, expires });
+    if (!expires) {
+      noDate += 1;
+    }
+  }
+  return { rows, withDate: rows.length - noDate, noDate, skippedInactive };
+}
+
+/** Header-driven path: a real MemberMojo CSV export with named columns. */
+function fromExport(
+  table: string[][],
+  emailIdx: number,
+  expiresIdx: number,
+  stateIdx: number,
+): ParseResult {
+  const pairs: ParsedMemberRow[] = [];
+  let skippedInactive = 0;
+  for (const cells of table) {
+    const email = (cells[emailIdx] ?? '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) {
+      continue;
+    }
+    // Only paid-up members. A blank state is treated as active (some exports
+    // omit it); anything else present must read "active".
+    if (stateIdx !== -1) {
+      const state = (cells[stateIdx] ?? '').trim().toLowerCase();
+      if (state && state !== 'active') {
+        skippedInactive += 1;
+        continue;
+      }
+    }
+    const expires = expiresIdx !== -1 ? parseMemberDate(cells[expiresIdx] ?? '') : null;
+    pairs.push({ email, expires });
+  }
+  return dedupe(pairs, skippedInactive);
+}
+
+/** Fallback: a headerless paste of email + optional date per line. */
+function fromLoose(text: string): ParseResult {
+  const pairs: ParsedMemberRow[] = [];
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) {
       continue;
     }
-    const tokens = (/[\t,]/.test(trimmed) ? trimmed.split(/[\t,]+/) : trimmed.split(/\s{2,}|\s/))
+    const tokens = (/[\t,]/.test(trimmed) ? trimmed.split(/[\t,]+/) : trimmed.split(/\s+/))
       .map((t) => t.trim())
       .filter(Boolean);
-
     const email = tokens.find((t) => EMAIL_RE.test(t))?.toLowerCase();
     if (!email) {
       continue;
@@ -126,21 +219,31 @@ export function parseMemberPaste(text: string): ParseResult {
         break;
       }
     }
-    // Keep the furthest expiry if the same email appears twice.
-    const existing = byEmail.get(email);
-    if (existing === undefined) {
-      byEmail.set(email, expires);
-    } else if (expires && (!existing || expires > existing)) {
-      byEmail.set(email, expires);
-    }
+    pairs.push({ email, expires });
   }
+  return dedupe(pairs, 0);
+}
 
-  const rows: ParsedMemberRow[] = [];
-  for (const [email, expires] of byEmail) {
-    rows.push({ email, expires });
-    if (!expires) {
-      noDate += 1;
-    }
+/**
+ * Parse a paste into clean, de-duped rows. Detects a MemberMojo CSV export by
+ * its "Email" header column and reads Email / "Expires on" / "Membership
+ * state" by name (Active rows only); otherwise falls back to a simple
+ * email(+date) per line.
+ */
+export function parseMemberPaste(text: string): ParseResult {
+  if (!text.trim()) {
+    return { rows: [], withDate: 0, noDate: 0, skippedInactive: 0 };
   }
-  return { rows, withDate: rows.length - noDate, noDate };
+  const table = parseCsv(text);
+  const header = (table[0] ?? []).map((c) => c.trim().toLowerCase());
+  const emailIdx = header.indexOf('email');
+  if (emailIdx !== -1) {
+    return fromExport(
+      table.slice(1),
+      emailIdx,
+      header.indexOf('expires on'),
+      header.indexOf('membership state'),
+    );
+  }
+  return fromLoose(text);
 }

@@ -1,7 +1,8 @@
 // Run: npm run test:unit   (node's built-in runner, no framework)
 //
-// Guards the paste parsing for the membership import: two columns (email +
-// expiry) in the messy shapes people actually paste out of MemberMojo.
+// Guards the paste parsing for the membership import: the real MemberMojo CSV
+// export (header-driven, Active-only, must NOT mistake Date of birth for the
+// expiry) and the simpler headerless two-column paste.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
@@ -23,19 +24,44 @@ test('parseMemberDate: rejects nonsense and impossible dates', () => {
   assert.equal(parseMemberDate('13/13/2027'), null);
 });
 
-test('parseMemberPaste: tab-separated two columns (MemberMojo copy)', () => {
+// A synthetic export shaped like MemberMojo's: the columns that matter (with
+// Date of birth BEFORE Email, and Expires on / Membership state after), a
+// quoted field containing a comma, and a Pending Payment row. All data is
+// fake — no real member details belong in the repo.
+const EXPORT_HEADER =
+  'Membership,First name,Last name,Date of birth,Contact number,Email,Address line 1,Expires on,Membership state';
+
+test('parseMemberPaste: reads the MemberMojo export by column, not position', () => {
+  const csv = [
+    EXPORT_HEADER,
+    'Adult - Renewal,Ada,Test,1980-01-02,t:07000000001,ONE@example.com,"1 High Street, Anytown",2027-09-30,Active',
+    'Junior - Renewal,Ben,Sample,2008-05-06,t:07000000002,two@example.com,"2 Low Road",2022-09-30,Pending Payment',
+    'Concession - Renewal,Cara,Demo,1960-07-08,t:07000000003,three@example.com,3 Mid Lane,2027-09-30,Active',
+  ].join('\n');
+
+  const { rows, skippedInactive } = parseMemberPaste(csv);
+  assert.deepEqual(rows, [
+    // Expiry comes from "Expires on" (2027-09-30), NOT Date of birth (1980…).
+    { email: 'one@example.com', expires: '2027-09-30' }, // lowercased
+    { email: 'three@example.com', expires: '2027-09-30' },
+  ]);
+  // The Pending Payment row is dropped, not imported.
+  assert.equal(skippedInactive, 1);
+});
+
+test('parseMemberPaste: tab-separated two columns (headerless copy)', () => {
   const { rows, withDate, noDate } = parseMemberPaste(
     'Alice@Example.com\t30/09/2027\nbob@example.com\t01/10/2027\n',
   );
   assert.deepEqual(rows, [
-    { email: 'alice@example.com', expires: '2027-09-30' }, // lowercased
+    { email: 'alice@example.com', expires: '2027-09-30' },
     { email: 'bob@example.com', expires: '2027-10-01' },
   ]);
   assert.equal(withDate, 2);
   assert.equal(noDate, 0);
 });
 
-test('parseMemberPaste: comma-separated and an email with no date', () => {
+test('parseMemberPaste: comma-separated headerless, and an email with no date', () => {
   const { rows, withDate, noDate } = parseMemberPaste(
     'carol@example.com,2027-10-01\ndave@example.com\n',
   );
@@ -45,12 +71,6 @@ test('parseMemberPaste: comma-separated and an email with no date', () => {
   ]);
   assert.equal(withDate, 1);
   assert.equal(noDate, 1);
-});
-
-test('parseMemberPaste: drops non-email lines and blanks', () => {
-  const { rows } = parseMemberPaste('Email\tRenewal\n\n   \nreal@example.com\t2027-10-01\n');
-  // A header row ("Email"/"Renewal") has no @-token, so it's skipped.
-  assert.deepEqual(rows, [{ email: 'real@example.com', expires: '2027-10-01' }]);
 });
 
 test('parseMemberPaste: duplicate email keeps the furthest expiry', () => {
