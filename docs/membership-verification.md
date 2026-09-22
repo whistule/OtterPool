@@ -346,17 +346,23 @@ an aspirant branch that counts their trials and, on the 4th sign-up, returns a
 "join to continue" prompt instead of confirming. It layers **on top of** the
 existing level check (level first, then the cap).
 
-**Count rule (decided):** the tally is **sign-ups, not attendance**, and a
-**cancellation still counts** (no freed slot) — an aspirant gets **3 sign-ups
-total** and can't game it by signing up and cancelling.
+**Count rule (revised):** a trial is used only by a place the aspirant
+**actually holds** — `confirmed`, `pending_review`, or `waitlisted`. A place
+they **cancelled** (`withdrawn`), a **leader-declined** request, and a **paid
+sign-up they never paid for** (`pending_payment`) do **not** count. So
+cancelling or not paying frees the trial, and — the point that prompted this —
+a paid sign-up isn't "complete" for the cap until it's actually paid.
 
-**Implementation (verified):** `cancel-signup` flips a row to `withdrawn` — it
-does *not* delete it — and there's one `event_signups` row per (member, event)
-(a withdrawn row even blocks re-signing to the same event). So the count is just
-`count(event_signups where member_id = X)` **including withdrawn rows** — **no
-separate counter needed**. The cap is only checked for aspirants, so post-join
-sign-ups don't matter. One edge to confirm: does a **leader-declined** sign-up
-count? (Probably not — they never got the session.)
+**Implementation:** `count(event_signups where member_id = X and status in
+('confirmed','pending_review','waitlisted'))`. This is the same expression in
+both the `sign-up` edge-function cap (`countTrialSignups`) and `my_membership()`
+(the banner's counter). The cap is only checked for aspirants creating a *new*
+row (rejoining an event they already have a row for is exempt), so post-join
+sign-ups don't matter.
+
+> Supersedes the earlier "a cancellation still counts" decision — a member who
+> signs up and cancels (or never pays) hasn't taken a session, so it shouldn't
+> burn a trial.
 
 None of this changes the enforcement model — the level gate and the trial cap
 are both server-side in the `sign-up` function. The UX just surfaces state and a
