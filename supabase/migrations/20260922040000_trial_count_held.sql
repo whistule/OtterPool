@@ -38,3 +38,7 @@ begin
   return jsonb_build_object('status', v_status, 'expires_on', v_expires, 'trials_used', v_trials);
 end;
 $$;
+
+-- Idempotent grants (in case this runs before 20260922030000 ever did).
+revoke all on function public.my_membership() from public, anon;
+grant execute on function public.my_membership() to authenticated;
