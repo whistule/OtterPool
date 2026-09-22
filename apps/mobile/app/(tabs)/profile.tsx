@@ -648,8 +648,8 @@ export default function ProfileScreen() {
                   ))
                 ) : (
                   <Text style={[styles.empty, { color: palette.muted }]}>
-                    New to OtterPool, or joining from another club? Answer a few questions about
-                    your paddling so a coach can set your level.
+                    Been paddling a while, or joining from another club? Tell us about it — answer a
+                    few questions and a coach can help establish your level.
                   </Text>
                 )}
                 {profile.experience_review_requested ? (
