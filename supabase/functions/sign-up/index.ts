@@ -87,11 +87,11 @@ Deno.serve(async (req) => {
     }
 
     // Aspirants (prospective members not yet matched to the paid list) get a
-    // 3-event trial, then must join. The cap counts distinct events they've
-    // signed up to — a withdrawn row still counts (no gaming it by signing up
-    // and cancelling); a leader-declined row doesn't (they never got a place).
-    // Rejoining an event they already have a row for isn't a new event, so a
-    // held/withdrawn row for THIS event is exempt.
+    // 3-event trial, then must join. A trial is used only by a place they
+    // actually hold — confirmed, awaiting review, or waitlisted. A place they
+    // cancelled (withdrawn), a leader-declined request, or a paid sign-up they
+    // never paid for (pending_payment) does NOT use one. Rejoining an event
+    // they already have a row for isn't a new event either.
     if (profile.status === 'aspirant' && !existing) {
       const used = await countTrialSignups(admin, user.id);
       if (used >= TRIAL_LIMIT) {
@@ -225,16 +225,18 @@ async function loadExistingSignup(
 }
 
 /**
- * Trial usage for the aspirant cap: distinct events the member has signed up
- * to, excluding leader-declined rows. One row per (event, member), so a plain
- * row count is the number of events.
+ * Trial usage for the aspirant cap: places the member actually holds —
+ * confirmed, awaiting review, or waitlisted. Cancelled (withdrawn), declined,
+ * and never-paid (pending_payment) sign-ups don't count, so cancelling or not
+ * paying frees the trial. One row per (event, member), so the row count is the
+ * number of events.
  */
 async function countTrialSignups(admin: SupabaseClient, userId: string): Promise<number> {
   const { count } = await admin
     .from('event_signups')
     .select('id', { count: 'exact', head: true })
     .eq('member_id', userId)
-    .neq('status', 'declined');
+    .in('status', ['confirmed', 'pending_review', 'waitlisted']);
   return count ?? 0;
 }
 
