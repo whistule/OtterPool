@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ManageMembersCard } from '@/components/admin-card';
+import { MembershipBanner } from '@/components/membership-banner';
 import { PageTitle } from '@/components/page-title';
 import { Avatar } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
@@ -365,6 +366,8 @@ export default function ProfileScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           <TopBar title="Profile" subtitle="Your details and settings" />
+
+          <MembershipBanner />
 
           <Card>
             <Row style={{ gap: 14 }}>
