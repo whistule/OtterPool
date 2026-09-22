@@ -39,7 +39,7 @@ import {
   FieldKey,
   formatPreviewDate,
   gradeOptionsFor,
-  groupCategories,
+  categoryChip,
   KIT_TEMPLATES,
   LEVELS,
   LoadedEvent,
@@ -799,45 +799,37 @@ export default function EventForm(props: EventFormProps) {
                 <FieldLabel palette={palette} style={{ marginTop: 14 }}>
                   Category
                 </FieldLabel>
-                {groupCategories(categories).map((group) => (
-                  <View key={group.label} style={{ marginBottom: 10 }}>
-                    <Text
-                      style={[
-                        styles.groupLabel,
-                        { color: palette.muted, borderColor: palette.border },
-                      ]}
-                    >
-                      {group.label}
-                    </Text>
-                    <View style={styles.chipWrap}>
-                      {group.items.map(({ category, label }) => {
-                        const isActive = category.id === categoryId;
-                        return (
-                          <Pressable
-                            key={category.id}
-                            testID={`category-chip-${category.id}`}
-                            onPress={() => onPickCategory(category)}
-                            style={[
-                              styles.chip,
-                              {
-                                backgroundColor: isActive
-                                  ? OtterPalette.slateNavy
-                                  : palette.surface,
-                                borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
-                            >
-                              {label}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </View>
-                ))}
+                <View style={styles.catGrid}>
+                  {categories.map((category) => {
+                    const isActive = category.id === categoryId;
+                    const meta = categoryChip(category.name);
+                    return (
+                      <Pressable
+                        key={category.id}
+                        testID={`category-chip-${category.id}`}
+                        onPress={() => onPickCategory(category)}
+                        style={[
+                          styles.catChip,
+                          {
+                            backgroundColor: isActive ? 'rgba(42,69,96,0.08)' : palette.surface,
+                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
+                          },
+                        ]}
+                      >
+                        <View style={[styles.catDot, { backgroundColor: meta.color }]} />
+                        <Text
+                          style={[
+                            styles.catChipText,
+                            { color: palette.text, fontWeight: isActive ? '700' : '600' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {meta.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
                 {selectedCategory ? (
                   <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
                     Default min level: {selectedCategory.default_min_level} · default cost:{' '}
@@ -1732,6 +1724,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '48%',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  catDot: { width: 10, height: 10, borderRadius: 5 },
+  catChipText: { fontSize: 14, flexShrink: 1 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
