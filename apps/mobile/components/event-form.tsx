@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -110,12 +110,141 @@ export default function EventForm(props: EventFormProps) {
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatFrequency, setRepeatFrequency] = useState<'weekly' | 'fortnightly'>('weekly');
   const [repeatCount, setRepeatCount] = useState('4');
+  // How many events share this one's series (for the "apply photo to all X" prompt).
+  const [seriesCount, setSeriesCount] = useState(0);
+  // Confirmation overlays: leaving with unsaved changes, and photo-to-series.
+  const [showLeave, setShowLeave] = useState(false);
+  const [showPhotoScope, setShowPhotoScope] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [forbidden, setForbidden] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+
+  const navigation = useNavigation();
+  // A signature of every user-editable field. When it drifts from the snapshot
+  // captured once the form finishes loading, there are unsaved changes.
+  const buildSnapshot = useCallback(
+    () =>
+      JSON.stringify({
+        title,
+        categoryId,
+        grade,
+        startsAt,
+        durationHours,
+        multiDay,
+        endsAt,
+        location,
+        meetingPoint,
+        meetingTime,
+        putInPoint,
+        putInTime,
+        minLevel,
+        maxParticipants,
+        cost,
+        priceTiers,
+        approvalMode,
+        status,
+        description,
+        whatToBring,
+        leaderId,
+        assistantId,
+        photo: photoAsset?.uri ?? null,
+        removePhotoFlag,
+        selectedSuggestion,
+        repeatEnabled,
+        repeatFrequency,
+        repeatCount,
+      }),
+    [
+      title,
+      categoryId,
+      grade,
+      startsAt,
+      durationHours,
+      multiDay,
+      endsAt,
+      location,
+      meetingPoint,
+      meetingTime,
+      putInPoint,
+      putInTime,
+      minLevel,
+      maxParticipants,
+      cost,
+      priceTiers,
+      approvalMode,
+      status,
+      description,
+      whatToBring,
+      leaderId,
+      assistantId,
+      photoAsset,
+      removePhotoFlag,
+      selectedSuggestion,
+      repeatEnabled,
+      repeatFrequency,
+      repeatCount,
+    ],
+  );
+  // Baseline captured once the form is ready; null until then.
+  const initialSnapshotRef = useRef<string | null>(null);
+  // Set true right before an intentional navigation (save/discard) so the
+  // unsaved-changes guard lets that one through.
+  const leavingRef = useRef(false);
+  // The navigation action the guard intercepted, replayed on "discard".
+  const pendingActionRef = useRef<{ type: string } | null>(null);
+
+  const isDirty = useCallback(
+    () => initialSnapshotRef.current !== null && buildSnapshot() !== initialSnapshotRef.current,
+    [buildSnapshot],
+  );
+
+  // Capture the baseline once: at mount for create, once loaded for edit.
+  useEffect(() => {
+    if (initialSnapshotRef.current === null && !loading) {
+      initialSnapshotRef.current = buildSnapshot();
+    }
+  }, [loading, buildSnapshot]);
+
+  // How many events are in this series, for the photo-to-series prompt copy.
+  useEffect(() => {
+    if (!seriesId) {
+      setSeriesCount(0);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('series_id', seriesId)
+      .then(({ count }) => {
+        if (!cancelled) {
+          setSeriesCount(count ?? 0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesId]);
+
+  // Guard hardware/gesture back (native) against losing unsaved edits. The
+  // header back button routes through requestLeave() and won't reach here.
+  useEffect(() => {
+    const unsub = navigation.addListener(
+      'beforeRemove',
+      (e: { preventDefault: () => void; data: { action: { type: string } } }) => {
+        if (leavingRef.current || !isDirty()) {
+          return;
+        }
+        e.preventDefault();
+        pendingActionRef.current = e.data.action;
+        setShowLeave(true);
+      },
+    );
+    return unsub;
+  }, [navigation, isDirty]);
 
   // ---------- Load categories (always) and event row (edit only) ----------
   useEffect(() => {
@@ -369,9 +498,37 @@ export default function EventForm(props: EventFormProps) {
     }
   };
 
-  const submit = async () => {
-    if (!session) {
+  // Leaving the screen: straight out if nothing's changed, else confirm.
+  const requestLeave = () => {
+    if (!isDirty()) {
+      router.back();
       return;
+    }
+    pendingActionRef.current = null;
+    setShowLeave(true);
+  };
+
+  const discardAndLeave = () => {
+    setShowLeave(false);
+    leavingRef.current = true;
+    const action = pendingActionRef.current;
+    if (action) {
+      navigation.dispatch(action);
+    } else {
+      router.back();
+    }
+  };
+
+  const saveAndLeave = async () => {
+    setShowLeave(false);
+    // submit() navigates away itself on success; if it fails validation we stay
+    // put with the errors shown (leavingRef stays false so the guard holds).
+    await submit();
+  };
+
+  const submit = async (opts?: { photoScope?: 'series' | 'single' }): Promise<boolean> => {
+    if (!session) {
+      return false;
     }
     setError(null);
     const errs: Partial<Record<FieldKey, string>> = {};
@@ -464,9 +621,20 @@ export default function EventForm(props: EventFormProps) {
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       setError('Some fields need attention — see highlighted rows.');
-      return;
+      return false;
     }
     setFieldErrors({});
+
+    // Setting/replacing a photo on a series event: ask whether it applies to
+    // the whole series before writing, unless the leader already chose "All in
+    // series" up top or answered this prompt.
+    const photoBeingSet =
+      !!photoAsset || (!!selectedSuggestion && selectedSuggestion !== originalPhotoPath);
+    if (isEdit && seriesId && !applyToSeries && photoBeingSet && opts?.photoScope === undefined) {
+      setShowPhotoScope(true);
+      return false;
+    }
+    const photoToSeries = applyToSeries || opts?.photoScope === 'series';
 
     setBusy(true);
 
@@ -481,7 +649,7 @@ export default function EventForm(props: EventFormProps) {
         if ('error' in result) {
           setError(`Photo upload failed: ${result.error}`);
           setBusy(false);
-          return;
+          return false;
         }
         newPath = result.path;
       } else if (selectedSuggestion && selectedSuggestion !== originalPhotoPath) {
@@ -489,7 +657,7 @@ export default function EventForm(props: EventFormProps) {
         if ('error' in result) {
           setError(`Couldn't reuse that photo: ${result.error}`);
           setBusy(false);
-          return;
+          return false;
         }
         newPath = result.path;
       }
@@ -545,13 +713,19 @@ export default function EventForm(props: EventFormProps) {
         writeFailure(occErr, occRows) ?? (applyAll ? writeFailure(seriesErr, seriesRows) : null);
       if (updateError) {
         setError(updateError);
-        return;
+        return false;
+      }
+      // Photo-to-series (when not already covered by the "All in series" scope):
+      // point every occurrence at the new photo so the whole series shows it.
+      if (!applyAll && photoToSeries && seriesId && newPath !== undefined) {
+        await supabase.from('events').update({ photo_path: newPath }).eq('series_id', seriesId);
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
         await removeEventPhotoIfUnused(originalPhotoPath);
       }
+      leavingRef.current = true;
       router.replace(`/event/${eventId}`);
-      return;
+      return true;
     }
 
     // ---------- CREATE path ----------
@@ -600,7 +774,7 @@ export default function EventForm(props: EventFormProps) {
 
     if (insertError) {
       setError(insertError.message);
-      return;
+      return false;
     }
     const firstId = data?.[0]?.id;
     if (firstId) {
@@ -640,11 +814,13 @@ export default function EventForm(props: EventFormProps) {
         .invoke('notify-event-created', { body: { event_id: firstId } })
         .catch((e) => console.warn('[notify-event-created] failed', e));
     }
+    leavingRef.current = true;
     if (firstId) {
       router.replace(`/event/${firstId}?created=1`);
     } else {
       router.back();
     }
+    return true;
   };
 
   const onDelete = async () => {
@@ -761,7 +937,7 @@ export default function EventForm(props: EventFormProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <PageTitle title={screenTitle} />
-        <Header onBack={() => router.back()} title={screenTitle} />
+        <Header onBack={requestLeave} title={screenTitle} />
         {isCreate ? <StepProgress steps={CREATE_STEPS} current={step} onJump={setStep} /> : null}
         <ScrollView
           style={{ flex: 1 }}
@@ -1795,7 +1971,7 @@ export default function EventForm(props: EventFormProps) {
               ) : (
                 <Pressable
                   testID="event-create-submit"
-                  onPress={busy ? undefined : submit}
+                  onPress={busy ? undefined : () => submit()}
                   disabled={busy}
                   style={[
                     styles.primaryBtn,
@@ -1813,7 +1989,7 @@ export default function EventForm(props: EventFormProps) {
           ) : (
             <Pressable
               testID="event-edit-submit"
-              onPress={busy ? undefined : submit}
+              onPress={busy ? undefined : () => submit()}
               disabled={busy}
               style={[
                 styles.primaryBtn,
@@ -1829,6 +2005,85 @@ export default function EventForm(props: EventFormProps) {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* ---------- Unsaved-changes guard ---------- */}
+      {showLeave ? (
+        <View style={styles.overlay}>
+          <View style={[styles.dialog, { backgroundColor: palette.background }]}>
+            <Text style={[styles.dialogTitle, { color: palette.text }]}>Unsaved changes</Text>
+            <Text style={[styles.dialogBody, { color: palette.muted }]}>
+              You've made changes that haven't been saved. What would you like to do?
+            </Text>
+            <Pressable
+              testID="leave-save"
+              onPress={saveAndLeave}
+              style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: '#fff' }]}>Save and exit</Text>
+            </Pressable>
+            <Pressable
+              testID="leave-discard"
+              onPress={discardAndLeave}
+              style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: OtterPalette.ice }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: OtterPalette.ice }]}>
+                Exit without saving
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="leave-cancel"
+              onPress={() => setShowLeave(false)}
+              style={styles.dialogCancel}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Keep editing</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {/* ---------- Apply photo to series ---------- */}
+      {showPhotoScope ? (
+        <View style={styles.overlay}>
+          <View style={[styles.dialog, { backgroundColor: palette.background }]}>
+            <Text style={[styles.dialogTitle, { color: palette.text }]}>
+              Apply photo to series?
+            </Text>
+            <Text style={[styles.dialogBody, { color: palette.muted }]}>
+              This event is one of {seriesCount} in a repeating series. Add this photo to every
+              event in the series, or just this one?
+            </Text>
+            <Pressable
+              testID="photo-scope-series"
+              onPress={() => {
+                setShowPhotoScope(false);
+                submit({ photoScope: 'series' });
+              }}
+              style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: '#fff' }]}>
+                Apply to all {seriesCount} events
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="photo-scope-single"
+              onPress={() => {
+                setShowPhotoScope(false);
+                submit({ photoScope: 'single' });
+              }}
+              style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: palette.border }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.text }]}>This event only</Text>
+            </Pressable>
+            <Pressable
+              testID="photo-scope-cancel"
+              onPress={() => setShowPhotoScope(false)}
+              style={styles.dialogCancel}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -1903,4 +2158,27 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   footerError: { fontSize: 12, marginBottom: 8, textAlign: 'center' },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  dialog: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 16,
+    padding: 20,
+    gap: 10,
+  },
+  dialogTitle: { fontSize: 18, fontWeight: '700' },
+  dialogBody: { fontSize: 14, lineHeight: 20, marginBottom: 4 },
+  dialogBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  dialogBtnText: { fontSize: 15, fontWeight: '700' },
+  dialogCancel: { paddingVertical: 10, alignItems: 'center' },
 });
