@@ -92,6 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
         medical_notes: (priv as { medical_notes?: string | null }).medical_notes ?? null,
       });
+      // Match-on-sign-in: an aspirant whose (confirmed) email is on the
+      // verified-members list is upgraded to active server-side. Reflect it
+      // immediately by reloading once — the reload sees 'active' so it stops.
+      if ((profRes.data as { status?: string }).status === 'aspirant') {
+        const { data: claim } = await supabase.rpc('claim_membership');
+        if ((claim as { matched?: boolean } | null)?.matched) {
+          await loadProfile(userId);
+        }
+      }
     } else if (!profRes.error) {
       setProfile(null);
     }

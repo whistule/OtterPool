@@ -46,7 +46,7 @@ step, and a reconcile job.
 -- Verified paid members mirrored from MemberMojo.
 create table public.verified_members (
   email_norm    text primary key,     -- lower(trim(email)); see §7 for hashed variant
-  membership_year int,                 -- optional; cycle year, auto-stamped at import (paste has no dates)
+  expires_on    date,                  -- membership expiry; null = valid while on the list
   imported_at   timestamptz not null default now()
 );
 ```
@@ -54,10 +54,20 @@ create table public.verified_members (
 Notes:
 - **`email_norm`** is the normalised key — `lower(trim(email))` — so matching is
   case/whitespace insensitive.
-- Keep it minimal: email + a validity marker + when it was imported. No names,
-  no other PII (data minimisation).
+- **`expires_on`** is each member's own expiry date (see §4/§12 Q2). Membership
+  is valid only while the email is on the list **and** `expires_on` is null or
+  in the future, so a stale list no longer keeps someone active indefinitely.
+- Keep it minimal: email + expiry + when it was imported. No names, no other
+  PII (data minimisation).
 - One row per member. The table is **replaced** on each import (see §4), not
   appended.
+
+> **Shipped:** the core backend lives in
+> `supabase/migrations/20260922010000_membership_verification.sql` —
+> `verified_members` (email + `expires_on`), `profiles.membership_source`, and
+> the `import_verified_members` / `reconcile_membership` / `claim_membership`
+> functions. Note expiry is enforced **at each reconcile**; auto-lapsing exactly
+> on the date without an import needs the daily job (§4a, a later stage).
 
 ### 3a. The migration file (draft)
 
@@ -404,9 +414,11 @@ exists; the new work is the table, import, and reconcile.
 1. ~~Import cadence?~~ **DECIDED: 3 reminders/year — renewal +2wk, +4wk, +6mo,
    i.e. ~15 Oct / ~29 Oct / ~1 Apr (§4a).** Renewal date = **1 October**; just
    confirm the exact day.
-2. ~~Expiry date in the export?~~ **RESOLVED: no — the admin pastes just the
-   email column, so reconcile is presence-based (§4).** (Trade-off: no
-   "expiring soon" prompts, since there are no per-member dates.)
+2. ~~Expiry date in the export?~~ **RESOLVED (revised): YES — the admin pastes
+   two columns, email + each member's renewal/expiry date. Reconcile treats a
+   member as valid only while on the list AND not past `expires_on`, so a stale
+   list can't keep people active indefinitely.** Enforced at each reconcile;
+   auto-lapsing on the exact date without a re-import needs the daily job (§4a).
 3. Plaintext (v1) or hashed (v1.1) email storage?
 4. ~~Should `suspended` be set from this flow?~~ **DECIDED: `suspended` is set
    and cleared only from the app admin screen; import/reconcile never changes it
