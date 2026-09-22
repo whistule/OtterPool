@@ -16,7 +16,6 @@ import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
 import { Avatar, EventPhoto } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
-import { MembershipBanner } from '@/components/membership-banner';
 import { Card, Pill, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -526,10 +525,6 @@ export default function EventDetailScreen() {
             />
           </Row>
         </View>
-
-        {/* Membership status — shows aspirants their remaining trial, warns
-            near expiry, etc., right where they're about to sign up. */}
-        <MembershipBanner />
 
         {/* ---------- When ---------- */}
         <SectionTitle>When</SectionTitle>
