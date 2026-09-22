@@ -26,6 +26,7 @@ type LevelInfo = {
   corrText: string;
   zoneHeader?: string;
   tag?: string;
+  pending?: boolean; // access rules not yet confirmed — fade + "coming soon"
 };
 
 const DOT_COLOR: Record<AccessDot, string> = {
@@ -97,6 +98,7 @@ const LEVELS: LevelInfo[] = [
     num: 'Level 3',
     emoji: '🦦',
     name: 'Otter',
+    pending: true,
     subtitle: 'Experienced paddler · ready for open and moving water',
     description: [
       'Otters can reliably perform a rescue successfully while on the water — using a heel hook and not swimming to the shore or bank — and have also been rescued successfully.',
@@ -126,6 +128,7 @@ const LEVELS: LevelInfo[] = [
     num: 'Level 4',
     emoji: '🐬',
     name: 'Dolphin',
+    pending: true,
     subtitle: 'Advanced paddler · broad experience, emerging leader',
     description: [
       'Dolphins are leaders. Amongst other things they can perform rescues on others, reliably self-rescue, and are authorised by DCKC to run trips.',
@@ -251,7 +254,10 @@ export default function LevelsScreen() {
                 <Text style={[styles.zone, { color: palette.muted }]}>{lv.zoneHeader}</Text>
               ) : null}
               <Card
-                style={isMine ? { borderColor: OtterPalette.forest, borderWidth: 2 } : undefined}
+                style={[
+                  isMine ? { borderColor: OtterPalette.forest, borderWidth: 2 } : null,
+                  lv.pending ? { opacity: 0.55 } : null,
+                ]}
               >
                 <Row style={{ gap: 12, alignItems: 'center' }}>
                   <View style={styles.numWrap}>
@@ -282,50 +288,63 @@ export default function LevelsScreen() {
                   </Text>
                 ))}
 
-                {lv.craft ? (
-                  <View style={[styles.craft, { borderColor: palette.border }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.craftIcon, { color: OtterPalette.seaTeal[1] }]}>
-                        🌊 Sea
-                      </Text>
-                      <Text style={[styles.craftText, { color: palette.muted }]}>
-                        {lv.craft.sea}
-                      </Text>
-                    </View>
-                    <View style={[styles.craftDivider, { backgroundColor: palette.border }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.craftIcon, { color: OtterPalette.riverGreen[1] }]}>
-                        🟢 River
-                      </Text>
-                      <Text style={[styles.craftText, { color: palette.muted }]}>
-                        {lv.craft.river}
-                      </Text>
-                    </View>
+                {lv.pending ? (
+                  <View style={[styles.advance, { backgroundColor: palette.surface }]}>
+                    <Text style={[styles.corrText, { color: palette.muted }]}>
+                      We're still finalising exactly what {lv.name} unlocks and how you advance to
+                      it — full details coming soon.
+                    </Text>
                   </View>
-                ) : null}
+                ) : (
+                  <>
+                    {lv.craft ? (
+                      <View style={[styles.craft, { borderColor: palette.border }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.craftIcon, { color: OtterPalette.seaTeal[1] }]}>
+                            🌊 Sea
+                          </Text>
+                          <Text style={[styles.craftText, { color: palette.muted }]}>
+                            {lv.craft.sea}
+                          </Text>
+                        </View>
+                        <View style={[styles.craftDivider, { backgroundColor: palette.border }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.craftIcon, { color: OtterPalette.riverGreen[1] }]}>
+                            🟢 River
+                          </Text>
+                          <Text style={[styles.craftText, { color: palette.muted }]}>
+                            {lv.craft.river}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
 
-                <Text style={[styles.sectionLabel, { color: palette.muted }]}>
-                  {lv.accessLabel}
-                </Text>
-                {lv.access.map((a) => (
-                  <Row key={a.text.slice(0, 24)} style={{ gap: 8, marginTop: 5 }}>
-                    <View style={[styles.accessDot, { backgroundColor: DOT_COLOR[a.dot] }]} />
-                    <Text style={[styles.accessText, { color: palette.text }]}>{a.text}</Text>
-                  </Row>
-                ))}
+                    <Text style={[styles.sectionLabel, { color: palette.muted }]}>
+                      {lv.accessLabel}
+                    </Text>
+                    {lv.access.map((a) => (
+                      <Row key={a.text.slice(0, 24)} style={{ gap: 8, marginTop: 5 }}>
+                        <View style={[styles.accessDot, { backgroundColor: DOT_COLOR[a.dot] }]} />
+                        <Text style={[styles.accessText, { color: palette.text }]}>{a.text}</Text>
+                      </Row>
+                    ))}
 
-                <View style={[styles.advance, { backgroundColor: palette.surface }]}>
-                  <Text style={[styles.advanceLabel, { color: OtterPalette.forest }]}>
-                    {lv.advanceLabel}
-                  </Text>
-                  <Text style={[styles.body, { color: palette.text, marginTop: 4 }]}>
-                    {lv.advanceText}
-                  </Text>
-                  <Row style={{ gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
-                    <Text style={{ fontSize: 16 }}>{lv.corrIcon}</Text>
-                    <Text style={[styles.corrText, { color: palette.muted }]}>{lv.corrText}</Text>
-                  </Row>
-                </View>
+                    <View style={[styles.advance, { backgroundColor: palette.surface }]}>
+                      <Text style={[styles.advanceLabel, { color: OtterPalette.forest }]}>
+                        {lv.advanceLabel}
+                      </Text>
+                      <Text style={[styles.body, { color: palette.text, marginTop: 4 }]}>
+                        {lv.advanceText}
+                      </Text>
+                      <Row style={{ gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
+                        <Text style={{ fontSize: 16 }}>{lv.corrIcon}</Text>
+                        <Text style={[styles.corrText, { color: palette.muted }]}>
+                          {lv.corrText}
+                        </Text>
+                      </Row>
+                    </View>
+                  </>
+                )}
               </Card>
             </View>
           );
