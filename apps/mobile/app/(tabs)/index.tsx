@@ -21,12 +21,23 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
+import { categoryChip } from '@/lib/event-form-utils';
 import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 import { formatCost } from '@/lib/money';
 
 const DISCIPLINES = ['All', 'Sea', 'River', 'Pinkston', 'Loch/Pool', 'Skills'] as const;
 type Discipline = (typeof DISCIPLINES)[number];
+
+// Colour dot per discipline in the filter row (matches the prototype). 'All'
+// has none. Colours line up with the per-event category chips.
+const DISCIPLINE_COLOR: Record<string, string | undefined> = {
+  Sea: OtterPalette.seaTeal[1],
+  River: OtterPalette.riverGreen[1],
+  Pinkston: OtterPalette.pinkstonOrange[0],
+  'Loch/Pool': OtterPalette.lochPool,
+  Skills: OtterPalette.slateNavy,
+};
 
 type CalendarRow = {
   id: string;
@@ -77,17 +88,10 @@ function pillForCategory(row: CalendarRow): { label: string; color: string } {
   if (row.grade_advertised) {
     return { label: row.grade_advertised, color: colorForGrade(row.grade_advertised) };
   }
-  // Ungraded: fall back to a per-discipline label and mid-ramp colour.
-  if (row.category === 'Sea Kayak') {
-    return { label: 'Sea', color: OtterPalette.seaTeal[1] };
-  }
-  if (row.category === 'River Trip') {
-    return { label: 'River', color: OtterPalette.riverGreen[1] };
-  }
-  if (row.category === 'Pinkston') {
-    return { label: 'Pinkston', color: OtterPalette.pinkstonOrange[1] };
-  }
-  return { label: row.category, color: OtterPalette.lochPool };
+  // Ungraded: use the shared per-discipline chip (distinct colour + short
+  // label per discipline, including variants), so pool / loch / skills etc.
+  // don't all collapse to one colour.
+  return categoryChip(row.category);
 }
 
 function formatPlaces(row: CalendarRow): string {
@@ -200,15 +204,20 @@ export default function CalendarScreen() {
             const isActive = active === d;
             return (
               <Pressable key={d} onPress={() => setActive(d)} style={styles.disciplineBtn}>
-                <Text
-                  style={[
-                    styles.disciplineText,
-                    { color: isActive ? OtterPalette.slateNavy : palette.muted },
-                    isActive && styles.disciplineTextActive,
-                  ]}
-                >
-                  {d}
-                </Text>
+                <Row style={{ gap: 5, alignItems: 'center' }}>
+                  {DISCIPLINE_COLOR[d] ? (
+                    <View style={[styles.discDot, { backgroundColor: DISCIPLINE_COLOR[d] }]} />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.disciplineText,
+                      { color: isActive ? OtterPalette.slateNavy : palette.muted },
+                      isActive && styles.disciplineTextActive,
+                    ]}
+                  >
+                    {d}
+                  </Text>
+                </Row>
                 {isActive ? (
                   <View
                     style={[
@@ -343,6 +352,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   disciplineBtn: { paddingVertical: 6 },
+  discDot: { width: 8, height: 8, borderRadius: 4 },
   disciplineText: { fontSize: 14, fontWeight: '500' },
   disciplineTextActive: { fontWeight: '700' },
   disciplineUnderline: {
