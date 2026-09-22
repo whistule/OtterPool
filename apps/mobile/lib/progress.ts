@@ -69,6 +69,25 @@ export const TRACK_GRADES: Record<Track, readonly string[]> = {
   pinkston: PINKSTON_GRADES,
 };
 
+// Grades serious enough that a new joiner should establish their credibility
+// before paddling them: Sea B and above, or river grade 3 and above. Beginner
+// grades (Sea A, G1/G2 and the G2/3 range) and Pinkston pump sessions don't
+// trigger it — the questionnaire is for experienced paddlers, not novices.
+export function isCredibilityGrade(grade: string | null | undefined): boolean {
+  if (!grade) {
+    return false;
+  }
+  const sea = SEA_GRADES.indexOf(grade as (typeof SEA_GRADES)[number]);
+  if (sea >= 0) {
+    return sea >= SEA_GRADES.indexOf('Sea B');
+  }
+  const river = RIVER_GRADES.indexOf(grade as (typeof RIVER_GRADES)[number]);
+  if (river >= 0) {
+    return river >= RIVER_GRADES.indexOf('G3');
+  }
+  return false;
+}
+
 export function colorForGrade(grade: string): string {
   if (grade === 'Sea A') {
     return OtterPalette.seaTeal[0];

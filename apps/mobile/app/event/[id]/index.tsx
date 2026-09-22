@@ -24,7 +24,7 @@ import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
 import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
-import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { isCredibilityGrade, LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
@@ -422,6 +422,18 @@ export default function EventDetailScreen() {
 
   const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
 
+  // Credibility nudge: a serious grade (Sea B+, river G3+) is the moment to
+  // invite an experienced joiner to establish their credentials. It's aimed at
+  // people proving themselves, not beginners — so it only shows on those grades
+  // and stops once a coach has reviewed them.
+  const needsCredibility =
+    !!profile &&
+    !isLeader &&
+    !isAssistant &&
+    !isConfirmed &&
+    !profile.experience_reviewed_at &&
+    isCredibilityGrade(event.grade_advertised);
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       {/* The trip name is what a shared or bookmarked link should be called. */}
@@ -525,6 +537,35 @@ export default function EventDetailScreen() {
             />
           </Row>
         </View>
+
+        {/* ---------- Serious grade → invite an experienced joiner to vouch ---------- */}
+        {needsCredibility ? (
+          <Card style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}>
+            <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>
+              {`Grade ${event.grade_advertised} — for experienced paddlers`}
+            </Text>
+            <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
+              {profile?.experience_review_requested
+                ? 'Your paddling experience is with a coach for review — you can still ask to join, and the leader decides.'
+                : 'New to OtterPool at this grade? Tell us your paddling experience so a coach can vouch for your level before you paddle it.'}
+            </Text>
+            {profile?.experience_review_requested ? null : (
+              <Pressable
+                testID="event-experience-cta"
+                onPress={() => router.push('/profile')}
+                style={{
+                  marginTop: 10,
+                  backgroundColor: OtterPalette.slateNavy,
+                  borderRadius: 10,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Tell us your experience</Text>
+              </Pressable>
+            )}
+          </Card>
+        ) : null}
 
         {/* ---------- When ---------- */}
         <SectionTitle>When</SectionTitle>
