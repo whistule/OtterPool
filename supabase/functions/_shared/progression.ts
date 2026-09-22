@@ -21,7 +21,7 @@ export const RIVER_GRADES = [
   'G4/5',
   'G5',
 ] as const;
-export const PINKSTON_GRADES = ['P1', 'P2', 'P3'] as const;
+export const PINKSTON_GRADES = ['P1', 'P1/2', 'P2', 'P2/3', 'P3', 'P1/2/3'] as const;
 
 export type Track = 'sea' | 'river' | 'pinkston';
 

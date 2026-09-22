@@ -52,7 +52,10 @@ export const RIVER_GRADES = [
   'G5',
 ] as const;
 
-export const PINKSTON_GRADES = ['P1', 'P2', 'P3'] as const;
+// Pinkston pump sessions: the number of pumps running (more = more water).
+// Ranges (P1/2, P2/3, P1/2/3) describe a session that spans those pump levels
+// — same convention as the river ranges (G1/2 etc.).
+export const PINKSTON_GRADES = ['P1', 'P1/2', 'P2', 'P2/3', 'P3', 'P1/2/3'] as const;
 
 export const TRACK_LABEL: Record<Track, string> = {
   sea: 'Sea',
@@ -76,10 +79,10 @@ export function colorForGrade(grade: string): string {
   if (grade === 'Sea C') {
     return OtterPalette.seaTeal[2];
   }
-  if (grade === 'P1') {
+  if (grade === 'P1' || grade === 'P1/2') {
     return OtterPalette.pinkstonOrange[0];
   }
-  if (grade === 'P2') {
+  if (grade === 'P2' || grade === 'P2/3' || grade === 'P1/2/3') {
     return OtterPalette.pinkstonOrange[1];
   }
   if (grade === 'P3') {
