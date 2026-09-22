@@ -43,9 +43,15 @@ jobs:
               "Settings → Secrets and variables → Actions (see this workflow's header)."
             exit 1
           fi
+      # Pin the CLI version — "latest" makes setup-cli query GitHub's API for
+      # the newest release on every run, which is easily rate-limited on shared
+      # runners ("Failed to resolve latest ... rate limit exceeded"). Also pass
+      # the built-in token so any GitHub API calls are authenticated.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.117.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Deploys all functions under supabase/functions, honouring per-function
       # settings in supabase/config.toml (e.g. verify_jwt = false for the Stripe
       # webhook and payment-return).
