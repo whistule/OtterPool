@@ -22,7 +22,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
 import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
@@ -46,6 +46,7 @@ type EventRow = {
   min_level: string;
   max_participants: number | null;
   cost: number;
+  price_options: unknown;
   status: string;
   approval_mode: string;
   leader_id: string;
@@ -72,6 +73,7 @@ type Signup = {
   status: string;
   signed_up_at: string;
   payment_status?: string | null;
+  amount_paid_pence?: number | null;
 };
 
 type Participant = {
@@ -161,6 +163,8 @@ export default function EventDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+  // Index into the event's concession price tiers (0 = standard rate).
+  const [priceOption, setPriceOption] = useState(0);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -170,14 +174,14 @@ export default function EventDetailScreen() {
       supabase
         .from('events')
         .select(
-          'id, title, description, what_to_bring, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, status, approval_mode, leader_id, assistant_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path), assistant:profiles!events_assistant_id_fkey(display_name, full_name, level, avatar_path)',
+          'id, title, description, what_to_bring, category_id, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, price_options, status, approval_mode, leader_id, assistant_id, photo_path, series_id, category:event_categories(name), leader:profiles!events_leader_id_fkey(display_name, full_name, level, avatar_path), assistant:profiles!events_assistant_id_fkey(display_name, full_name, level, avatar_path)',
         )
         .eq('id', id)
         .maybeSingle(),
       session
         ? supabase
             .from('event_signups')
-            .select('id, status, signed_up_at, payment_status')
+            .select('id, status, signed_up_at, payment_status, amount_paid_pence')
             .eq('event_id', id)
             .eq('member_id', session.user.id)
             .maybeSingle()
@@ -293,8 +297,18 @@ export default function EventDetailScreen() {
         ? webRouteUrl(`/event/${id}`)
         : `${supabaseUrl}/functions/v1/payment-return?event_id=${id}`;
 
+    // Only send a tier index when the event has tiers; the server ignores it
+    // otherwise and always resolves the amount from the event itself.
+    const tiers = event ? parsePriceOptions(event.price_options) : [];
+    const chosenTier =
+      tiers.length > 0 ? Math.min(Math.max(priceOption, 0), tiers.length - 1) : null;
+
     const { data, error } = await supabase.functions.invoke<SignUpResponse>('sign-up', {
-      body: { event_id: id, return_url: returnUrl },
+      body: {
+        event_id: id,
+        return_url: returnUrl,
+        ...(chosenTier !== null ? { price_option: chosenTier } : {}),
+      },
     });
     if (error) {
       const msg = await readErrorMessage(error);
@@ -369,7 +383,25 @@ export default function EventDetailScreen() {
   const leaderName = event.leader?.display_name ?? event.leader?.full_name ?? '—';
   const assistantName = event.assistant?.display_name ?? event.assistant?.full_name ?? '—';
   const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
-  const isPaid = Number(event.cost) > 0;
+  // Concession pricing: when the event carries tiers, the member picks one and
+  // the sign-up call sends the index (never an amount). Index 0 is the
+  // standard rate; a member who never touches the picker pays that.
+  const priceOptions = parsePriceOptions(event.price_options);
+  const hasTiers = priceOptions.length > 0;
+  const tierIndex = hasTiers ? Math.min(Math.max(priceOption, 0), priceOptions.length - 1) : 0;
+  const isPaid = hasTiers ? priceOptions.some((o) => o.pence > 0) : Number(event.cost) > 0;
+  // What the CTA / notes should quote: the selected tier, else the flat cost.
+  const selectedMoney = hasTiers
+    ? formatPence(priceOptions[tierIndex].pence)
+    : formatMoney(event.cost);
+  // Headline pill: a single price, or "from £X" when tiers differ.
+  const cheapestPence = hasTiers ? Math.min(...priceOptions.map((o) => o.pence)) : 0;
+  const dearestPence = hasTiers ? Math.max(...priceOptions.map((o) => o.pence)) : 0;
+  const costPillLabel = !hasTiers
+    ? formatMoney(event.cost)
+    : cheapestPence === dearestPence
+      ? formatPence(cheapestPence)
+      : `from ${formatPence(cheapestPence)}`;
   const isLeader = !!session && session.user.id === event.leader_id;
   const isAssistant = !!session && session.user.id === event.assistant_id;
   // Paddling (and super) admins can manage any event, not just their own.
@@ -387,7 +419,7 @@ export default function EventDetailScreen() {
   const statusInfo = signup
     ? isLeaderApproved
       ? {
-          label: `✅ Approved — pay ${formatMoney(event.cost)} to confirm`,
+          label: `✅ Approved — pay ${selectedMoney} to confirm`,
           color: OtterPalette.forest,
         }
       : SIGNUP_STATUS[signup.status as SignupStatus]
@@ -412,9 +444,7 @@ export default function EventDetailScreen() {
     primaryLabel = 'Not yet open';
   }
   if (isPending) {
-    primaryLabel = isLeaderApproved
-      ? `Pay ${formatMoney(event.cost)} to confirm`
-      : `Pay ${formatMoney(event.cost)}`;
+    primaryLabel = isLeaderApproved ? `Pay ${selectedMoney} to confirm` : `Pay ${selectedMoney}`;
   }
 
   const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
@@ -512,7 +542,7 @@ export default function EventDetailScreen() {
               textStyle={{ color: '#2a2f33' }}
             />
             <Pill
-              label={isPaid ? `${formatMoney(event.cost)}` : 'Free'}
+              label={isPaid ? costPillLabel : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
             />
             <Pill
@@ -751,6 +781,48 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
+        {/* ---------- Choose your rate (concession tiers) ---------- */}
+        {hasTiers && canSignUp ? (
+          <>
+            <SectionTitle>Choose your rate</SectionTitle>
+            <Card>
+              <Text style={[styles.muted, { color: palette.muted, marginBottom: 10 }]}>
+                Pick the rate that applies to you — we trust you to choose fairly.
+              </Text>
+              {priceOptions.map((opt, i) => {
+                const active = i === tierIndex;
+                return (
+                  <Pressable
+                    key={`${opt.label}-${i}`}
+                    testID={`price-tier-${i}`}
+                    onPress={() => setPriceOption(i)}
+                    style={[
+                      styles.tierRow,
+                      {
+                        borderColor: active ? OtterPalette.slateNavy : palette.border,
+                        backgroundColor: active ? `${OtterPalette.slateNavy}12` : palette.surface,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.tierRadio,
+                        { borderColor: active ? OtterPalette.slateNavy : palette.muted },
+                      ]}
+                    >
+                      {active ? <View style={styles.tierRadioDot} /> : null}
+                    </View>
+                    <Text style={[styles.tierLabel, { color: palette.text }]}>{opt.label}</Text>
+                    <Text style={[styles.tierPrice, { color: OtterPalette.slateNavy }]}>
+                      {formatPence(opt.pence)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </Card>
+          </>
+        ) : null}
+
         {/* ---------- Your status ---------- */}
         {signup && statusInfo ? (
           <>
@@ -762,13 +834,16 @@ export default function EventDetailScreen() {
               </Text>
               {isPaid && signup.status === 'confirmed' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
-                  Payment received · {formatMoney(event.cost)}
+                  Payment received ·{' '}
+                  {signup.amount_paid_pence != null
+                    ? formatPence(signup.amount_paid_pence)
+                    : selectedMoney}
                 </Text>
               ) : null}
               {signup.status === 'pending_payment' ? (
                 <Text style={[styles.muted, { color: palette.muted, marginTop: 6 }]}>
                   {isLeaderApproved
-                    ? `The leader has approved your sign-up. Pay ${formatMoney(event.cost)} below to lock in your spot.`
+                    ? `The leader has approved your sign-up. Pay ${selectedMoney} below to lock in your spot.`
                     : 'Tap "Sign up" again to resume payment if the sheet was dismissed.'}
                 </Text>
               ) : null}
@@ -842,8 +917,8 @@ export default function EventDetailScreen() {
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
               {event.approval_mode === 'manual_all'
-                ? `${formatMoney(event.cost)} taken after the leader confirms your spot.`
-                : `Card payment of ${formatMoney(event.cost)} taken on sign-up.`}
+                ? `${selectedMoney} taken after the leader confirms your spot.`
+                : `Card payment of ${selectedMoney} taken on sign-up.`}
             </Text>
           ) : null}
         </View>
@@ -926,6 +1001,32 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  tierRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tierRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: OtterPalette.slateNavy,
+  },
+  tierLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  tierPrice: { fontSize: 16, fontWeight: '700' },
   cancelBtn: {
     marginTop: 12,
     paddingVertical: 10,

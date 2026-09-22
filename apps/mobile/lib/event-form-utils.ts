@@ -18,6 +18,7 @@ export type FieldKey =
   | 'putInTime'
   | 'maxParticipants'
   | 'cost'
+  | 'priceTiers'
   | 'repeatCount';
 
 export type Status = 'open' | 'full' | 'closed' | 'cancelled';
@@ -39,6 +40,7 @@ export type LoadedEvent = {
   min_level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
   max_participants: number | null;
   cost: number;
+  price_options: unknown;
   approval_mode: 'auto' | 'manual_all';
   status: 'draft' | Status;
   leader_id: string;

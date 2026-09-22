@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatCost, formatMoney } from './money.ts';
+import { formatCost, formatMoney, formatPence, parsePriceOptions } from './money.ts';
 
 test('pence are never rounded away', () => {
   assert.equal(formatMoney(0.5), '£0.50');
@@ -37,4 +37,41 @@ test('null and rubbish do not render NaN to a member', () => {
   assert.equal(formatCost(undefined), 'Free');
   assert.equal(formatMoney(null), '£0.00');
   assert.equal(formatMoney('not a number'), '£0.00');
+});
+
+test('formatPence renders whole pence as pounds', () => {
+  // Price options store pence, so the £ shown must match Stripe's unit_amount.
+  assert.equal(formatPence(1000), '£10.00');
+  assert.equal(formatPence(500), '£5.00');
+  assert.equal(formatPence(50), '£0.50');
+  assert.equal(formatPence(0), '£0.00');
+  assert.equal(formatPence(null), '£0.00');
+  assert.equal(formatPence('not a number'), '£0.00');
+});
+
+test('parsePriceOptions keeps only well-formed {label, pence} entries', () => {
+  assert.deepEqual(
+    parsePriceOptions([
+      { label: 'Adult', pence: 1000 },
+      { label: 'Under 18', pence: 500 },
+    ]),
+    [
+      { label: 'Adult', pence: 1000 },
+      { label: 'Under 18', pence: 500 },
+    ],
+  );
+  // The single-price case and any malformed data collapse to empty.
+  assert.deepEqual(parsePriceOptions(null), []);
+  assert.deepEqual(parsePriceOptions(undefined), []);
+  assert.deepEqual(parsePriceOptions('nope'), []);
+  // Drops entries missing a label or with a nonsense amount; rounds pence.
+  assert.deepEqual(
+    parsePriceOptions([
+      { label: '', pence: 100 },
+      { label: 'Ok', pence: 250.4 },
+      { label: 'Bad', pence: 'x' },
+      { pence: 100 },
+    ]),
+    [{ label: 'Ok', pence: 250 }],
+  );
 });

@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -50,7 +50,7 @@ import {
 import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, parsePriceOptions } from '@/lib/money';
 
 export type EventFormMode = 'create' | 'edit';
 
@@ -86,6 +86,10 @@ export default function EventForm(props: EventFormProps) {
   const [minLevelTouched, setMinLevelTouched] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('12');
   const [cost, setCost] = useState('0');
+  // Optional concession tiers, each { label, amount-in-pounds-as-text }. Empty
+  // list ⇒ the single `cost` above applies. When present, tier 0 is the
+  // standard rate and its amount tracks `cost`.
+  const [priceTiers, setPriceTiers] = useState<{ label: string; amount: string }[]>([]);
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
   const [status, setStatus] = useState<Status>('open');
   const [description, setDescription] = useState('');
@@ -106,12 +110,141 @@ export default function EventForm(props: EventFormProps) {
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatFrequency, setRepeatFrequency] = useState<'weekly' | 'fortnightly'>('weekly');
   const [repeatCount, setRepeatCount] = useState('4');
+  // How many events share this one's series (for the "apply photo to all X" prompt).
+  const [seriesCount, setSeriesCount] = useState(0);
+  // Confirmation overlays: leaving with unsaved changes, and photo-to-series.
+  const [showLeave, setShowLeave] = useState(false);
+  const [showPhotoScope, setShowPhotoScope] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [forbidden, setForbidden] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+
+  const navigation = useNavigation();
+  // A signature of every user-editable field. When it drifts from the snapshot
+  // captured once the form finishes loading, there are unsaved changes.
+  const buildSnapshot = useCallback(
+    () =>
+      JSON.stringify({
+        title,
+        categoryId,
+        grade,
+        startsAt,
+        durationHours,
+        multiDay,
+        endsAt,
+        location,
+        meetingPoint,
+        meetingTime,
+        putInPoint,
+        putInTime,
+        minLevel,
+        maxParticipants,
+        cost,
+        priceTiers,
+        approvalMode,
+        status,
+        description,
+        whatToBring,
+        leaderId,
+        assistantId,
+        photo: photoAsset?.uri ?? null,
+        removePhotoFlag,
+        selectedSuggestion,
+        repeatEnabled,
+        repeatFrequency,
+        repeatCount,
+      }),
+    [
+      title,
+      categoryId,
+      grade,
+      startsAt,
+      durationHours,
+      multiDay,
+      endsAt,
+      location,
+      meetingPoint,
+      meetingTime,
+      putInPoint,
+      putInTime,
+      minLevel,
+      maxParticipants,
+      cost,
+      priceTiers,
+      approvalMode,
+      status,
+      description,
+      whatToBring,
+      leaderId,
+      assistantId,
+      photoAsset,
+      removePhotoFlag,
+      selectedSuggestion,
+      repeatEnabled,
+      repeatFrequency,
+      repeatCount,
+    ],
+  );
+  // Baseline captured once the form is ready; null until then.
+  const initialSnapshotRef = useRef<string | null>(null);
+  // Set true right before an intentional navigation (save/discard) so the
+  // unsaved-changes guard lets that one through.
+  const leavingRef = useRef(false);
+  // The navigation action the guard intercepted, replayed on "discard".
+  const pendingActionRef = useRef<{ type: string } | null>(null);
+
+  const isDirty = useCallback(
+    () => initialSnapshotRef.current !== null && buildSnapshot() !== initialSnapshotRef.current,
+    [buildSnapshot],
+  );
+
+  // Capture the baseline once: at mount for create, once loaded for edit.
+  useEffect(() => {
+    if (initialSnapshotRef.current === null && !loading) {
+      initialSnapshotRef.current = buildSnapshot();
+    }
+  }, [loading, buildSnapshot]);
+
+  // How many events are in this series, for the photo-to-series prompt copy.
+  useEffect(() => {
+    if (!seriesId) {
+      setSeriesCount(0);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('series_id', seriesId)
+      .then(({ count }) => {
+        if (!cancelled) {
+          setSeriesCount(count ?? 0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesId]);
+
+  // Guard hardware/gesture back (native) against losing unsaved edits. The
+  // header back button routes through requestLeave() and won't reach here.
+  useEffect(() => {
+    const unsub = navigation.addListener(
+      'beforeRemove',
+      (e: { preventDefault: () => void; data: { action: { type: string } } }) => {
+        if (leavingRef.current || !isDirty()) {
+          return;
+        }
+        e.preventDefault();
+        pendingActionRef.current = e.data.action;
+        setShowLeave(true);
+      },
+    );
+    return unsub;
+  }, [navigation, isDirty]);
 
   // ---------- Load categories (always) and event row (edit only) ----------
   useEffect(() => {
@@ -135,7 +268,7 @@ export default function EventForm(props: EventFormProps) {
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, assistant_id, photo_path, series_id',
+                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, price_options, approval_mode, status, leader_id, assistant_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
@@ -216,6 +349,13 @@ export default function EventForm(props: EventFormProps) {
         setMinLevelTouched(true);
         setMaxParticipants(ev.max_participants == null ? '' : String(ev.max_participants));
         setCost(String(Number(ev.cost ?? 0)));
+        // Stored pence → editable pounds text for the tier rows.
+        setPriceTiers(
+          parsePriceOptions(ev.price_options).map((o) => ({
+            label: o.label,
+            amount: String(o.pence / 100),
+          })),
+        );
         setApprovalMode(ev.approval_mode);
         setStatus(ev.status === 'draft' ? 'open' : (ev.status as Status));
         setDescription(ev.description ?? '');
@@ -358,9 +498,37 @@ export default function EventForm(props: EventFormProps) {
     }
   };
 
-  const submit = async () => {
-    if (!session) {
+  // Leaving the screen: straight out if nothing's changed, else confirm.
+  const requestLeave = () => {
+    if (!isDirty()) {
+      router.back();
       return;
+    }
+    pendingActionRef.current = null;
+    setShowLeave(true);
+  };
+
+  const discardAndLeave = () => {
+    setShowLeave(false);
+    leavingRef.current = true;
+    const action = pendingActionRef.current;
+    if (action) {
+      navigation.dispatch(action);
+    } else {
+      router.back();
+    }
+  };
+
+  const saveAndLeave = async () => {
+    setShowLeave(false);
+    // submit() navigates away itself on success; if it fails validation we stay
+    // put with the errors shown (leavingRef stays false so the guard holds).
+    await submit();
+  };
+
+  const submit = async (opts?: { photoScope?: 'series' | 'single' }): Promise<boolean> => {
+    if (!session) {
+      return false;
     }
     setError(null);
     const errs: Partial<Record<FieldKey, string>> = {};
@@ -414,6 +582,30 @@ export default function EventForm(props: EventFormProps) {
       errs.cost = 'Cost must be 0 or a positive number';
     }
 
+    // Concession tiers → validated [{label, pence}] or null. When present, the
+    // first tier is the standard rate and its amount becomes the event's `cost`
+    // (so single-price displays and `isPaid` stay consistent).
+    let priceOptionsPayload: { label: string; pence: number }[] | null = null;
+    if (priceTiers.length > 0) {
+      const built: { label: string; pence: number }[] = [];
+      for (const t of priceTiers) {
+        const label = t.label.trim();
+        const amt = Number(t.amount);
+        if (!label || isNaN(amt) || amt < 0) {
+          errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
+          break;
+        }
+        built.push({ label, pence: Math.round(amt * 100) });
+      }
+      if (!errs.priceTiers) {
+        priceOptionsPayload = built;
+      }
+    }
+    const effectiveCost =
+      priceOptionsPayload && priceOptionsPayload.length > 0
+        ? priceOptionsPayload[0].pence / 100
+        : costNum;
+
     let occurrences = 1;
     let newSeriesId: string | null = null;
     if (!isEdit && repeatEnabled) {
@@ -429,9 +621,20 @@ export default function EventForm(props: EventFormProps) {
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       setError('Some fields need attention — see highlighted rows.');
-      return;
+      return false;
     }
     setFieldErrors({});
+
+    // Setting/replacing a photo on a series event: ask whether it applies to
+    // the whole series before writing, unless the leader already chose "All in
+    // series" up top or answered this prompt.
+    const photoBeingSet =
+      !!photoAsset || (!!selectedSuggestion && selectedSuggestion !== originalPhotoPath);
+    if (isEdit && seriesId && !applyToSeries && photoBeingSet && opts?.photoScope === undefined) {
+      setShowPhotoScope(true);
+      return false;
+    }
+    const photoToSeries = applyToSeries || opts?.photoScope === 'series';
 
     setBusy(true);
 
@@ -446,7 +649,7 @@ export default function EventForm(props: EventFormProps) {
         if ('error' in result) {
           setError(`Photo upload failed: ${result.error}`);
           setBusy(false);
-          return;
+          return false;
         }
         newPath = result.path;
       } else if (selectedSuggestion && selectedSuggestion !== originalPhotoPath) {
@@ -454,7 +657,7 @@ export default function EventForm(props: EventFormProps) {
         if ('error' in result) {
           setError(`Couldn't reuse that photo: ${result.error}`);
           setBusy(false);
-          return;
+          return false;
         }
         newPath = result.path;
       }
@@ -476,7 +679,8 @@ export default function EventForm(props: EventFormProps) {
         put_in_time: putInTime.trim() || null,
         min_level: minLevel,
         max_participants: maxP,
-        cost: costNum,
+        cost: effectiveCost,
+        price_options: priceOptionsPayload,
         approval_mode: approvalMode,
       };
       if (newPath !== undefined) {
@@ -509,13 +713,19 @@ export default function EventForm(props: EventFormProps) {
         writeFailure(occErr, occRows) ?? (applyAll ? writeFailure(seriesErr, seriesRows) : null);
       if (updateError) {
         setError(updateError);
-        return;
+        return false;
+      }
+      // Photo-to-series (when not already covered by the "All in series" scope):
+      // point every occurrence at the new photo so the whole series shows it.
+      if (!applyAll && photoToSeries && seriesId && newPath !== undefined) {
+        await supabase.from('events').update({ photo_path: newPath }).eq('series_id', seriesId);
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
         await removeEventPhotoIfUnused(originalPhotoPath);
       }
+      leavingRef.current = true;
       router.replace(`/event/${eventId}`);
-      return;
+      return true;
     }
 
     // ---------- CREATE path ----------
@@ -534,7 +744,8 @@ export default function EventForm(props: EventFormProps) {
       put_in_time: putInTime.trim() || null,
       min_level: minLevel,
       max_participants: maxP,
-      cost: costNum,
+      cost: effectiveCost,
+      price_options: priceOptionsPayload,
       approval_mode: approvalMode,
       status: 'open' as const,
       leader_id: leaderId ?? session.user.id,
@@ -563,7 +774,7 @@ export default function EventForm(props: EventFormProps) {
 
     if (insertError) {
       setError(insertError.message);
-      return;
+      return false;
     }
     const firstId = data?.[0]?.id;
     if (firstId) {
@@ -603,11 +814,13 @@ export default function EventForm(props: EventFormProps) {
         .invoke('notify-event-created', { body: { event_id: firstId } })
         .catch((e) => console.warn('[notify-event-created] failed', e));
     }
+    leavingRef.current = true;
     if (firstId) {
       router.replace(`/event/${firstId}?created=1`);
     } else {
       router.back();
     }
+    return true;
   };
 
   const onDelete = async () => {
@@ -724,7 +937,7 @@ export default function EventForm(props: EventFormProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <PageTitle title={screenTitle} />
-        <Header onBack={() => router.back()} title={screenTitle} />
+        <Header onBack={requestLeave} title={screenTitle} />
         {isCreate ? <StepProgress steps={CREATE_STEPS} current={step} onJump={setStep} /> : null}
         <ScrollView
           style={{ flex: 1 }}
@@ -1369,6 +1582,89 @@ export default function EventForm(props: EventFormProps) {
                   </View>
                 </Row>
 
+                {/* ---------- Concession rates (optional) ---------- */}
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  Concession rates (optional)
+                </FieldLabel>
+                <Text style={[styles.helpText, { color: palette.muted }]}>
+                  Add reduced rates (e.g. Under 18, basin-only) and members pick their own at
+                  sign-up. The top rate is the standard one. Leave empty to charge everyone the
+                  single cost above.
+                </Text>
+                {priceTiers.length === 0 ? (
+                  <Pressable
+                    testID="event-add-tiers"
+                    onPress={() =>
+                      setPriceTiers([
+                        { label: 'Standard', amount: cost || '0' },
+                        { label: '', amount: '' },
+                      ])
+                    }
+                    style={[styles.tierAddBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                      + Add concession rates
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    {priceTiers.map((tier, i) => (
+                      <Row key={`tier-${i}`} style={{ gap: 8, marginTop: i === 0 ? 4 : 8 }}>
+                        <View style={{ flex: 1.5 }}>
+                          <TextInput
+                            value={tier.label}
+                            onChangeText={(t) => {
+                              setPriceTiers((prev) =>
+                                prev.map((p, j) => (j === i ? { ...p, label: t } : p)),
+                              );
+                              if (fieldErrors.priceTiers) {
+                                setFieldErrors((e) => ({ ...e, priceTiers: undefined }));
+                              }
+                            }}
+                            placeholder={i === 0 ? 'Standard' : 'e.g. Under 18'}
+                            placeholderTextColor={palette.muted}
+                            style={fieldStyle('priceTiers')}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <TextInput
+                            value={tier.amount}
+                            onChangeText={(t) => {
+                              setPriceTiers((prev) =>
+                                prev.map((p, j) => (j === i ? { ...p, amount: t } : p)),
+                              );
+                              if (fieldErrors.priceTiers) {
+                                setFieldErrors((e) => ({ ...e, priceTiers: undefined }));
+                              }
+                            }}
+                            keyboardType="decimal-pad"
+                            placeholder="£"
+                            placeholderTextColor={palette.muted}
+                            style={fieldStyle('priceTiers')}
+                          />
+                        </View>
+                        <Pressable
+                          testID={`event-remove-tier-${i}`}
+                          onPress={() => setPriceTiers((prev) => prev.filter((_, j) => j !== i))}
+                          style={[styles.tierRemoveBtn, { borderColor: palette.border }]}
+                        >
+                          <Text style={{ color: OtterPalette.ice, fontWeight: '700' }}>✕</Text>
+                        </Pressable>
+                      </Row>
+                    ))}
+                    <FieldError text={fieldErrors.priceTiers} />
+                    <Pressable
+                      testID="event-add-tier-row"
+                      onPress={() => setPriceTiers((prev) => [...prev, { label: '', amount: '' }])}
+                      style={[styles.tierAddBtn, { borderColor: palette.border, marginTop: 8 }]}
+                    >
+                      <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                        + Add another rate
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+
                 <FieldLabel palette={palette} style={{ marginTop: 14 }}>
                   Approval mode
                 </FieldLabel>
@@ -1675,7 +1971,7 @@ export default function EventForm(props: EventFormProps) {
               ) : (
                 <Pressable
                   testID="event-create-submit"
-                  onPress={busy ? undefined : submit}
+                  onPress={busy ? undefined : () => submit()}
                   disabled={busy}
                   style={[
                     styles.primaryBtn,
@@ -1693,7 +1989,7 @@ export default function EventForm(props: EventFormProps) {
           ) : (
             <Pressable
               testID="event-edit-submit"
-              onPress={busy ? undefined : submit}
+              onPress={busy ? undefined : () => submit()}
               disabled={busy}
               style={[
                 styles.primaryBtn,
@@ -1709,6 +2005,85 @@ export default function EventForm(props: EventFormProps) {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* ---------- Unsaved-changes guard ---------- */}
+      {showLeave ? (
+        <View style={styles.overlay}>
+          <View style={[styles.dialog, { backgroundColor: palette.background }]}>
+            <Text style={[styles.dialogTitle, { color: palette.text }]}>Unsaved changes</Text>
+            <Text style={[styles.dialogBody, { color: palette.muted }]}>
+              You've made changes that haven't been saved. What would you like to do?
+            </Text>
+            <Pressable
+              testID="leave-save"
+              onPress={saveAndLeave}
+              style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: '#fff' }]}>Save and exit</Text>
+            </Pressable>
+            <Pressable
+              testID="leave-discard"
+              onPress={discardAndLeave}
+              style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: OtterPalette.ice }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: OtterPalette.ice }]}>
+                Exit without saving
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="leave-cancel"
+              onPress={() => setShowLeave(false)}
+              style={styles.dialogCancel}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Keep editing</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {/* ---------- Apply photo to series ---------- */}
+      {showPhotoScope ? (
+        <View style={styles.overlay}>
+          <View style={[styles.dialog, { backgroundColor: palette.background }]}>
+            <Text style={[styles.dialogTitle, { color: palette.text }]}>
+              Apply photo to series?
+            </Text>
+            <Text style={[styles.dialogBody, { color: palette.muted }]}>
+              This event is one of {seriesCount} in a repeating series. Add this photo to every
+              event in the series, or just this one?
+            </Text>
+            <Pressable
+              testID="photo-scope-series"
+              onPress={() => {
+                setShowPhotoScope(false);
+                submit({ photoScope: 'series' });
+              }}
+              style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: '#fff' }]}>
+                Apply to all {seriesCount} events
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="photo-scope-single"
+              onPress={() => {
+                setShowPhotoScope(false);
+                submit({ photoScope: 'single' });
+              }}
+              style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: palette.border }]}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.text }]}>This event only</Text>
+            </Pressable>
+            <Pressable
+              testID="photo-scope-cancel"
+              onPress={() => setShowPhotoScope(false)}
+              style={styles.dialogCancel}
+            >
+              <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -1744,6 +2119,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 12, fontWeight: '600' },
+  helpText: { fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 6 },
+  tierAddBtn: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  tierAddText: { fontSize: 13, fontWeight: '700' },
+  tierRemoveBtn: {
+    width: 44,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   groupLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -1766,4 +2158,27 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   footerError: { fontSize: 12, marginBottom: 8, textAlign: 'center' },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  dialog: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 16,
+    padding: 20,
+    gap: 10,
+  },
+  dialogTitle: { fontSize: 18, fontWeight: '700' },
+  dialogBody: { fontSize: 14, lineHeight: 20, marginBottom: 4 },
+  dialogBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  dialogBtnText: { fontSize: 15, fontWeight: '700' },
+  dialogCancel: { paddingVertical: 10, alignItems: 'center' },
 });
