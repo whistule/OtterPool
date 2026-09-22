@@ -36,9 +36,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
         working-directory: apps/mobile
-      # Money formatting, via node's built-in runner — no framework. Cheap to
-      # run and guards a bug that already shipped once: a 50p trip displayed as
-      # "£1" while Stripe charged 50p.
+      # Unit tests via node's built-in runner — no framework. Cheap to run and
+      # guard real bugs (e.g. money formatting: a 50p trip once displayed as
+      # "£1" while Stripe charged 50p).
       - name: Unit tests
-        run: npm run test:money
+        run: npm run test:unit
         working-directory: apps/mobile

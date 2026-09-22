@@ -14,7 +14,8 @@
     "pretest:e2e": "npm --prefix ../../supabase run seed:e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:money": "node --test lib/money.test.ts"
+    "test:money": "node --test lib/money.test.ts",
+    "test:unit": "node --test lib/*.test.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

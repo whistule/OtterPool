@@ -87,6 +87,17 @@ export default function MembersScreen() {
           autoCorrect={false}
         />
       </View>
+      {isAdmin ? (
+        <Pressable
+          testID="members-import-link"
+          onPress={() => router.push('/membership-import')}
+          style={[styles.importBtn, { borderColor: OtterPalette.slateNavy }]}
+        >
+          <Text style={[styles.importBtnText, { color: OtterPalette.slateNavy }]}>
+            ⬆ Import members from MemberMojo
+          </Text>
+        </Pressable>
+      ) : null}
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         {members == null ? (
           <LoadingCenter />
@@ -137,6 +148,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#ffffff',
   },
+  importBtn: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  importBtnText: { fontSize: 14, fontWeight: '700' },
   search: { fontSize: 14 },
   name: { fontSize: 15, fontWeight: '700' },
   muted: { fontSize: 12, marginTop: 2 },
