@@ -79,11 +79,11 @@ const LEVELS: LevelInfo[] = [
     },
     accessLabel: 'What you can join',
     access: [
-      { dot: 'all', text: 'Everything at Frog level' },
-      { dot: 'sea', text: 'Sea Grade A and B trips, with leader approval' },
-      { dot: 'pool', text: 'Pinkston 1 and 2 pump sessions' },
-      { dot: 'river', text: 'River trips up to Grade 2/3, with leader approval' },
-      { dot: 'all', text: 'Training and qualification courses' },
+      { dot: 'all', text: 'Everything at Frog level (pool + loch sessions)' },
+      { dot: 'all', text: 'All Away trips' },
+      { dot: 'pool', text: 'Pinkston introductory night' },
+      { dot: 'sea', text: 'Second Saturday paddles — with leader approval' },
+      { dot: 'sea', text: 'Sea Grade A trips — with leader approval' },
     ],
     advanceLabel: 'Advancing to Otter',
     advanceText:
