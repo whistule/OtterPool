@@ -31,6 +31,9 @@ type Routing = { status: string; message: string };
 /** Statuses a fresh sign-up call may overwrite on an existing row. */
 const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
 
+/** How many events an aspirant may sign up to before they must join. */
+const TRIAL_LIMIT = 3;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -81,6 +84,22 @@ Deno.serve(async (req) => {
     // leader's call and stays blocked.
     if (existing && !REJOINABLE_STATUSES.has(existing.status)) {
       return err(`Already signed up — status: ${existing.status}`, 409);
+    }
+
+    // Aspirants (prospective members not yet matched to the paid list) get a
+    // 3-event trial, then must join. The cap counts distinct events they've
+    // signed up to — a withdrawn row still counts (no gaming it by signing up
+    // and cancelling); a leader-declined row doesn't (they never got a place).
+    // Rejoining an event they already have a row for isn't a new event, so a
+    // held/withdrawn row for THIS event is exempt.
+    if (profile.status === 'aspirant' && !existing) {
+      const used = await countTrialSignups(admin, user.id);
+      if (used >= TRIAL_LIMIT) {
+        return err(
+          `You've used all ${TRIAL_LIMIT} of your trial events — join DCKC to keep signing up`,
+          403,
+        );
+      }
     }
 
     // The amount is always resolved server-side. When the event carries
@@ -203,6 +222,20 @@ async function loadExistingSignup(
     .eq('member_id', userId)
     .maybeSingle();
   return data;
+}
+
+/**
+ * Trial usage for the aspirant cap: distinct events the member has signed up
+ * to, excluding leader-declined rows. One row per (event, member), so a plain
+ * row count is the number of events.
+ */
+async function countTrialSignups(admin: SupabaseClient, userId: string): Promise<number> {
+  const { count } = await admin
+    .from('event_signups')
+    .select('id', { count: 'exact', head: true })
+    .eq('member_id', userId)
+    .neq('status', 'declined');
+  return count ?? 0;
 }
 
 // ---------- Routing decision ----------

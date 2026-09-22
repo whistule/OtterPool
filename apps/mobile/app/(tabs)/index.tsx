@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MembershipBanner } from '@/components/membership-banner';
 import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
@@ -174,6 +175,8 @@ export default function CalendarScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <TopBar title="Calendar" subtitle="Upcoming club events" />
+
+        <MembershipBanner />
 
         <View style={styles.searchWrap}>
           <TextInput
