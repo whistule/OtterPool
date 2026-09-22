@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MembershipBanner } from '@/components/membership-banner';
+import { MembershipPopup } from '@/components/membership-popup';
 import { PageTitle } from '@/components/page-title';
 import { EventPhoto } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
@@ -176,8 +176,6 @@ export default function CalendarScreen() {
       >
         <TopBar title="Calendar" subtitle="Upcoming club events" />
 
-        <MembershipBanner />
-
         <View style={styles.searchWrap}>
           <TextInput
             value={query}
@@ -308,6 +306,7 @@ export default function CalendarScreen() {
           })
         )}
       </ScrollView>
+      <MembershipPopup />
     </SafeAreaView>
   );
 }
