@@ -27,6 +27,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
+import {
+  cleanAnswers,
+  EXPERIENCE_QUESTIONS,
+  type ExperienceAnswers,
+  hasAnyAnswer,
+} from '@/lib/experience';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
@@ -108,7 +114,7 @@ export default function ProfileScreen() {
   // Paddling-experience summary (own section, saved separately from the
   // personal-details form so the review flow stays self-contained).
   const [expEditing, setExpEditing] = useState(false);
-  const [expDraft, setExpDraft] = useState('');
+  const [expDraft, setExpDraft] = useState<ExperienceAnswers>({});
   const [savingExp, setSavingExp] = useState(false);
   const [requestingReview, setRequestingReview] = useState(false);
 
@@ -262,7 +268,7 @@ export default function ProfileScreen() {
   };
 
   const beginEditExperience = () => {
-    setExpDraft(profile?.paddling_experience ?? '');
+    setExpDraft({ ...(profile?.experience_answers ?? {}) });
     setExpEditing(true);
     setError(null);
   };
@@ -273,9 +279,13 @@ export default function ProfileScreen() {
     }
     setError(null);
     setSavingExp(true);
+    const cleaned = cleanAnswers(expDraft);
     const { data, error: err } = await supabase
       .from('member_private')
-      .upsert({ member_id: session.user.id, paddling_experience: expDraft.trim() || null })
+      .upsert({
+        member_id: session.user.id,
+        experience_answers: hasAnyAnswer(cleaned) ? cleaned : null,
+      })
       .select('member_id');
     setSavingExp(false);
     const failure = writeFailure(err, data);
@@ -582,34 +592,21 @@ export default function ProfileScreen() {
           <Card>
             {expEditing ? (
               <>
-                <Text style={[styles.body, { color: palette.text, marginBottom: 8 }]}>
-                  Help a coach set your starting level. The more specific and honest, the better:
+                <Text style={[styles.body, { color: palette.text, marginBottom: 12 }]}>
+                  Help a coach set your starting level. The more specific and honest, the better —
+                  answer what applies, skip what doesn’t.
                 </Text>
-                <Text style={[styles.expHint, { color: palette.muted }]}>
-                  {'• How long you’ve paddled, and how often\n'}
-                  {'• Where your last three trips were (put-in → take-out, roughly when)\n'}
-                  {'• The trickiest conditions you’ve handled — and what you did\n'}
-                  {'• Your boat(s), make and model\n'}
-                  {'• Your roll — reliable both sides? White water / surf, or pool only?\n'}
-                  {'• Any awards, and the coaches or clubs you’ve paddled with'}
-                </Text>
-                <TextInput
-                  value={expDraft}
-                  onChangeText={setExpDraft}
-                  multiline
-                  placeholder="Write a few honest lines about your paddling…"
-                  placeholderTextColor={palette.muted}
-                  testID="experience-input"
-                  style={[
-                    styles.input,
-                    {
-                      color: palette.text,
-                      borderColor: palette.border,
-                      minHeight: 140,
-                      textAlignVertical: 'top',
-                    },
-                  ]}
-                />
+                {EXPERIENCE_QUESTIONS.map((q) => (
+                  <FormField
+                    key={q.key}
+                    label={q.label}
+                    value={expDraft[q.key] ?? ''}
+                    onChangeText={(v) => setExpDraft({ ...expDraft, [q.key]: v })}
+                    placeholder={q.placeholder}
+                    multiline={q.multiline}
+                    testID={`experience-field-${q.key}`}
+                  />
+                ))}
                 <Row style={{ gap: 8, marginTop: 8 }}>
                   <Pressable
                     testID="experience-save"
@@ -633,14 +630,26 @@ export default function ProfileScreen() {
               </>
             ) : (
               <>
-                {profile.paddling_experience ? (
-                  <Text style={[styles.body, { color: palette.text, lineHeight: 20 }]}>
-                    {profile.paddling_experience}
-                  </Text>
+                {hasAnyAnswer(profile.experience_answers) ? (
+                  EXPERIENCE_QUESTIONS.filter(
+                    (q) => (profile.experience_answers?.[q.key] ?? '').trim().length > 0,
+                  ).map((q) => (
+                    <View key={q.key} style={{ marginBottom: 12 }}>
+                      <Text style={[styles.fieldLabel, { color: palette.muted }]}>{q.label}</Text>
+                      <Text
+                        style={[
+                          styles.fieldValue,
+                          { color: palette.text, fontSize: 14, lineHeight: 20 },
+                        ]}
+                      >
+                        {profile.experience_answers?.[q.key]}
+                      </Text>
+                    </View>
+                  ))
                 ) : (
                   <Text style={[styles.empty, { color: palette.muted }]}>
-                    New to OtterPool, or joining from another club? Add a short summary of your
-                    paddling so a coach can set your level.
+                    New to OtterPool, or joining from another club? Answer a few questions about
+                    your paddling so a coach can set your level.
                   </Text>
                 )}
                 {profile.experience_review_requested ? (
@@ -665,17 +674,19 @@ export default function ProfileScreen() {
                     style={[styles.ghostBtn, { borderColor: palette.border }]}
                   >
                     <Text style={[styles.ghostBtnText, { color: palette.text }]}>
-                      {profile.paddling_experience ? 'Edit' : 'Add experience'}
+                      {hasAnyAnswer(profile.experience_answers) ? 'Edit answers' : 'Add experience'}
                     </Text>
                   </Pressable>
                   {profile.experience_review_requested ? null : (
                     <Pressable
                       testID="experience-request-review"
                       onPress={requestReview}
-                      disabled={requestingReview || !profile.paddling_experience}
+                      disabled={requestingReview || !hasAnyAnswer(profile.experience_answers)}
                       style={[
                         styles.primaryBtn,
-                        (requestingReview || !profile.paddling_experience) && { opacity: 0.6 },
+                        (requestingReview || !hasAnyAnswer(profile.experience_answers)) && {
+                          opacity: 0.6,
+                        },
                       ]}
                     >
                       <Text style={styles.primaryBtnText}>
@@ -1009,7 +1020,6 @@ const styles = StyleSheet.create({
   },
   avatarBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
   empty: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
-  expHint: { fontSize: 12, lineHeight: 18, marginBottom: 10 },
   reviewState: { fontSize: 13, fontWeight: '600', marginTop: 10 },
   input: {
     borderWidth: 1,

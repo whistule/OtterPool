@@ -2,30 +2,33 @@
 -- OtterPool — Self-declared paddling experience + level review
 -- ============================================================
 -- New joiners — especially experienced paddlers arriving from another
--- club — can write a free-text summary of their paddling background and
--- request a level review. A paddling admin reads the summary and sets
--- the member's starting animal level from their profile.
+-- club — answer a short structured questionnaire about their paddling
+-- background and request a level review. A paddling admin reads the
+-- answers and sets the member's starting animal level from their profile.
 --
--- The summary is not sensitive like phone/dob/medical, but it is personal
--- and there is no reason for every member to read everyone else's, so it
--- lives on member_private (self + super-admin RLS). Paddling admins who
--- are NOT super admins cannot read member_private directly, so review
--- access is via SECURITY DEFINER RPCs that expose ONLY the experience
--- fields — never phone, dob, bc number or medical notes.
+-- Answers are stored as a jsonb map keyed by the question `key` defined in
+-- apps/mobile/lib/experience.ts (e.g. {"years": "...", "boat": "..."}).
+--
+-- The answers are not sensitive like phone/dob/medical, but they are
+-- personal and there is no reason for every member to read everyone
+-- else's, so they live on member_private (self + super-admin RLS).
+-- Paddling admins who are NOT super admins cannot read member_private
+-- directly, so review access is via SECURITY DEFINER RPCs that expose
+-- ONLY the experience fields — never phone, dob, bc number or medical.
 
 alter table public.member_private
-  add column if not exists paddling_experience         text,
+  add column if not exists experience_answers          jsonb,
   add column if not exists experience_review_requested boolean not null default false,
   add column if not exists experience_submitted_at     timestamptz,
   add column if not exists experience_reviewed_at       timestamptz;
 
--- Read one member's experience summary + review state. Paddling or super
+-- Read one member's experience answers + review state. Paddling or super
 -- admins only (the EXISTS guard returns zero rows otherwise). Returns only
 -- the experience fields, so it never widens access to the sensitive columns.
 create or replace function public.admin_member_experience(p_member_id uuid)
 returns table (
   member_id                   uuid,
-  paddling_experience         text,
+  experience_answers          jsonb,
   experience_review_requested boolean,
   experience_submitted_at     timestamptz,
   experience_reviewed_at      timestamptz
@@ -34,7 +37,7 @@ language sql
 security definer
 set search_path = ''
 as $$
-  select mp.member_id, mp.paddling_experience, mp.experience_review_requested,
+  select mp.member_id, mp.experience_answers, mp.experience_review_requested,
          mp.experience_submitted_at, mp.experience_reviewed_at
   from public.member_private mp
   where mp.member_id = p_member_id

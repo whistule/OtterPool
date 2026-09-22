@@ -2,6 +2,7 @@ import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import type { ExperienceAnswers } from './experience';
 import { registerForPushNotifications } from './notifications';
 import { supabase } from './supabase';
 
@@ -44,7 +45,7 @@ export type Profile = {
   dob: string | null;
   bc_membership_no: string | null;
   medical_notes: string | null;
-  paddling_experience: string | null;
+  experience_answers: ExperienceAnswers | null;
   experience_review_requested: boolean;
   experience_submitted_at: string | null;
   experience_reviewed_at: string | null;
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase
         .from('member_private')
         .select(
-          'phone, dob, bc_membership_no, medical_notes, paddling_experience, experience_review_requested, experience_submitted_at, experience_reviewed_at',
+          'phone, dob, bc_membership_no, medical_notes, experience_answers, experience_review_requested, experience_submitted_at, experience_reviewed_at',
         )
         .eq('member_id', userId)
         .maybeSingle(),
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           | 'dob'
           | 'bc_membership_no'
           | 'medical_notes'
-          | 'paddling_experience'
+          | 'experience_answers'
           | 'experience_review_requested'
           | 'experience_submitted_at'
           | 'experience_reviewed_at'
@@ -107,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dob: (priv as { dob?: string | null }).dob ?? null,
         bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
         medical_notes: (priv as { medical_notes?: string | null }).medical_notes ?? null,
-        paddling_experience:
-          (priv as { paddling_experience?: string | null }).paddling_experience ?? null,
+        experience_answers:
+          (priv as { experience_answers?: ExperienceAnswers | null }).experience_answers ?? null,
         experience_review_requested:
           (priv as { experience_review_requested?: boolean | null }).experience_review_requested ??
           false,

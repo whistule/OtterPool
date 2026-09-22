@@ -20,6 +20,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { logAdminAction } from '@/lib/audit';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
+import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
 import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
@@ -71,7 +72,7 @@ const EMPTY_PRIVATE: PrivateFields = {
 };
 
 type Experience = {
-  paddling_experience: string | null;
+  experience_answers: ExperienceAnswers | null;
   experience_review_requested: boolean;
   experience_submitted_at: string | null;
   experience_reviewed_at: string | null;
@@ -483,7 +484,7 @@ export default function MemberProfileScreen() {
 
         {canEditLevel &&
         experience &&
-        (experience.paddling_experience || experience.experience_review_requested) ? (
+        (hasAnyAnswer(experience.experience_answers) || experience.experience_review_requested) ? (
           <>
             <SectionTitle>Paddling experience</SectionTitle>
             <Card>
@@ -499,14 +500,24 @@ export default function MemberProfileScreen() {
                   </Text>
                 ) : null}
               </Row>
-              <Text
-                style={[
-                  styles.muted,
-                  { color: palette.text, fontSize: 14, marginTop: 10, lineHeight: 20 },
-                ]}
-              >
-                {experience.paddling_experience || 'No summary written yet.'}
-              </Text>
+              {hasAnyAnswer(experience.experience_answers) ? (
+                EXPERIENCE_QUESTIONS.filter(
+                  (q) => (experience.experience_answers?.[q.key] ?? '').trim().length > 0,
+                ).map((q) => (
+                  <View key={q.key} style={{ marginTop: 12 }}>
+                    <Text style={[styles.fieldLabel, { color: palette.muted }]}>{q.label}</Text>
+                    <Text
+                      style={[styles.muted, { color: palette.text, fontSize: 14, lineHeight: 20 }]}
+                    >
+                      {experience.experience_answers?.[q.key]}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={[styles.muted, { color: palette.muted, fontSize: 14, marginTop: 10 }]}>
+                  No answers written yet.
+                </Text>
+              )}
               {experience.experience_review_requested ? (
                 <Pressable
                   onPress={markingReviewed ? undefined : markReviewed}
