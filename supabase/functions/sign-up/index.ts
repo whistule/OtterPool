@@ -8,6 +8,8 @@ import { Stripe, getStripe } from '../_shared/stripe.ts';
 import { sendPush } from '../_shared/push.ts';
 import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
 
+type PriceOption = { label?: string; pence?: number };
+
 type EventRow = {
   id: string;
   title: string;
@@ -17,6 +19,7 @@ type EventRow = {
   status: string;
   leader_id: string;
   cost: number | string | null;
+  price_options: PriceOption[] | null;
   grade_advertised: string | null;
   category: { name: string } | null;
 };
@@ -40,7 +43,7 @@ Deno.serve(async (req) => {
     }
     const { admin, user } = auth.clients;
 
-    const { event_id, return_url } = await req.json();
+    const { event_id, return_url, price_option } = await req.json();
     if (!event_id) {
       return err('event_id is required', 400);
     }
@@ -80,7 +83,14 @@ Deno.serve(async (req) => {
       return err(`Already signed up — status: ${existing.status}`, 409);
     }
 
-    const costPence = Math.round(Number(event.cost ?? 0) * 100);
+    // The amount is always resolved server-side. When the event carries
+    // concession tiers the client sends only *which* tier (an index), never a
+    // price — a tampered client can at worst pick a legitimate cheaper tier, it
+    // can't invent an amount. Falls back to the flat `cost` when there are no
+    // tiers, and to the standard (index 0) tier when the choice is missing or
+    // out of range.
+    const charge = resolveCharge(event, price_option);
+    const costPence = charge.pence;
     const isPaid = costPence > 0;
 
     const routing = await decideRouting(admin, event, user.id);
@@ -109,6 +119,7 @@ Deno.serve(async (req) => {
         userEmail: user.email,
         signupId,
         costPence,
+        priceLabel: charge.label,
         returnUrl: return_url,
       });
       return ok({
@@ -164,7 +175,7 @@ async function loadEvent(admin: SupabaseClient, eventId: string): Promise<EventR
   const { data } = await admin
     .from('events')
     .select(
-      'id, title, min_level, max_participants, approval_mode, status, leader_id, cost, grade_advertised, category:event_categories(name)',
+      'id, title, min_level, max_participants, approval_mode, status, leader_id, cost, price_options, grade_advertised, category:event_categories(name)',
     )
     .eq('id', eventId)
     .single();
@@ -244,6 +255,36 @@ async function isAboveApprovalCeiling(
   return !ceiling || !gradeWithinCeiling(track, ceiling, event.grade_advertised);
 }
 
+// ---------- Pricing ----------
+
+/**
+ * Resolve the amount to charge (in pence) and the tier label, entirely from
+ * the stored event — never from a client-supplied amount. When the event has
+ * concession tiers, `price_option` selects one by index; a missing or
+ * out-of-range index falls back to index 0 (the standard rate). With no tiers,
+ * the flat `cost` column (pounds) applies.
+ */
+function resolveCharge(
+  event: EventRow,
+  priceOption: unknown,
+): { pence: number; label: string | null } {
+  const options = Array.isArray(event.price_options) ? event.price_options : [];
+  if (options.length > 0) {
+    const idx =
+      Number.isInteger(priceOption) &&
+      (priceOption as number) >= 0 &&
+      (priceOption as number) < options.length
+        ? (priceOption as number)
+        : 0;
+    const chosen = options[idx] ?? options[0];
+    return {
+      pence: Math.max(0, Math.round(Number(chosen?.pence ?? 0))),
+      label: chosen?.label ?? null,
+    };
+  }
+  return { pence: Math.round(Number(event.cost ?? 0) * 100), label: null };
+}
+
 // ---------- Paid sign-up plumbing ----------
 
 async function ensurePendingPaymentRow(
@@ -283,9 +324,10 @@ async function createCheckoutSession(args: {
   userEmail?: string;
   signupId: string;
   costPence: number;
+  priceLabel: string | null;
   returnUrl: string;
 }): Promise<string | null> {
-  const { event, userId, userEmail, signupId, costPence, returnUrl } = args;
+  const { event, userId, userEmail, signupId, costPence, priceLabel, returnUrl } = args;
   const sep = returnUrl.includes('?') ? '&' : '?';
   const stripe = getStripe();
   const metadata: Stripe.MetadataParam = {
@@ -293,13 +335,15 @@ async function createCheckoutSession(args: {
     event_id: event.id,
     member_id: userId,
   };
+  // Show the chosen tier on the Stripe page + receipt (e.g. "Pinkston — Under 18").
+  const productName = priceLabel ? `${event.title} — ${priceLabel}` : event.title;
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: [
       {
         price_data: {
           currency: 'gbp',
-          product_data: { name: event.title },
+          product_data: { name: productName },
           unit_amount: costPence,
         },
         quantity: 1,

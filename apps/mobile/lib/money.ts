@@ -22,3 +22,41 @@ export function formatCost(cost: number | string | null | undefined): string {
   }
   return GBP.format(n);
 }
+
+/**
+ * A concession-pricing choice stored on an event (see the
+ * `20260922000000_event_price_options` migration). Amounts are whole pence, so
+ * the value handed to Stripe needs no rounding.
+ */
+export type PriceOption = { label: string; pence: number };
+
+/** As formatMoney, but takes a whole number of pence (as price options store). */
+export function formatPence(pence: number | string | null | undefined): string {
+  const n = Number(pence ?? 0);
+  if (!Number.isFinite(n)) {
+    return GBP.format(0);
+  }
+  return GBP.format(n / 100);
+}
+
+/**
+ * Coerce a stored `price_options` value into a clean list. Anything that isn't
+ * a well-formed {label, pence} array (including the null single-price case)
+ * comes back empty, so callers can treat "no options" and "bad data" alike.
+ */
+export function parsePriceOptions(raw: unknown): PriceOption[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const out: PriceOption[] = [];
+  for (const item of raw) {
+    if (item && typeof item === 'object') {
+      const label = String((item as { label?: unknown }).label ?? '').trim();
+      const pence = Math.round(Number((item as { pence?: unknown }).pence));
+      if (label && Number.isFinite(pence) && pence >= 0) {
+        out.push({ label, pence });
+      }
+    }
+  }
+  return out;
+}

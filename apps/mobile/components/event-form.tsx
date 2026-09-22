@@ -50,7 +50,7 @@ import {
 import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, parsePriceOptions } from '@/lib/money';
 
 export type EventFormMode = 'create' | 'edit';
 
@@ -86,6 +86,10 @@ export default function EventForm(props: EventFormProps) {
   const [minLevelTouched, setMinLevelTouched] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('12');
   const [cost, setCost] = useState('0');
+  // Optional concession tiers, each { label, amount-in-pounds-as-text }. Empty
+  // list ⇒ the single `cost` above applies. When present, tier 0 is the
+  // standard rate and its amount tracks `cost`.
+  const [priceTiers, setPriceTiers] = useState<{ label: string; amount: string }[]>([]);
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual_all'>('auto');
   const [status, setStatus] = useState<Status>('open');
   const [description, setDescription] = useState('');
@@ -135,7 +139,7 @@ export default function EventForm(props: EventFormProps) {
           ? supabase
               .from('events')
               .select(
-                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, approval_mode, status, leader_id, assistant_id, photo_path, series_id',
+                'id, title, category_id, description, what_to_bring, grade_advertised, starts_at, ends_at, location, meeting_point, meeting_time, put_in_point, put_in_time, min_level, max_participants, cost, price_options, approval_mode, status, leader_id, assistant_id, photo_path, series_id',
               )
               .eq('id', eventId)
               .maybeSingle()
@@ -216,6 +220,13 @@ export default function EventForm(props: EventFormProps) {
         setMinLevelTouched(true);
         setMaxParticipants(ev.max_participants == null ? '' : String(ev.max_participants));
         setCost(String(Number(ev.cost ?? 0)));
+        // Stored pence → editable pounds text for the tier rows.
+        setPriceTiers(
+          parsePriceOptions(ev.price_options).map((o) => ({
+            label: o.label,
+            amount: String(o.pence / 100),
+          })),
+        );
         setApprovalMode(ev.approval_mode);
         setStatus(ev.status === 'draft' ? 'open' : (ev.status as Status));
         setDescription(ev.description ?? '');
@@ -414,6 +425,30 @@ export default function EventForm(props: EventFormProps) {
       errs.cost = 'Cost must be 0 or a positive number';
     }
 
+    // Concession tiers → validated [{label, pence}] or null. When present, the
+    // first tier is the standard rate and its amount becomes the event's `cost`
+    // (so single-price displays and `isPaid` stay consistent).
+    let priceOptionsPayload: { label: string; pence: number }[] | null = null;
+    if (priceTiers.length > 0) {
+      const built: { label: string; pence: number }[] = [];
+      for (const t of priceTiers) {
+        const label = t.label.trim();
+        const amt = Number(t.amount);
+        if (!label || isNaN(amt) || amt < 0) {
+          errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
+          break;
+        }
+        built.push({ label, pence: Math.round(amt * 100) });
+      }
+      if (!errs.priceTiers) {
+        priceOptionsPayload = built;
+      }
+    }
+    const effectiveCost =
+      priceOptionsPayload && priceOptionsPayload.length > 0
+        ? priceOptionsPayload[0].pence / 100
+        : costNum;
+
     let occurrences = 1;
     let newSeriesId: string | null = null;
     if (!isEdit && repeatEnabled) {
@@ -476,7 +511,8 @@ export default function EventForm(props: EventFormProps) {
         put_in_time: putInTime.trim() || null,
         min_level: minLevel,
         max_participants: maxP,
-        cost: costNum,
+        cost: effectiveCost,
+        price_options: priceOptionsPayload,
         approval_mode: approvalMode,
       };
       if (newPath !== undefined) {
@@ -534,7 +570,8 @@ export default function EventForm(props: EventFormProps) {
       put_in_time: putInTime.trim() || null,
       min_level: minLevel,
       max_participants: maxP,
-      cost: costNum,
+      cost: effectiveCost,
+      price_options: priceOptionsPayload,
       approval_mode: approvalMode,
       status: 'open' as const,
       leader_id: leaderId ?? session.user.id,
@@ -1369,6 +1406,89 @@ export default function EventForm(props: EventFormProps) {
                   </View>
                 </Row>
 
+                {/* ---------- Concession rates (optional) ---------- */}
+                <FieldLabel palette={palette} style={{ marginTop: 14 }}>
+                  Concession rates (optional)
+                </FieldLabel>
+                <Text style={[styles.helpText, { color: palette.muted }]}>
+                  Add reduced rates (e.g. Under 18, basin-only) and members pick their own at
+                  sign-up. The top rate is the standard one. Leave empty to charge everyone the
+                  single cost above.
+                </Text>
+                {priceTiers.length === 0 ? (
+                  <Pressable
+                    testID="event-add-tiers"
+                    onPress={() =>
+                      setPriceTiers([
+                        { label: 'Standard', amount: cost || '0' },
+                        { label: '', amount: '' },
+                      ])
+                    }
+                    style={[styles.tierAddBtn, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                      + Add concession rates
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    {priceTiers.map((tier, i) => (
+                      <Row key={`tier-${i}`} style={{ gap: 8, marginTop: i === 0 ? 4 : 8 }}>
+                        <View style={{ flex: 1.5 }}>
+                          <TextInput
+                            value={tier.label}
+                            onChangeText={(t) => {
+                              setPriceTiers((prev) =>
+                                prev.map((p, j) => (j === i ? { ...p, label: t } : p)),
+                              );
+                              if (fieldErrors.priceTiers) {
+                                setFieldErrors((e) => ({ ...e, priceTiers: undefined }));
+                              }
+                            }}
+                            placeholder={i === 0 ? 'Standard' : 'e.g. Under 18'}
+                            placeholderTextColor={palette.muted}
+                            style={fieldStyle('priceTiers')}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <TextInput
+                            value={tier.amount}
+                            onChangeText={(t) => {
+                              setPriceTiers((prev) =>
+                                prev.map((p, j) => (j === i ? { ...p, amount: t } : p)),
+                              );
+                              if (fieldErrors.priceTiers) {
+                                setFieldErrors((e) => ({ ...e, priceTiers: undefined }));
+                              }
+                            }}
+                            keyboardType="decimal-pad"
+                            placeholder="£"
+                            placeholderTextColor={palette.muted}
+                            style={fieldStyle('priceTiers')}
+                          />
+                        </View>
+                        <Pressable
+                          testID={`event-remove-tier-${i}`}
+                          onPress={() => setPriceTiers((prev) => prev.filter((_, j) => j !== i))}
+                          style={[styles.tierRemoveBtn, { borderColor: palette.border }]}
+                        >
+                          <Text style={{ color: OtterPalette.ice, fontWeight: '700' }}>✕</Text>
+                        </Pressable>
+                      </Row>
+                    ))}
+                    <FieldError text={fieldErrors.priceTiers} />
+                    <Pressable
+                      testID="event-add-tier-row"
+                      onPress={() => setPriceTiers((prev) => [...prev, { label: '', amount: '' }])}
+                      style={[styles.tierAddBtn, { borderColor: palette.border, marginTop: 8 }]}
+                    >
+                      <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                        + Add another rate
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+
                 <FieldLabel palette={palette} style={{ marginTop: 14 }}>
                   Approval mode
                 </FieldLabel>
@@ -1744,6 +1864,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 12, fontWeight: '600' },
+  helpText: { fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 6 },
+  tierAddBtn: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  tierAddText: { fontSize: 13, fontWeight: '700' },
+  tierRemoveBtn: {
+    width: 44,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   groupLabel: {
     fontSize: 11,
     fontWeight: '700',
