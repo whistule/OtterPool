@@ -22,7 +22,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
 import { categoryChip } from '@/lib/event-form-utils';
-import { colorForGrade, LEVEL_EMOJI, LEVEL_RANK, ProgressionLevel } from '@/lib/progress';
+import { colorForGrade, LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 import { formatCost } from '@/lib/money';
 
@@ -113,11 +113,8 @@ export default function CalendarScreen() {
   const canCreate = profile?.level === 'selkie' || roleFlags(profile).paddlingAdmin;
   const [active, setActive] = useState<Discipline>('All');
   const [query, setQuery] = useState('');
-  const [openToMe, setOpenToMe] = useState(false);
   const [rows, setRows] = useState<CalendarRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const myRank = profile?.level ? LEVEL_RANK[profile.level] : undefined;
 
   const load = React.useCallback(async () => {
     setError(null);
@@ -145,12 +142,6 @@ export default function CalendarScreen() {
       if (active !== 'All' && categoryToDiscipline(r.category) !== active) {
         return false;
       }
-      if (openToMe && myRank !== undefined) {
-        const need = LEVEL_RANK[r.min_level as ProgressionLevel] ?? 0;
-        if (need > myRank) {
-          return false;
-        }
-      }
       if (q.length > 0) {
         const hay = `${r.title} ${r.location ?? ''} ${r.leader_name ?? ''}`.toLowerCase();
         if (!hay.includes(q)) {
@@ -159,7 +150,7 @@ export default function CalendarScreen() {
       }
       return true;
     });
-  }, [rows, active, query, openToMe, myRank]);
+  }, [rows, active, query]);
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: palette.background }]} edges={['top']}>
@@ -230,25 +221,6 @@ export default function CalendarScreen() {
             );
           })}
         </View>
-
-        {myRank !== undefined ? (
-          <View style={styles.toggleRow}>
-            <Pressable
-              onPress={() => setOpenToMe((v) => !v)}
-              style={[
-                styles.togglePill,
-                {
-                  backgroundColor: openToMe ? OtterPalette.slateNavy : palette.surface,
-                  borderColor: openToMe ? OtterPalette.slateNavy : palette.border,
-                },
-              ]}
-            >
-              <Text style={[styles.toggleText, { color: openToMe ? 'white' : palette.muted }]}>
-                {openToMe ? '✓ Open to me' : 'Open to me'}
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
 
         <SectionTitle>Upcoming</SectionTitle>
 

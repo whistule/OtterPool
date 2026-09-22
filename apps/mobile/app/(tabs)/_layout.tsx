@@ -57,6 +57,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="levels"
+        options={{
+          title: 'Levels',
+          tabBarIcon: ({ focused }) => <EmojiIcon emoji="🦦" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="progress"
         options={{
           href: null,
