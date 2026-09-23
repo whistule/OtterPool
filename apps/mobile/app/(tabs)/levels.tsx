@@ -385,7 +385,10 @@ const styles = StyleSheet.create({
   ctaTitle: { fontSize: 15, fontWeight: '700' },
   ctaBody: { fontSize: 13, lineHeight: 19, marginTop: 6 },
   ctaLink: { fontSize: 14, fontWeight: '700', marginTop: 10 },
-  navBar: { flexGrow: 0, borderBottomWidth: 1 },
+  // react-native-web gives ScrollView `flex-basis: 0%`, so in this column
+  // `flexGrow: 0` alone collapsed the pill row to a sliver of its bottom
+  // border. Size it from its content and keep it from shrinking.
+  navBar: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', borderBottomWidth: 1 },
   navContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   navPill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
   navText: { fontSize: 13, fontWeight: '600' },
