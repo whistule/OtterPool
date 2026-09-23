@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
+import { clockSkewRetryingFetch } from './clock-skew-fetch';
+
 // Deliberately no fallback. These used to default to the dev project, which
 // meant a build with the vars missing came up silently pointed at dev — a
 // production app writing to the dev database, with nothing to notice it.
@@ -30,4 +32,5 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: Platform.OS === 'web',
     flowType: 'pkce',
   },
+  global: { fetch: clockSkewRetryingFetch() },
 });
