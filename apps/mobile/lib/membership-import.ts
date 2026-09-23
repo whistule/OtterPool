@@ -18,6 +18,7 @@ export type ParseResult = {
   withDate: number; // rows that carried a parseable expiry
   noDate: number; // rows with an email but no usable date
   skippedInactive: number; // export rows dropped because state wasn't Active
+  problem?: string; // why nothing was parsed, for the import screen to show
 };
 
 const MONTHS: Record<string, number> = {
@@ -224,26 +225,54 @@ function fromLoose(text: string): ParseResult {
   return dedupe(pairs, 0);
 }
 
+/** Find a column by exact name, then by substring ("email address" → email). */
+function column(header: string[], ...names: string[]): number {
+  for (const name of names) {
+    const exact = header.indexOf(name);
+    if (exact !== -1) {
+      return exact;
+    }
+  }
+  return header.findIndex((h) => names.some((name) => h.includes(name)));
+}
+
 /**
  * Parse a paste into clean, de-duped rows. Detects a MemberMojo CSV export by
- * its "Email" header column and reads Email / "Expires on" / "Membership
- * state" by name (Active rows only); otherwise falls back to a simple
- * email(+date) per line.
+ * its header row and reads Email / "Expires on" / "Membership state" by name
+ * (Active rows only); otherwise falls back to a simple email(+date) per line.
+ *
+ * The two paths are NOT interchangeable, so an export must never quietly fall
+ * through to the loose one: the loose path takes the first parseable date on a
+ * line, which in a full export is Date of birth — every member would import
+ * with a long-past expiry and the next reconcile would lapse the entire club.
+ * A row that looks like a header but has no findable email column is therefore
+ * an error, not a reason to guess.
  */
 export function parseMemberPaste(text: string): ParseResult {
+  const empty = { rows: [], withDate: 0, noDate: 0, skippedInactive: 0 };
   if (!text.trim()) {
-    return { rows: [], withDate: 0, noDate: 0, skippedInactive: 0 };
+    return empty;
   }
   const table = parseCsv(text);
-  const header = (table[0] ?? []).map((c) => c.trim().toLowerCase());
-  const emailIdx = header.indexOf('email');
+  const first = table[0] ?? [];
+  const header = first.map((c) => c.trim().toLowerCase());
+  const emailIdx = column(header, 'email');
   if (emailIdx !== -1) {
     return fromExport(
       table.slice(1),
       emailIdx,
-      header.indexOf('expires on'),
-      header.indexOf('membership state'),
+      column(header, 'expires on', 'expires', 'expiry'),
+      column(header, 'membership state', 'state', 'status'),
     );
+  }
+  // A multi-column first row with no address in it is a header we failed to
+  // read — stop rather than fall through to the line-by-line guesser.
+  if (first.length > 2 && !first.some((c) => EMAIL_RE.test(c.trim()))) {
+    return {
+      ...empty,
+      problem:
+        'This looks like a CSV export but no email column was found. Check the header row includes a column named Email, or paste just the email and expiry columns.',
+    };
   }
   return fromLoose(text);
 }

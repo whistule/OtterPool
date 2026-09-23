@@ -39,7 +39,9 @@ alter table public.profiles
 -- so the FIRST reconcile can't auto-lapse anyone before they've been matched
 -- against a real export. Matched members are re-stamped to 'list' by the
 -- reconcile (see below) once they turn up on an imported list.
-update public.profiles set membership_source = 'manual';
+-- (explicit all-rows WHERE: Supabase's safeupdate guard rejects a bare UPDATE,
+-- the same way it rejected the bare DELETE fixed in 20260922020000)
+update public.profiles set membership_source = 'manual' where true;
 
 -- ============================================================
 -- Reconcile — bring every profile's status in line with the current list.
