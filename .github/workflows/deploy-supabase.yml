@@ -1,0 +1,80 @@
+name: Deploy Supabase
+
+# Migrations and edge functions both live in supabase/ and both have to reach
+# production on merge. They are deployed by the SAME workflow, in order, because
+# a function routinely depends on a column the migration adds (sign-up selects
+# events.price_options). Two separate workflows would race and could deploy the
+# function against a schema that doesn't have the column yet.
+#
+# Requires two repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN — https://supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD  — the production project's database password
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/deploy-supabase.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-supabase
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  # Production project ref (same project the Pages site points at).
+  PROJECT_REF: cunkkdbfylimkktwgfle
+
+jobs:
+  # Applies every migration production hasn't seen yet. A no-op when only
+  # functions changed, so it is cheap to run on every supabase/ push.
+  migrations:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the secrets are configured
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD must both be set" \
+              "under Settings → Secrets and variables → Actions (see this workflow's header)."
+            exit 1
+          fi
+      # Pin the CLI version — "latest" makes setup-cli query GitHub's API for
+      # the newest release on every run, which is easily rate-limited on shared
+      # runners ("Failed to resolve latest ... rate limit exceeded"). Also pass
+      # the built-in token so any GitHub API calls are authenticated.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # link resolves the pooler connection for us; db push then applies the
+      # pending migrations in version order and stops on the first failure.
+      - name: Apply migrations
+        run: |
+          supabase link --project-ref "$PROJECT_REF"
+          supabase db push
+
+  # Only once the schema is in place.
+  functions:
+    needs: migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Deploys all functions under supabase/functions, honouring per-function
+      # settings in supabase/config.toml (e.g. verify_jwt = false for the Stripe
+      # webhook and payment-return).
+      - name: Deploy functions
+        run: supabase functions deploy --project-ref "$PROJECT_REF"

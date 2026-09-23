@@ -77,3 +77,20 @@ test('parseMemberPaste: duplicate email keeps the furthest expiry', () => {
   const { rows } = parseMemberPaste('sam@example.com\t01/10/2026\nsam@example.com\t30/09/2027\n');
   assert.deepEqual(rows, [{ email: 'sam@example.com', expires: '2027-09-30' }]);
 });
+
+test('parseMemberPaste: an export whose column is "Email address" still reads by header', () => {
+  const { rows } = parseMemberPaste(
+    'Name,Date of birth,Email address,Expires on,Membership state\n' +
+      'Ann,01/02/1980,ann@example.com,30/09/2027,Active\n',
+  );
+  assert.deepEqual(rows, [{ email: 'ann@example.com', expires: '2027-09-30' }]);
+});
+
+test('parseMemberPaste: an unreadable export errors instead of grabbing date of birth', () => {
+  const { rows, problem } = parseMemberPaste(
+    'Name,Date of birth,Contact,Expires on,Membership state\n' +
+      'Ann,01/02/1980,ann@example.com,30/09/2027,Active\n',
+  );
+  assert.deepEqual(rows, []);
+  assert.match(problem ?? '', /email column/i);
+});

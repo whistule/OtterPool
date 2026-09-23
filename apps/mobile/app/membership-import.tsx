@@ -156,7 +156,13 @@ export default function MembershipImportScreen() {
           ]}
         />
 
-        {paste.trim() ? (
+        {paste.trim() && parsed.problem ? (
+          <Card style={{ borderWidth: 1.5, borderColor: OtterPalette.ice }}>
+            <Text style={[styles.body, { color: OtterPalette.ice }]}>{parsed.problem}</Text>
+          </Card>
+        ) : null}
+
+        {paste.trim() && !parsed.problem ? (
           <Card>
             <Text style={[styles.body, { color: palette.text }]}>
               {parsed.rows.length} active member{parsed.rows.length === 1 ? '' : 's'} detected
