@@ -58,8 +58,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true,
-      "baseUrl": "/OtterPool"
+      "reactCompiler": true
     },
     "owner": "robertplant",
     "runtimeVersion": {
