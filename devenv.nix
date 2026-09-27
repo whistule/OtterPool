@@ -23,5 +23,17 @@
     echo "  node:       $(node --version)"
     echo "  supabase:   $(supabase --version 2>/dev/null || echo 'n/a')"
     echo "  playwright: browsers at $PLAYWRIGHT_BROWSERS_PATH"
+
+    # CI has no nix, so it pins these by hand. Warn the moment `devenv update`
+    # moves one of them out from under the pin.
+    pin() {
+      grep -qF "$2" "$DEVENV_ROOT/$3" ||
+        echo "  WARNING: $1 is $2 here but $3 pins something else, bump them together"
+    }
+    pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/test.yml
+    pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/deploy-web.yml
+    pin biome "@biomejs/biome@${pkgs.biome.version}" .github/workflows/test.yml
+    pin supabase "version: ${pkgs.supabase-cli.version}" .github/workflows/deploy-supabase.yml
+    pin playwright '"@playwright/test": "${pkgs.playwright-driver.version}"' apps/mobile/package.json
   '';
 }
