@@ -78,6 +78,7 @@ export default function MembersScreen() {
       <Header onBack={() => router.back()} title="Members" />
       <View style={[styles.searchWrap, { borderColor: palette.border }]}>
         <TextInput
+          accessibilityLabel="Search members"
           value={query}
           onChangeText={setQuery}
           placeholder="Search members"
@@ -89,6 +90,7 @@ export default function MembersScreen() {
       </View>
       {isAdmin ? (
         <Pressable
+          accessibilityRole="button"
           testID="members-import-link"
           onPress={() => router.push('/membership-import')}
           style={[styles.importBtn, { borderColor: OtterPalette.slateNavy }]}
@@ -110,6 +112,7 @@ export default function MembersScreen() {
             const name = m.display_name ?? m.full_name ?? 'Member';
             return (
               <Pressable
+                accessibilityRole="button"
                 key={m.id}
                 onPress={() => router.push(`/profile/${m.id}`)}
                 testID={`member-row-${m.id}`}

@@ -56,7 +56,7 @@ function AuthGate() {
           backgroundColor: palette.background,
         }}
       >
-        <ActivityIndicator size="large" color={palette.tint} />
+        <ActivityIndicator accessibilityLabel="Loading" size="large" color={palette.tint} />
       </View>
     );
   }

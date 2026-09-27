@@ -200,6 +200,7 @@ export default function ReviewSignupsScreen() {
             return (
               <Card key={s.id}>
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => router.push(`/profile/${s.member_id}`)}
                   style={{ marginBottom: 10 }}
                 >
@@ -235,6 +236,7 @@ export default function ReviewSignupsScreen() {
 
                 <Row style={{ gap: 10 }}>
                   <Pressable
+                    accessibilityRole="button"
                     testID={`review-confirm-${s.id}`}
                     onPress={busy ? undefined : () => review(s.id, 'confirm')}
                     disabled={busy}
@@ -250,6 +252,7 @@ export default function ReviewSignupsScreen() {
                     )}
                   </Pressable>
                   <Pressable
+                    accessibilityRole="button"
                     testID={`review-deny-${s.id}`}
                     onPress={busy ? undefined : () => review(s.id, 'deny')}
                     disabled={busy}

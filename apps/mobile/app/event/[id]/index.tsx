@@ -450,6 +450,7 @@ export default function EventDetailScreen() {
               <Row style={{ gap: 6 }}>
                 {canReview ? (
                   <Pressable
+                    accessibilityRole="button"
                     testID="event-review-cta"
                     onPress={() => router.push(`/event/${id}/review`)}
                     style={[
@@ -466,6 +467,7 @@ export default function EventDetailScreen() {
                 ) : null}
                 {canEdit ? (
                   <Pressable
+                    accessibilityRole="button"
                     testID="event-edit-cta"
                     onPress={() => router.push(`/event/${id}/edit`)}
                     style={styles.headerAction}
@@ -486,6 +488,7 @@ export default function EventDetailScreen() {
               This is exactly what members see. You can change anything.
             </Text>
             <Pressable
+              accessibilityRole="button"
               testID="event-published-edit"
               onPress={() => router.push(`/event/${id}/edit`)}
               style={{
@@ -551,6 +554,7 @@ export default function EventDetailScreen() {
             </Text>
             {profile?.experience_review_requested ? null : (
               <Pressable
+                accessibilityRole="button"
                 testID="event-experience-cta"
                 onPress={() => router.push('/profile')}
                 style={{
@@ -575,6 +579,7 @@ export default function EventDetailScreen() {
           </Text>
           {isConfirmed && Platform.OS === 'web' ? (
             <Pressable
+              accessibilityRole="button"
               testID="event-add-to-calendar"
               onPress={() => downloadIcs(event)}
               style={{ marginTop: 8, alignSelf: 'flex-start' }}
@@ -592,7 +597,11 @@ export default function EventDetailScreen() {
             <SectionTitle>Where</SectionTitle>
             <Card>
               {event.location ? (
-                <Pressable onPress={() => openMaps(event.location ?? '')} testID="event-location">
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => openMaps(event.location ?? '')}
+                  testID="event-location"
+                >
                   <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
                     {event.location}
                   </Text>
@@ -600,6 +609,7 @@ export default function EventDetailScreen() {
               ) : null}
               {event.meeting_point ? (
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() =>
                     openMaps(`${event.meeting_point}${event.location ? `, ${event.location}` : ''}`)
                   }
@@ -614,6 +624,7 @@ export default function EventDetailScreen() {
               ) : null}
               {event.put_in_point ? (
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() =>
                     openMaps(`${event.put_in_point}${event.location ? `, ${event.location}` : ''}`)
                   }
@@ -632,7 +643,10 @@ export default function EventDetailScreen() {
 
         {/* ---------- Leader(s) ---------- */}
         <SectionTitle>{event.assistant_id ? 'Leaders' : 'Leader'}</SectionTitle>
-        <Pressable onPress={() => router.push(`/profile/${event.leader_id}`)}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(`/profile/${event.leader_id}`)}
+        >
           <Card>
             <Row style={{ gap: 12 }}>
               <Avatar
@@ -656,7 +670,10 @@ export default function EventDetailScreen() {
           </Card>
         </Pressable>
         {event.assistant_id ? (
-          <Pressable onPress={() => router.push(`/profile/${event.assistant_id}`)}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push(`/profile/${event.assistant_id}`)}
+          >
             <Card>
               <Row style={{ gap: 12 }}>
                 <Avatar
@@ -703,7 +720,11 @@ export default function EventDetailScreen() {
             const name = p.display_name ?? p.full_name ?? 'Member';
             const emoji = LEVEL_EMOJI[p.level as ProgressionLevel] ?? '🦦';
             return (
-              <Pressable key={p.member_id} onPress={() => router.push(`/profile/${p.member_id}`)}>
+              <Pressable
+                accessibilityRole="button"
+                key={p.member_id}
+                onPress={() => router.push(`/profile/${p.member_id}`)}
+              >
                 <Card>
                   <Row style={{ gap: 12 }}>
                     <Avatar path={p.avatar_path} size={36} fallback={emoji} />
@@ -773,6 +794,8 @@ export default function EventDetailScreen() {
                 const active = i === tierIndex;
                 return (
                   <Pressable
+                    accessibilityState={{ selected: active }}
+                    accessibilityRole="button"
                     // biome-ignore lint/suspicious/noArrayIndexKey: tiers are fixed for the event, label + index is unique
                     key={`${opt.label}-${i}`}
                     testID={`price-tier-${i}`}
@@ -830,6 +853,7 @@ export default function EventDetailScreen() {
               ) : null}
               {signup.status !== 'withdrawn' && signup.status !== 'declined' ? (
                 <Pressable
+                  accessibilityRole="button"
                   testID="event-cancel-signup"
                   onPress={handleCancelSignup}
                   disabled={busy}
@@ -854,6 +878,7 @@ export default function EventDetailScreen() {
             }}
           >
             <Text
+              accessibilityRole="alert"
               style={[
                 styles.body,
                 { color: feedback.type === 'ok' ? OtterPalette.forest : OtterPalette.ice },
@@ -878,6 +903,7 @@ export default function EventDetailScreen() {
           ]}
         >
           <Pressable
+            accessibilityRole="button"
             testID="event-primary-cta"
             onPress={canSignUp ? handleSignUp : undefined}
             disabled={!canSignUp}

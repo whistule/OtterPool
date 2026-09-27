@@ -454,6 +454,9 @@ export default function ProfileScreen() {
           <Card>
             <Row style={{ gap: 14 }}>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Change profile photo"
+                accessibilityState={{ busy: uploadingAvatar }}
                 onPress={uploadingAvatar ? undefined : onChangeAvatar}
                 testID="profile-change-avatar"
                 style={{ position: 'relative' }}
@@ -538,6 +541,7 @@ export default function ProfileScreen() {
               />
               <Row style={{ gap: 8, marginTop: 8 }}>
                 <Pressable
+                  accessibilityRole="button"
                   testID="profile-save"
                   onPress={saveProfile}
                   disabled={savingProfile}
@@ -546,6 +550,7 @@ export default function ProfileScreen() {
                   <Text style={styles.primaryBtnText}>{savingProfile ? 'Saving…' : 'Save'}</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => {
                     setEditing(false);
                     setError(null);
@@ -579,6 +584,7 @@ export default function ProfileScreen() {
                 last
               />
               <Pressable
+                accessibilityRole="button"
                 testID="profile-edit"
                 onPress={beginEdit}
                 style={[styles.editBtn, { borderColor: palette.border }]}
@@ -609,6 +615,7 @@ export default function ProfileScreen() {
                 ))}
                 <Row style={{ gap: 8, marginTop: 8 }}>
                   <Pressable
+                    accessibilityRole="button"
                     testID="experience-save"
                     onPress={saveExperience}
                     disabled={savingExp}
@@ -617,6 +624,7 @@ export default function ProfileScreen() {
                     <Text style={styles.primaryBtnText}>{savingExp ? 'Saving…' : 'Save'}</Text>
                   </Pressable>
                   <Pressable
+                    accessibilityRole="button"
                     onPress={() => {
                       setExpEditing(false);
                       setError(null);
@@ -669,6 +677,7 @@ export default function ProfileScreen() {
                 ) : null}
                 <Row style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                   <Pressable
+                    accessibilityRole="button"
                     testID="experience-edit"
                     onPress={beginEditExperience}
                     style={[styles.ghostBtn, { borderColor: palette.border }]}
@@ -679,6 +688,7 @@ export default function ProfileScreen() {
                   </Pressable>
                   {profile.experience_review_requested ? null : (
                     <Pressable
+                      accessibilityRole="button"
                       testID="experience-request-review"
                       onPress={requestReview}
                       disabled={requestingReview || !hasAnyAnswer(profile.experience_answers)}
@@ -745,6 +755,7 @@ export default function ProfileScreen() {
                 </Row>
                 <Row style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   <Pressable
+                    accessibilityRole="button"
                     testID={`contact-edit-${c.id}`}
                     onPress={() => beginEditContact(c)}
                     style={[styles.ghostBtn, { borderColor: palette.border }]}
@@ -753,6 +764,7 @@ export default function ProfileScreen() {
                   </Pressable>
                   {!c.is_primary ? (
                     <Pressable
+                      accessibilityRole="button"
                       testID={`contact-make-primary-${c.id}`}
                       onPress={() => makePrimary(c)}
                       style={[styles.ghostBtn, { borderColor: palette.border }]}
@@ -763,6 +775,7 @@ export default function ProfileScreen() {
                     </Pressable>
                   ) : null}
                   <Pressable
+                    accessibilityRole="button"
                     testID={`contact-remove-${c.id}`}
                     onPress={() => deleteContact(c)}
                     style={[styles.ghostBtn, { borderColor: palette.border }]}
@@ -785,7 +798,7 @@ export default function ProfileScreen() {
               saveLabel="Add contact"
             />
           ) : contactMode === 'closed' ? (
-            <Pressable testID="contact-add" onPress={beginAddContact}>
+            <Pressable accessibilityRole="button" testID="contact-add" onPress={beginAddContact}>
               <Card style={{ alignItems: 'center' }}>
                 <Text style={[styles.addLink, { color: OtterPalette.slateNavy }]}>
                   + Add contact
@@ -803,17 +816,27 @@ export default function ProfileScreen() {
           </Card>
 
           <SectionTitle>About</SectionTitle>
-          <Pressable onPress={() => router.push('/about')} testID="profile-about">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/about')}
+            testID="profile-about"
+          >
             <Card>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={[styles.body, { color: palette.text }]}>About OtterPool</Text>
-                <Text style={[styles.body, { color: palette.muted }]}>›</Text>
+                <Text aria-hidden style={[styles.body, { color: palette.muted }]}>
+                  ›
+                </Text>
               </Row>
             </Card>
           </Pressable>
 
           <SectionTitle>Session</SectionTitle>
-          <Pressable onPress={() => supabase.auth.signOut()} testID="profile-sign-out">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => supabase.auth.signOut()}
+            testID="profile-sign-out"
+          >
             <Card>
               <Text style={[styles.signOut, { color: OtterPalette.ice }]}>Sign out</Text>
             </Card>
@@ -897,6 +920,7 @@ function ContactForm({
         multiline
       />
       <Pressable
+        accessibilityRole="button"
         testID={`contact-primary-toggle-${testIdSuffix}`}
         onPress={() => setDraft({ ...draft, is_primary: !draft.is_primary })}
         style={[styles.checkbox, { borderColor: palette.border }]}
@@ -907,6 +931,7 @@ function ContactForm({
       </Pressable>
       <Row style={{ gap: 8, marginTop: 8 }}>
         <Pressable
+          accessibilityRole="button"
           testID={`contact-save-${testIdSuffix}`}
           onPress={onSave}
           disabled={saving}
@@ -915,6 +940,7 @@ function ContactForm({
           <Text style={styles.primaryBtnText}>{saving ? 'Saving…' : saveLabel}</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
           testID={`contact-cancel-${testIdSuffix}`}
           onPress={onCancel}
           disabled={saving}

@@ -98,7 +98,9 @@ export default function SignUpScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
             <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
-            <Text style={[styles.tag, { color: palette.muted }]}>Create your account</Text>
+            <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
+              Create your account
+            </Text>
           </View>
 
           <View
@@ -106,6 +108,7 @@ export default function SignUpScreen() {
           >
             <Text style={[styles.label, { color: palette.muted }]}>Full name</Text>
             <TextInput
+              accessibilityLabel="Full name"
               value={fullName}
               onChangeText={setFullName}
               autoCapitalize="words"
@@ -125,6 +128,7 @@ export default function SignUpScreen() {
               Display name
             </Text>
             <TextInput
+              accessibilityLabel="Display name"
               ref={displayNameRef}
               value={displayName}
               onChangeText={setDisplayName}
@@ -142,6 +146,7 @@ export default function SignUpScreen() {
 
             <Text style={[styles.label, { color: palette.muted, marginTop: 14 }]}>Email</Text>
             <TextInput
+              accessibilityLabel="Email"
               ref={emailRef}
               value={email}
               onChangeText={setEmail}
@@ -161,6 +166,7 @@ export default function SignUpScreen() {
 
             <Text style={[styles.label, { color: palette.muted, marginTop: 14 }]}>Password</Text>
             <TextInput
+              accessibilityLabel="Password"
               ref={passwordRef}
               value={password}
               onChangeText={setPassword}
@@ -181,6 +187,7 @@ export default function SignUpScreen() {
               Confirm password
             </Text>
             <TextInput
+              accessibilityLabel="Confirm password"
               ref={confirmRef}
               value={confirm}
               onChangeText={setConfirm}
@@ -195,11 +202,18 @@ export default function SignUpScreen() {
             />
 
             {error ? (
-              <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text>
+              <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
+                {error}
+              </Text>
             ) : null}
-            {info ? <Text style={[styles.info, { color: palette.muted }]}>{info}</Text> : null}
+            {info ? (
+              <Text accessibilityRole="alert" style={[styles.info, { color: palette.muted }]}>
+                {info}
+              </Text>
+            ) : null}
 
             <Pressable
+              accessibilityRole="button"
               onPress={handleSignUp}
               disabled={busy}
               style={[
@@ -214,7 +228,12 @@ export default function SignUpScreen() {
               )}
             </Pressable>
 
-            <Pressable onPress={() => router.back()} disabled={busy} style={styles.secondaryBtn}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.back()}
+              disabled={busy}
+              style={styles.secondaryBtn}
+            >
               <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
                 Back to sign in
               </Text>

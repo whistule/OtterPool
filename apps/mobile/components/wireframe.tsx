@@ -28,7 +28,9 @@ export function TopBar({ title, subtitle }: { title: string; subtitle?: string }
   return (
     <View style={styles.topBar}>
       <Text style={styles.wordmark}>OtterPool</Text>
-      <Text style={styles.topBarTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.topBarTitle}>
+        {title}
+      </Text>
       {subtitle ? <Text style={styles.topBarSubtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -36,7 +38,11 @@ export function TopBar({ title, subtitle }: { title: string; subtitle?: string }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   const palette = Colors[useColorScheme() ?? 'light'];
-  return <Text style={[styles.sectionTitle, { color: palette.text }]}>{children}</Text>;
+  return (
+    <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>
+      {children}
+    </Text>
+  );
 }
 
 export function Card({

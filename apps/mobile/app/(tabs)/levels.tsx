@@ -217,6 +217,8 @@ export default function LevelsScreen() {
           const on = activeNav === lv.id;
           return (
             <Pressable
+              accessibilityState={{ selected: on }}
+              accessibilityRole="button"
               key={lv.id}
               onPress={() => jumpTo(lv.id)}
               style={[
@@ -242,7 +244,11 @@ export default function LevelsScreen() {
           everyone stays safe on the water.
         </Text>
 
-        <Pressable onPress={() => router.push('/profile')} testID="levels-experience-cta">
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/profile')}
+          testID="levels-experience-cta"
+        >
           <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
             <Text style={[styles.ctaTitle, { color: OtterPalette.forest }]}>
               Paddled a while already?

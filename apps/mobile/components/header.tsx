@@ -16,13 +16,21 @@ export function Header({
 }) {
   return (
     <View style={styles.header}>
-      <Pressable testID={backTestID} onPress={onBack} style={styles.backBtn}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        testID={backTestID}
+        onPress={onBack}
+        style={styles.backBtn}
+      >
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       {right ? (
         <View style={styles.rightWrap}>{right}</View>
       ) : title ? (
-        <Text style={styles.title}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.title}>
+          {title}
+        </Text>
       ) : (
         <Text style={styles.wordmark}>OtterPool</Text>
       )}

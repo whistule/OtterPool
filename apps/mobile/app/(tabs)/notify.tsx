@@ -133,6 +133,7 @@ export default function NotifyScreen() {
       <SectionTitle>Push diagnostics</SectionTitle>
       <Card>
         <Pressable
+          accessibilityRole="button"
           onPress={diagBusy ? undefined : runDiag}
           disabled={diagBusy}
           style={[styles.diagBtn, { borderColor: palette.border, opacity: diagBusy ? 0.6 : 1 }]}

@@ -471,6 +471,7 @@ export default function MemberProfileScreen() {
         <CurrentLevelCard level={profile.level} createdAt={profile.created_at} />
         {canEditLevel ? (
           <Pressable
+            accessibilityRole="button"
             onPress={() => setLevelEditOpen(true)}
             disabled={savingLevel}
             testID="change-level-cta"
@@ -521,6 +522,7 @@ export default function MemberProfileScreen() {
               )}
               {experience.experience_review_requested ? (
                 <Pressable
+                  accessibilityRole="button"
                   onPress={markingReviewed ? undefined : markReviewed}
                   disabled={markingReviewed}
                   testID="mark-reviewed-cta"
@@ -551,6 +553,7 @@ export default function MemberProfileScreen() {
                 />
               </Row>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => setStatusEditOpen(true)}
                 disabled={savingStatus}
                 testID="change-status-cta"
@@ -618,6 +621,7 @@ export default function MemberProfileScreen() {
                   </FieldRow>
                   <Row style={{ gap: 8, marginTop: 12 }}>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={savingPriv ? undefined : savePrivateFields}
                       disabled={savingPriv}
                       testID="save-private-cta"
@@ -626,6 +630,7 @@ export default function MemberProfileScreen() {
                       <Text style={styles.editCtaText}>{savingPriv ? 'Saving…' : 'Save'}</Text>
                     </Pressable>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => setPrivForm(null)}
                       style={[styles.btnPad, { flex: 1, alignItems: 'center' }]}
                     >
@@ -648,6 +653,7 @@ export default function MemberProfileScreen() {
                     value={priv.medical_notes || 'None recorded'}
                   />
                   <Pressable
+                    accessibilityRole="button"
                     onPress={() => setPrivForm(priv)}
                     testID="edit-private-cta"
                     style={[styles.editCta, styles.btnPad, { marginTop: 12 }]}
@@ -720,6 +726,7 @@ export default function MemberProfileScreen() {
                       />
                     </Row>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={saving ? undefined : () => onToggleRole(column)}
                       disabled={saving}
                       testID={`toggle-role-${column}`}
@@ -744,6 +751,7 @@ export default function MemberProfileScreen() {
                     </Pressable>
                     {confirming ? (
                       <Pressable
+                        accessibilityRole="button"
                         onPress={() => setConfirmSuper(false)}
                         style={{ marginTop: 8, alignItems: 'center' }}
                       >
@@ -831,8 +839,9 @@ function LevelPicker({
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+      <Pressable accessibilityRole="button" style={styles.modalBackdrop} onPress={onClose}>
         <Pressable
+          accessibilityRole="button"
           style={[styles.modalSheet, { backgroundColor: palette.surface }]}
           onPress={(e) => e.stopPropagation()}
         >
@@ -841,6 +850,8 @@ function LevelPicker({
             const selected = l === current;
             return (
               <Pressable
+                accessibilityState={{ selected: selected }}
+                accessibilityRole="button"
                 key={l}
                 onPress={() => onPick(l)}
                 testID={`level-pick-${l}`}
@@ -860,7 +871,7 @@ function LevelPicker({
               </Pressable>
             );
           })}
-          <Pressable style={styles.modalCancel} onPress={onClose}>
+          <Pressable accessibilityRole="button" style={styles.modalCancel} onPress={onClose}>
             <Text style={[styles.modalCancelText, { color: palette.muted }]}>Cancel</Text>
           </Pressable>
         </Pressable>
@@ -885,8 +896,9 @@ function StatusPicker({
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+      <Pressable accessibilityRole="button" style={styles.modalBackdrop} onPress={onClose}>
         <Pressable
+          accessibilityRole="button"
           style={[styles.modalSheet, { backgroundColor: palette.surface }]}
           onPress={(e) => e.stopPropagation()}
         >
@@ -895,6 +907,8 @@ function StatusPicker({
             const selected = s === current;
             return (
               <Pressable
+                accessibilityState={{ selected: selected }}
+                accessibilityRole="button"
                 key={s}
                 onPress={() => onPick(s)}
                 testID={`status-pick-${s}`}
@@ -912,7 +926,7 @@ function StatusPicker({
               </Pressable>
             );
           })}
-          <Pressable style={styles.modalCancel} onPress={onClose}>
+          <Pressable accessibilityRole="button" style={styles.modalCancel} onPress={onClose}>
             <Text style={[styles.modalCancelText, { color: palette.muted }]}>Cancel</Text>
           </Pressable>
         </Pressable>
@@ -938,8 +952,9 @@ function CeilingPicker({
   const grades = TRACK_GRADES[track];
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+      <Pressable accessibilityRole="button" style={styles.modalBackdrop} onPress={onClose}>
         <Pressable
+          accessibilityRole="button"
           style={[styles.modalSheet, { backgroundColor: palette.surface }]}
           onPress={(e) => e.stopPropagation()}
         >
@@ -948,6 +963,7 @@ function CeilingPicker({
           </Text>
           <ScrollView style={{ maxHeight: 360 }}>
             <Pressable
+              accessibilityRole="button"
               onPress={() => onPick(null)}
               testID="ceiling-pick-clear"
               style={[styles.modalRow, { borderColor: palette.border }]}
@@ -962,6 +978,8 @@ function CeilingPicker({
               const selected = g === current;
               return (
                 <Pressable
+                  accessibilityState={{ selected: selected }}
+                  accessibilityRole="button"
                   key={g}
                   onPress={() => onPick(g)}
                   testID={`ceiling-pick-${g}`}
@@ -979,7 +997,12 @@ function CeilingPicker({
               );
             })}
           </ScrollView>
-          <Pressable style={styles.modalCancel} onPress={onClose} disabled={saving}>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.modalCancel}
+            onPress={onClose}
+            disabled={saving}
+          >
             <Text style={[styles.modalCancelText, { color: palette.muted }]}>
               {saving ? 'Saving…' : 'Cancel'}
             </Text>

@@ -173,7 +173,11 @@ export default function MyTripsScreen() {
                 const ev = s.event!;
                 const pill = SIGNUP_STATUS[s.status as SignupStatus];
                 return (
-                  <Pressable key={s.id} onPress={() => router.push(`/event/${ev.id}`)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    key={s.id}
+                    onPress={() => router.push(`/event/${ev.id}`)}
+                  >
                     <Card>
                       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1, paddingRight: 8 }}>
@@ -215,7 +219,11 @@ export default function MyTripsScreen() {
                 const ev = s.event!;
                 const bucket = bucketFor(ev.category?.name, ev.grade_advertised, ev.grade_actual);
                 return (
-                  <Pressable key={s.id} onPress={() => router.push(`/event/${ev.id}`)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    key={s.id}
+                    onPress={() => router.push(`/event/${ev.id}`)}
+                  >
                     <Card>
                       <Row>
                         <GreyBox height={44} style={{ width: 44, borderRadius: 8 }} />
