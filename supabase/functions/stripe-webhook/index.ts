@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
   if (event.type === 'payment_intent.canceled') {
     return await handlePaymentCanceled(admin, event.data.object as Stripe.PaymentIntent);
   }
+  if (event.type === 'checkout.session.expired') {
+    return await handleCheckoutExpired(admin, event.data.object as Stripe.Checkout.Session);
+  }
 
   return jsonOk();
 });
@@ -161,6 +164,37 @@ async function handlePaymentFailed(
       .update({ payment_status: 'failed' })
       .eq('id', signupId)
       .eq('status', 'pending_payment');
+  }
+  return jsonOk();
+}
+
+/**
+ * The member left the checkout page unpaid until the session expired
+ * (CHECKOUT_TTL_SECONDS in sign-up). Since API 2022-08-01 Checkout creates the
+ * PaymentIntent lazily, so a session nobody tried to pay has no PaymentIntent
+ * and payment_intent.canceled never fires — this is what releases that seat.
+ * Only the session recorded on the row may release it: an older, abandoned
+ * session expiring must not withdraw a seat being paid for through a newer one.
+ */
+async function handleCheckoutExpired(
+  admin: SupabaseClient,
+  session: Stripe.Checkout.Session,
+): Promise<Response> {
+  const signupId = session.metadata?.signup_id;
+  if (!signupId) {
+    return jsonOk();
+  }
+  const { data: released } = await admin
+    .from('event_signups')
+    .update({ payment_status: 'canceled', status: 'withdrawn' })
+    .eq('id', signupId)
+    .eq('status', 'pending_payment')
+    .eq('checkout_session_id', session.id)
+    .select('event_id')
+    .maybeSingle();
+
+  if (released?.event_id) {
+    await promoteFromWaitlist(admin, released.event_id);
   }
   return jsonOk();
 }
