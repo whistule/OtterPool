@@ -189,7 +189,9 @@ async function handleCheckoutExpired(
     .update({ payment_status: 'canceled', status: 'withdrawn' })
     .eq('id', signupId)
     .eq('status', 'pending_payment')
-    .eq('checkout_session_id', session.id)
+    // Rows from before checkout_session_id existed have it null; let their
+    // session release them rather than leave the seat held for good.
+    .or(`checkout_session_id.eq.${session.id},checkout_session_id.is.null`)
     .select('event_id')
     .maybeSingle();
 
