@@ -4,11 +4,10 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { gradeWithinCeiling, meetsLevel, trackForCategory } from '../_shared/progression.ts';
-import { Stripe, getStripe } from '../_shared/stripe.ts';
+import { type Stripe, getStripe } from '../_shared/stripe.ts';
 import { sendPush } from '../_shared/push.ts';
-import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
-
-type PriceOption = { label?: string; pence?: number };
+import { isAtCapacity, isEventFullError, markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { type PriceOption, resolveCharge } from '../_shared/pricing.ts';
 
 type EventRow = {
   id: string;
@@ -27,6 +26,11 @@ type EventRow = {
 type ExistingSignup = { id: string; status: string } | null;
 
 type Routing = { status: string; message: string };
+
+const WAITLISTED: Routing = {
+  status: 'waitlisted',
+  message: "Event is full — you've been added to the waitlist",
+};
 
 /** Statuses a fresh sign-up call may overwrite on an existing row. */
 const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
@@ -86,13 +90,17 @@ Deno.serve(async (req) => {
       return err(`Already signed up — status: ${existing.status}`, 409);
     }
 
+    // A pending_payment row is a seat already granted — auto-confirmed or
+    // leader-approved — that the member is coming back to pay for.
+    const resuming = existing?.status === 'pending_payment';
+
     // Aspirants (prospective members not yet matched to the paid list) get a
-    // 3-event trial, then must join. A trial is used only by a place they
-    // actually hold — confirmed, awaiting review, or waitlisted. A place they
-    // cancelled (withdrawn), a leader-declined request, or a paid sign-up they
-    // never paid for (pending_payment) does NOT use one. Rejoining an event
-    // they already have a row for isn't a new event either.
-    if (profile.status === 'aspirant' && !existing) {
+    // 3-event trial, then must join. A trial is used by a place they hold —
+    // confirmed, mid-checkout, awaiting review, or waitlisted. A place they
+    // cancelled (withdrawn) or a leader-declined request does NOT use one.
+    // Resuming a checkout is the one place already counted; rejoining a
+    // withdrawn row is a new place and is checked like any other.
+    if (profile.status === 'aspirant' && !resuming) {
       const used = await countTrialSignups(admin, user.id);
       if (used >= TRIAL_LIMIT) {
         return err(
@@ -112,26 +120,34 @@ Deno.serve(async (req) => {
     const costPence = charge.pence;
     const isPaid = costPence > 0;
 
-    const routing = await decideRouting(admin, event, user.id);
+    let routing = await decideRouting(admin, event, user.id);
+    // Resuming an approved seat skips review again. If the member picked a £0
+    // tier this confirms them outright instead of bouncing back to review.
+    // Capacity still wins: a seat that filled meanwhile gets the waitlist.
+    if (resuming && routing.status !== 'waitlisted') {
+      routing = { status: 'confirmed', message: "You're in! Sign-up confirmed" };
+    }
 
-    // Paid + already approved → Stripe Checkout. "Approved" means either the
-    // auto-approve path (targetStatus === confirmed) or a pending_payment row
-    // left by leader approval. The webhook flips pending_payment → confirmed
-    // on payment_intent.succeeded. Manual_all + paid stops short on first
-    // signup (pending_review, no Stripe).
-    // Capacity wins over an outstanding pending_payment row: if the event
-    // filled up while the member sat on the checkout page, they get the
-    // waitlist, not a Stripe session for a seat that no longer exists.
-    const needsCheckout =
-      isPaid &&
-      routing.status !== 'waitlisted' &&
-      (routing.status === 'confirmed' || existing?.status === 'pending_payment');
-
-    if (needsCheckout) {
+    // Paid + approved → Stripe Checkout. The webhook flips pending_payment →
+    // confirmed on payment_intent.succeeded. Manual_all + paid stops short on
+    // first signup (pending_review, no Stripe).
+    let signupId: string | null = null;
+    if (isPaid && routing.status === 'confirmed') {
       if (!return_url) {
         return err('return_url is required for paid events', 400);
       }
-      const signupId = await ensurePendingPaymentRow(admin, event_id, user.id, existing);
+      try {
+        signupId = await ensurePendingPaymentRow(admin, event_id, user.id, existing);
+      } catch (e) {
+        // The last seat went between our count and our write.
+        if (!isEventFullError(String(e))) {
+          throw e;
+        }
+        routing = WAITLISTED;
+      }
+    }
+
+    if (signupId) {
       const checkoutUrl = await createCheckoutSession({
         event,
         userId: user.id,
@@ -155,23 +171,30 @@ Deno.serve(async (req) => {
     // Rejoining after withdrawing reuses the row and resets signed_up_at, so
     // the member goes to the back of the waitlist queue rather than keeping
     // their original place.
-    const { data: signup, error: signupError } = existing
-      ? await admin
-          .from('event_signups')
-          .update({
-            status: routing.status,
-            signed_up_at: new Date().toISOString(),
-            reviewed_by: null,
-            reviewed_at: null,
-          })
-          .eq('id', existing.id)
-          .select()
-          .single()
-      : await admin
-          .from('event_signups')
-          .insert({ event_id, member_id: user.id, status: routing.status })
-          .select()
-          .single();
+    const writeSignup = (status: string) =>
+      existing
+        ? admin
+            .from('event_signups')
+            .update({
+              status,
+              signed_up_at: new Date().toISOString(),
+              reviewed_by: null,
+              reviewed_at: null,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single()
+        : admin
+            .from('event_signups')
+            .insert({ event_id, member_id: user.id, status })
+            .select()
+            .single();
+
+    let { data: signup, error: signupError } = await writeSignup(routing.status);
+    if (routing.status === 'confirmed' && isEventFullError(signupError)) {
+      routing = WAITLISTED;
+      ({ data: signup, error: signupError } = await writeSignup(routing.status));
+    }
     if (signupError) {
       return err(`Failed to create sign-up: ${signupError.message}`, 500);
     }
@@ -225,18 +248,21 @@ async function loadExistingSignup(
 }
 
 /**
- * Trial usage for the aspirant cap: places the member actually holds —
- * confirmed, awaiting review, or waitlisted. Cancelled (withdrawn), declined,
- * and never-paid (pending_payment) sign-ups don't count, so cancelling or not
- * paying frees the trial. One row per (event, member), so the row count is the
- * number of events.
+ * Trial usage for the aspirant cap: places the member holds — confirmed,
+ * mid-checkout, awaiting review, or waitlisted. Cancelled (withdrawn) and
+ * declined sign-ups don't count, so cancelling frees the trial. An abandoned
+ * checkout frees it when Stripe expires the session (payment_intent.canceled
+ * withdraws the row). Counting pending_payment matters: nothing re-checks the
+ * cap at payment time, so without it an aspirant could open checkout on any
+ * number of trips and pay for them all. One row per (event, member), so the
+ * row count is the number of events. Mirrors public.my_membership().
  */
 async function countTrialSignups(admin: SupabaseClient, userId: string): Promise<number> {
   const { count } = await admin
     .from('event_signups')
     .select('id', { count: 'exact', head: true })
     .eq('member_id', userId)
-    .in('status', ['confirmed', 'pending_review', 'waitlisted']);
+    .in('status', ['confirmed', 'pending_payment', 'pending_review', 'waitlisted']);
   return count ?? 0;
 }
 
@@ -250,10 +276,7 @@ async function decideRouting(
   // Exclude this member's own row: a held pending_payment seat is theirs, and
   // counting it would bounce them to the waitlist when they resume checkout.
   if (await isAtCapacity(admin, event, userId)) {
-    return {
-      status: 'waitlisted',
-      message: "Event is full — you've been added to the waitlist",
-    };
+    return WAITLISTED;
   }
   if (event.approval_mode === 'manual_all') {
     return {
@@ -290,36 +313,6 @@ async function isAboveApprovalCeiling(
   return !ceiling || !gradeWithinCeiling(track, ceiling, event.grade_advertised);
 }
 
-// ---------- Pricing ----------
-
-/**
- * Resolve the amount to charge (in pence) and the tier label, entirely from
- * the stored event — never from a client-supplied amount. When the event has
- * concession tiers, `price_option` selects one by index; a missing or
- * out-of-range index falls back to index 0 (the standard rate). With no tiers,
- * the flat `cost` column (pounds) applies.
- */
-function resolveCharge(
-  event: EventRow,
-  priceOption: unknown,
-): { pence: number; label: string | null } {
-  const options = Array.isArray(event.price_options) ? event.price_options : [];
-  if (options.length > 0) {
-    const idx =
-      Number.isInteger(priceOption) &&
-      (priceOption as number) >= 0 &&
-      (priceOption as number) < options.length
-        ? (priceOption as number)
-        : 0;
-    const chosen = options[idx] ?? options[0];
-    return {
-      pence: Math.max(0, Math.round(Number(chosen?.pence ?? 0))),
-      label: chosen?.label ?? null,
-    };
-  }
-  return { pence: Math.round(Number(event.cost ?? 0) * 100), label: null };
-}
-
 // ---------- Paid sign-up plumbing ----------
 
 async function ensurePendingPaymentRow(
@@ -330,11 +323,16 @@ async function ensurePendingPaymentRow(
 ): Promise<string> {
   if (existing) {
     // Could be a withdrawn row being rejoined, so put it back into
-    // pending_payment — the webhook only confirms rows in that status.
-    await admin
+    // pending_payment — the webhook only confirms rows in that status. The
+    // error must be checked: sending someone to Stripe for a row that stayed
+    // withdrawn takes a payment the webhook can't match.
+    const { error } = await admin
       .from('event_signups')
       .update({ status: 'pending_payment', payment_status: 'pending' })
       .eq('id', existing.id);
+    if (error) {
+      throw new Error(`Failed to update sign-up: ${error.message}`);
+    }
     return existing.id;
   }
   const { data, error } = await admin

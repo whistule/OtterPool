@@ -10,10 +10,10 @@
       "!**/playwright-report",
       "!**/test-results",
       "!**/*.min.js",
-      "!apps/mobile/scripts/reset-project.js",
       "!supabase/migrations",
       "!supabase/functions/_shared/deno_runtime.d.ts",
       "!supabase/test.html",
+      "!supabase/config*.js",
       "!supabase/templates",
       "!supabase/seed.sql",
       "!apps/mobile/expo-env.d.ts",
@@ -39,9 +39,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false,
+      "recommended": true,
       "style": {
-        "useBlockStatements": "error"
+        "useBlockStatements": "error",
+        "noNonNullAssertion": "off"
       }
     }
   },

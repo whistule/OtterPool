@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { err } from './response.ts';
+
 export type Clients = {
   /** Scoped to the calling user — respects RLS */
   supabase: SupabaseClient;
@@ -19,12 +21,7 @@ export async function createClients(
 ): Promise<{ clients: Clients; error?: never } | { clients?: never; error: Response }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    return {
-      error: new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    };
+    return { error: err('Missing authorization header', 401) };
   }
 
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
@@ -41,12 +38,9 @@ export async function createClients(
     error: authError,
   } = await supabase.auth.getUser();
   if (authError || !user) {
-    return {
-      error: new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    };
+    // Via err() so the CORS headers come too — without them a browser reports
+    // an expired session as a network failure instead of a 401.
+    return { error: err('Invalid token', 401) };
   }
 
   return { clients: { supabase, admin, user } };

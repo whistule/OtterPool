@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -24,9 +24,9 @@ import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
 import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
-import { isCredibilityGrade, LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { isCredibilityGrade, LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
-import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
+import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
 
 type EventRow = {
@@ -94,7 +94,7 @@ type SignUpResponse = {
 function buildIcs(ev: EventRow): string {
   const stamp = (iso: string) =>
     new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  const escape = (s: string) => s.replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const escapeIcs = (s: string) => s.replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -104,9 +104,9 @@ function buildIcs(ev: EventRow): string {
     `DTSTAMP:${stamp(new Date().toISOString())}`,
     `DTSTART:${stamp(ev.starts_at)}`,
     ev.ends_at ? `DTEND:${stamp(ev.ends_at)}` : null,
-    `SUMMARY:${escape(ev.title)}`,
-    ev.location ? `LOCATION:${escape(ev.location)}` : null,
-    ev.description ? `DESCRIPTION:${escape(ev.description)}` : null,
+    `SUMMARY:${escapeIcs(ev.title)}`,
+    ev.location ? `LOCATION:${escapeIcs(ev.location)}` : null,
+    ev.description ? `DESCRIPTION:${escapeIcs(ev.description)}` : null,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter((l): l is string => l !== null);
@@ -601,7 +601,7 @@ export default function EventDetailScreen() {
               {event.meeting_point ? (
                 <Pressable
                   onPress={() =>
-                    openMaps(`${event.meeting_point}${event.location ? ', ' + event.location : ''}`)
+                    openMaps(`${event.meeting_point}${event.location ? `, ${event.location}` : ''}`)
                   }
                   testID="event-meeting-point"
                   style={{ marginTop: event.location ? 6 : 0 }}
@@ -615,7 +615,7 @@ export default function EventDetailScreen() {
               {event.put_in_point ? (
                 <Pressable
                   onPress={() =>
-                    openMaps(`${event.put_in_point}${event.location ? ', ' + event.location : ''}`)
+                    openMaps(`${event.put_in_point}${event.location ? `, ${event.location}` : ''}`)
                   }
                   testID="event-put-in-point"
                   style={{ marginTop: event.location || event.meeting_point ? 6 : 0 }}
@@ -743,6 +743,7 @@ export default function EventDetailScreen() {
                   const isHeading = line.endsWith(':');
                   return (
                     <Text
+                      // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of static text
                       key={i}
                       style={[
                         isHeading ? styles.value : styles.body,
@@ -772,6 +773,7 @@ export default function EventDetailScreen() {
                 const active = i === tierIndex;
                 return (
                   <Pressable
+                    // biome-ignore lint/suspicious/noArrayIndexKey: tiers are fixed for the event, label + index is unique
                     key={`${opt.label}-${i}`}
                     testID={`price-tier-${i}`}
                     onPress={() => setPriceOption(i)}
@@ -939,11 +941,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.35)',
     ...(Platform.OS === 'web'
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ({
+      ? ({
           backgroundImage:
             'linear-gradient(to bottom, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.65) 100%)',
           backgroundColor: 'transparent',
+          // biome-ignore lint/suspicious/noExplicitAny: backgroundImage is web-only CSS that RN's style types don't know
         } as any)
       : null),
   },

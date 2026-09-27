@@ -144,6 +144,7 @@ export function MembershipPopup() {
                 <View style={styles.pips}>
                   {Array.from({ length: popup.pips.total }, (_, i) => (
                     <View
+                      // biome-ignore lint/suspicious/noArrayIndexKey: identical progress pips
                       key={i}
                       style={[
                         styles.pip,

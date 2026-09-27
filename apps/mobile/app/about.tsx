@@ -3,7 +3,6 @@
 
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

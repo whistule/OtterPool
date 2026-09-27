@@ -1,5 +1,13 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp } from 'react-native';
+import type React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+  type TextStyle,
+  type StyleProp,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, OtterPalette } from '@/constants/theme';

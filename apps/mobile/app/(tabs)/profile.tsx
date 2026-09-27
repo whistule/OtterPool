@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -35,7 +35,7 @@ import {
 } from '@/lib/experience';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
-import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
+import { MEMBER_STATUS_COLOR, type MemberStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type EmergencyContact = {

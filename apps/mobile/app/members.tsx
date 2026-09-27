@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,7 +11,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
-import { LEVEL_EMOJI, LEVEL_LABEL, ProgressionLevel } from '@/lib/progress';
+import { LEVEL_EMOJI, LEVEL_LABEL, type ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 type MemberRow = {

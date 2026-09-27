@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import type React from 'react';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  Ceiling,
+  type Ceiling,
   CeilingsCard,
   CurrentLevelCard,
   JourneyLadder,
@@ -21,13 +22,13 @@ import { logAdminAction } from '@/lib/audit';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
 import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
-import { MEMBER_STATUS_COLOR, MemberStatus } from '@/lib/status';
+import { MEMBER_STATUS_COLOR, type MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
   LEVEL_LABEL,
   LEVEL_ORDER,
-  ProgressionLevel,
-  Track,
+  type ProgressionLevel,
+  type Track,
   TRACK_GRADES,
   TRACK_LABEL,
 } from '@/lib/progress';

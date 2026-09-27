@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,7 +13,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortDateTime } from '@/lib/datetime';
 import { readErrorMessage } from '@/lib/errors';
-import { LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 

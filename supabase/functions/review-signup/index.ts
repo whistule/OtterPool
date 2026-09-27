@@ -4,7 +4,8 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { sendPush } from '../_shared/push.ts';
-import { isAtCapacity, markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { isAtCapacity, isEventFullError, markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { type PriceOption, mayCharge } from '../_shared/pricing.ts';
 import { isPaddlingAdmin } from '../_shared/authz.ts';
 
 type ReviewEvent = {
@@ -12,6 +13,7 @@ type ReviewEvent = {
   title: string;
   leader_id: string;
   cost: number;
+  price_options: PriceOption[] | null;
   max_participants: number | null;
   status: string;
 };
@@ -76,7 +78,7 @@ async function loadSignup(admin: SupabaseClient, signupId: string): Promise<Load
   const { data } = await admin
     .from('event_signups')
     .select(
-      'id, status, event_id, member_id, event:events!event_signups_event_id_fkey(id, title, leader_id, cost, max_participants, status)',
+      'id, status, event_id, member_id, event:events!event_signups_event_id_fkey(id, title, leader_id, cost, price_options, max_participants, status)',
     )
     .eq('id', signupId)
     .maybeSingle();
@@ -115,7 +117,9 @@ async function confirmSignup(
     return await routeToWaitlist(admin, signup, event, reviewerId);
   }
 
-  const isPaid = Number(event.cost ?? 0) > 0;
+  // Any paid tier sends the member to checkout, where they pick theirs; a £0
+  // pick is confirmed there without payment.
+  const isPaid = mayCharge(event);
   const nextStatus = isPaid ? 'pending_payment' : 'confirmed';
   const extra = isPaid ? { payment_status: 'pending' } : {};
 
@@ -123,6 +127,10 @@ async function confirmSignup(
     status: nextStatus,
     ...extra,
   });
+  // The last seat went while we were deciding.
+  if (isEventFullError(updateErr)) {
+    return await routeToWaitlist(admin, signup, event, reviewerId);
+  }
   if (updateErr) {
     return err(`Update failed: ${updateErr}`, 500);
   }

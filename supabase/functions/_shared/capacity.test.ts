@@ -28,11 +28,12 @@ function stubAdmin(rows: Row[]) {
           matched = matched.filter((r) => r.member_id !== value);
           return q;
         },
+        // biome-ignore lint/suspicious/noThenProperty: the stub has to be awaitable like a real query
         then: (resolve: (v: { count: number }) => void) => resolve({ count: matched.length }),
       };
       return q;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: a partial stand-in for SupabaseClient
   } as any;
 }
 

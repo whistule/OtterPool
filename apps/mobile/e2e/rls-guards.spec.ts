@@ -116,4 +116,42 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
     expect(error, 'self-confirmed sign-ups must be rejected').not.toBeNull();
     expect(error!.code, 'should be an RLS violation').toBe('42501');
   });
+
+  // 20260927000000. The fixture member is a duck, so leading their own event
+  // must be refused — the selkie gate used to exist only in the UI.
+  test('cannot create an event without being a selkie', async () => {
+    const { supabase, userId } = await memberClient();
+    const { error } = await supabase.from('events').insert({
+      title: 'E2E RLS probe — should never exist',
+      starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+      leader_id: userId,
+      status: 'open',
+    });
+    expect(error, 'non-selkie event creation must be rejected').not.toBeNull();
+    expect(error!.code, 'should be an RLS violation').toBe('42501');
+  });
+
+  test('cannot change their own membership source', async () => {
+    const { supabase, userId } = await memberClient();
+    const { data: before } = await supabase
+      .from('profiles')
+      .select('membership_source')
+      .eq('id', userId)
+      .single();
+    const flipped = before!.membership_source === 'manual' ? 'list' : 'manual';
+    const { error } = await supabase
+      .from('profiles')
+      .update({ membership_source: flipped })
+      .eq('id', userId);
+    expect(error, 'membership_source is membership-admin only').not.toBeNull();
+
+    const { data: after } = await supabase
+      .from('profiles')
+      .select('membership_source')
+      .eq('id', userId)
+      .single();
+    expect(after?.membership_source, 'membership_source must be unchanged').toBe(
+      before!.membership_source,
+    );
+  });
 });

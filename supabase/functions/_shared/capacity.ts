@@ -1,6 +1,15 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /**
+ * True if a write was refused by the enforce_event_capacity trigger — the
+ * seat went to someone else between our count and our write.
+ */
+export function isEventFullError(error: { message?: string } | string | null | undefined): boolean {
+  const message = typeof error === 'string' ? error : error?.message;
+  return !!message?.includes('event_full');
+}
+
+/**
  * How many seats on this event are spoken for.
  *
  * A 'pending_payment' row is a held seat, not a spare one — the member is on
@@ -62,7 +71,7 @@ export async function markFullIfAtCapacity(admin: SupabaseClient, eventId: strin
     .select('max_participants, status')
     .eq('id', eventId)
     .maybeSingle();
-  if (!ev || ev.status !== 'open' || !ev.max_participants) {
+  if (ev?.status !== 'open' || !ev.max_participants) {
     return;
   }
   if ((await confirmedCount(admin, eventId)) >= ev.max_participants) {

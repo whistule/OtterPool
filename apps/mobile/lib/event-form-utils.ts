@@ -439,7 +439,7 @@ export function durationHoursBetween(startIso: string, endIso: string | null): s
     return '';
   }
   const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
-  if (!isFinite(ms) || ms <= 0) {
+  if (!Number.isFinite(ms) || ms <= 0) {
     return '';
   }
   const hours = ms / (1000 * 60 * 60);

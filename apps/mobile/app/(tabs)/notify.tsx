@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { PageTitle } from '@/components/page-title';
@@ -145,6 +145,7 @@ export default function NotifyScreen() {
           <View style={{ marginTop: 12, gap: 6 }}>
             {diag.map((s, i) => (
               <Text
+                // biome-ignore lint/suspicious/noArrayIndexKey: read-only diagnostic lines, never reordered
                 key={i}
                 style={[styles.diagLine, { color: s.ok ? palette.text : OtterPalette.ice }]}
                 selectable
