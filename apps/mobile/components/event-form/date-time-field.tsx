@@ -61,7 +61,7 @@ function NativeDateTimeField({ value, onChange, style, placeholderColor }: DateT
   // rest of the form assumes. Keep it that way — appending 'Z' here would shift
   // every event by the UTC offset.
   const parsed = value ? new Date(value) : null;
-  const current = parsed && !isNaN(parsed.getTime()) ? parsed : null;
+  const current = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
 
   const [picking, setPicking] = React.useState<null | 'date' | 'time'>(null);
   // Holds the date half between the two steps, so the time picker can merge

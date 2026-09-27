@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  Ceiling,
+  type Ceiling,
   CeilingsCard,
   CurrentLevelCard,
   GradeSection,
@@ -18,7 +18,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
-import { ProgressionLevel, tallyTotals, Track } from '@/lib/progress';
+import { type ProgressionLevel, tallyTotals, type Track } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 
 type TallyRow = { bucket: string; count: number };

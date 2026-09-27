@@ -68,7 +68,7 @@ export function parseMemberDate(raw: string): string | null {
   if (isoM) {
     return iso(Number(isoM[1]), Number(isoM[2]), Number(isoM[3]));
   }
-  const ukM = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/.exec(s);
+  const ukM = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/.exec(s);
   if (ukM) {
     return iso(Number(ukM[3]), Number(ukM[2]), Number(ukM[1]));
   }

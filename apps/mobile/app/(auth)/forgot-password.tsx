@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { Link, router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,

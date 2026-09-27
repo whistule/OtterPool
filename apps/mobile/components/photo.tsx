@@ -1,6 +1,12 @@
 import { Image } from 'expo-image';
-import React from 'react';
-import { ImageStyle, StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
+import {
+  type ImageStyle,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+  type StyleProp,
+} from 'react-native';
 
 import { publicUrl } from '@/lib/photos';
 

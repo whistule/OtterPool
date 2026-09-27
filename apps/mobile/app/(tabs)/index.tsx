@@ -23,7 +23,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortRange } from '@/lib/datetime';
 import { categoryChip } from '@/lib/event-form-utils';
-import { colorForGrade, LEVEL_EMOJI, ProgressionLevel } from '@/lib/progress';
+import { colorForGrade, LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 import { formatCost } from '@/lib/money';
 

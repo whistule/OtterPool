@@ -6,16 +6,13 @@
   "packageManager": "npm@11.16.0",
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint",
     "pretest:e2e": "npm --prefix ../../supabase run seed:e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:money": "node --test lib/money.test.ts",
-    "test:unit": "node --test lib/*.test.ts"
+    "test:unit": "node --test lib/*.test.ts ../../supabase/functions/_shared/*.test.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -57,8 +54,6 @@
     "@types/react": "~19.2.10",
     "@types/uuid": "^10.0.0",
     "eas-cli": "^21.4.0",
-    "eslint": "^9.25.0",
-    "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3"
   },
   "private": true

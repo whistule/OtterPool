@@ -1,4 +1,4 @@
-// Run: npm run test:money   (node's built-in runner, no framework)
+// Run: npm run test:unit   (node's built-in runner, no framework)
 //
 // Pins the exact strings the UI shows. The bug this guards against shipped:
 // `toFixed(0)` rendered a £0.50 trip as "£1" while Stripe charged 50p, so the

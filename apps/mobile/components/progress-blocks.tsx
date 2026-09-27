@@ -1,4 +1,3 @@
-import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Pill, Row, SectionTitle, Stat } from '@/components/wireframe';
@@ -12,10 +11,10 @@ import {
   LEVEL_ORDER,
   memberSinceLabel,
   PINKSTON_GRADES,
-  ProgressionLevel,
+  type ProgressionLevel,
   RIVER_GRADES,
   SEA_GRADES,
-  Track,
+  type Track,
   TRACK_LABEL,
 } from '@/lib/progress';
 

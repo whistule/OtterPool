@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,7 +12,7 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { formatShortDate, formatShortDateTime } from '@/lib/datetime';
 import { colorForGrade } from '@/lib/progress';
-import { SIGNUP_STATUS, SignupStatus } from '@/lib/status';
+import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type SignupRow = {

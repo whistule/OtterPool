@@ -1,5 +1,6 @@
-import { Session } from '@supabase/supabase-js';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import type React from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { ExperienceAnswers } from './experience';

@@ -1,5 +1,5 @@
 import { router, useNavigation } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -33,17 +33,17 @@ import {
   CATEGORY_DEFAULTS,
   CATEGORY_EQUIPMENT,
   CATEGORY_TITLE_HINTS,
-  Category,
+  type Category,
   defaultStartIso,
   durationHoursBetween,
-  FieldKey,
+  type FieldKey,
   formatPreviewDate,
   gradeOptionsFor,
   categoryChip,
   KIT_TEMPLATES,
   LEVELS,
-  LoadedEvent,
-  Status,
+  type LoadedEvent,
+  type Status,
   STATUS_OPTIONS,
   toLocalIsoMinutes,
 } from '@/lib/event-form-utils';
@@ -247,6 +247,12 @@ export default function EventForm(props: EventFormProps) {
   }, [navigation, isDirty]);
 
   // ---------- Load categories (always) and event row (edit only) ----------
+  // Leaders (selkie) and admins see full names; everyone else sees the
+  // privacy-abbreviated form ("John S"). Plain booleans so the loader re-runs
+  // when the profile arrives, but not on every profile refetch (which would
+  // clobber an edit in progress).
+  const canSeeFull = profile?.level === 'selkie' || roleFlags(profile).anyAdmin;
+  const isPaddlingAdmin = roleFlags(profile).paddlingAdmin;
   useEffect(() => {
     if (!session) {
       return;
@@ -286,9 +292,6 @@ export default function EventForm(props: EventFormProps) {
       }
 
       if (!m.error) {
-        // Leaders (selkie) and admins see full names; everyone else sees the
-        // privacy-abbreviated form ("John S").
-        const canSeeFull = profile?.level === 'selkie' || roleFlags(profile).anyAdmin;
         setMembers(
           (
             (m.data ?? []) as {
@@ -317,7 +320,7 @@ export default function EventForm(props: EventFormProps) {
         if (
           ev.leader_id !== session.user.id &&
           ev.assistant_id !== session.user.id &&
-          !roleFlags(profile).paddlingAdmin
+          !isPaddlingAdmin
         ) {
           setForbidden(true);
           setLoading(false);
@@ -371,7 +374,7 @@ export default function EventForm(props: EventFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [session, isEdit, eventId, profile?.is_admin, profile?.is_paddling_admin]);
+  }, [session, isEdit, eventId, canSeeFull, isPaddlingAdmin]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
@@ -422,7 +425,7 @@ export default function EventForm(props: EventFormProps) {
       return [];
     }
     const start = new Date(startsAt);
-    if (isNaN(start.getTime())) {
+    if (Number.isNaN(start.getTime())) {
       return [];
     }
     const stepDays = repeatFrequency === 'fortnightly' ? 14 : 7;
@@ -443,7 +446,7 @@ export default function EventForm(props: EventFormProps) {
       setCost(String(c.default_cost ?? 0));
     }
     const opts = gradeOptionsFor(c);
-    if (!opts || !opts.includes(grade as never)) {
+    if (!opts?.includes(grade as never)) {
       setGrade('');
     }
     if (!isEdit) {
@@ -540,33 +543,33 @@ export default function EventForm(props: EventFormProps) {
     }
 
     const startDate = new Date(startsAt);
-    if (isNaN(startDate.getTime())) {
+    if (Number.isNaN(startDate.getTime())) {
       errs.startsAt = 'Invalid date — use YYYY-MM-DDTHH:MM';
     }
 
     let endDate: Date | null = null;
     if (multiDay) {
       endDate = new Date(endsAt);
-      if (isNaN(endDate.getTime())) {
+      if (Number.isNaN(endDate.getTime())) {
         errs.endsAt = 'Invalid end — use YYYY-MM-DDTHH:MM';
         endDate = null;
-      } else if (!isNaN(startDate.getTime()) && endDate.getTime() <= startDate.getTime()) {
+      } else if (!Number.isNaN(startDate.getTime()) && endDate.getTime() <= startDate.getTime()) {
         errs.endsAt = 'End must be after the start';
         endDate = null;
       }
     } else {
       const dur = Number(durationHours);
-      if (durationHours.trim() && (isNaN(dur) || dur < 0)) {
+      if (durationHours.trim() && (Number.isNaN(dur) || dur < 0)) {
         errs.duration = 'Duration must be a non-negative number';
       }
       endDate =
-        durationHours.trim() && dur > 0 && !isNaN(dur)
+        durationHours.trim() && dur > 0 && !Number.isNaN(dur)
           ? new Date(startDate.getTime() + dur * 60 * 60 * 1000)
           : null;
     }
 
     const maxP = maxParticipants.trim() ? Number(maxParticipants) : null;
-    if (maxP !== null && (isNaN(maxP) || maxP < 1)) {
+    if (maxP !== null && (Number.isNaN(maxP) || maxP < 1)) {
       errs.maxParticipants = 'Must be a positive whole number, or blank';
     }
 
@@ -578,7 +581,7 @@ export default function EventForm(props: EventFormProps) {
       errs.putInTime = 'Use HH:MM (24h), or blank';
     }
     const costNum = Number(cost);
-    if (isNaN(costNum) || costNum < 0) {
+    if (Number.isNaN(costNum) || costNum < 0) {
       errs.cost = 'Cost must be 0 or a positive number';
     }
 
@@ -591,7 +594,7 @@ export default function EventForm(props: EventFormProps) {
       for (const t of priceTiers) {
         const label = t.label.trim();
         const amt = Number(t.amount);
-        if (!label || isNaN(amt) || amt < 0) {
+        if (!label || Number.isNaN(amt) || amt < 0) {
           errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
           break;
         }
@@ -640,7 +643,7 @@ export default function EventForm(props: EventFormProps) {
 
     if (isEdit && eventId) {
       // ---------- EDIT path ----------
-      let newPath: string | null | undefined = undefined;
+      let newPath: string | null | undefined;
       if (removePhotoFlag) {
         newPath = null;
       }
@@ -1226,7 +1229,7 @@ export default function EventForm(props: EventFormProps) {
                           // Seed a sensible end (next day, same time) when enabling.
                           if (opt.value && !endsAt) {
                             const s = new Date(startsAt);
-                            if (!isNaN(s.getTime())) {
+                            if (!Number.isNaN(s.getTime())) {
                               s.setDate(s.getDate() + 1);
                               setEndsAt(toLocalIsoMinutes(s));
                             }
@@ -1413,6 +1416,7 @@ export default function EventForm(props: EventFormProps) {
                             </Text>
                             {occurrencePreview.map((d, i) => (
                               <Text
+                                // biome-ignore lint/suspicious/noArrayIndexKey: derived preview, rebuilt on every change
                                 key={i}
                                 style={[styles.body, { color: palette.text, marginTop: 2 }]}
                               >
@@ -1609,7 +1613,11 @@ export default function EventForm(props: EventFormProps) {
                 ) : (
                   <>
                     {priceTiers.map((tier, i) => (
-                      <Row key={`tier-${i}`} style={{ gap: 8, marginTop: i === 0 ? 4 : 8 }}>
+                      <Row
+                        // biome-ignore lint/suspicious/noArrayIndexKey: inputs are controlled, so a shifted key after a delete still shows the right values
+                        key={`tier-${i}`}
+                        style={{ gap: 8, marginTop: i === 0 ? 4 : 8 }}
+                      >
                         <View style={{ flex: 1.5 }}>
                           <TextInput
                             value={tier.label}
