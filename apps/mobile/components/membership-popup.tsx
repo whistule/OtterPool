@@ -8,11 +8,9 @@ import { MEMBERMOJO_JOIN_URL, MEMBERMOJO_RENEW_URL } from './membership-banner';
 
 const TRIAL_LIMIT = 3;
 const EXPIRY_WARN_DAYS = 42; // 6 weeks
-const VERIFIED_DISMISS_KEY = 'op_membership_verified_popup_dismissed';
 
 // Once the popup is closed we don't reopen it for the rest of the app session
-// (survives tab switches — module scope outlives the screen). The "verified"
-// confirmation is additionally remembered across sessions via localStorage.
+// (survives tab switches — module scope outlives the screen).
 let closedThisSession = false;
 
 type Membership = { status: string; expires_on: string | null; trials_used: number };
@@ -39,23 +37,12 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function verifiedDismissed(): boolean {
-  try {
-    return (
-      typeof localStorage !== 'undefined' && localStorage.getItem(VERIFIED_DISMISS_KEY) === '1'
-    );
-  } catch {
-    return false;
-  }
-}
-
 type Popup = {
   title: string;
   sub: string;
   pips?: { used: number; total: number };
   note?: string;
   primary?: { label: string; onPress: () => void };
-  isVerified?: boolean;
 };
 
 function buildPopup(m: Membership): Popup | null {
@@ -98,20 +85,17 @@ function buildPopup(m: Membership): Popup | null {
       };
     }
   }
-  return {
-    title: 'You’re a verified DCKC member ✓',
-    sub: expires
-      ? `Your membership is valid until ${formatDate(expires)}.`
-      : 'Thanks for being a member!',
-    isVerified: true,
-  };
+  // Nothing to act on. The quiet "verified member" confirmation is the
+  // MembershipBanner on the Profile tab, so don't interrupt with a popup.
+  return null;
 }
 
 /**
  * A bottom-sheet membership popup, modelled on the prototype's "Welcome back"
- * card. Shown once per app session on the screen it's mounted (Calendar) so the
- * status doesn't eat space inline; the verified confirmation is shown only once
- * ever. Closeable via "Maybe later".
+ * card. Only raised when the membership needs acting on (lapsed, suspended,
+ * trial, or near expiry), once per app session on the screen it's mounted
+ * (Calendar), so the status doesn't eat space inline. A membership in good
+ * standing says nothing here. Closeable via "Maybe later".
  */
 export function MembershipPopup() {
   const { session } = useAuth();
@@ -130,9 +114,6 @@ export function MembershipPopup() {
       if (!built) {
         return;
       }
-      if (built.isVerified && verifiedDismissed()) {
-        return;
-      }
       setPopup(built);
     });
     return () => {
@@ -146,15 +127,6 @@ export function MembershipPopup() {
 
   const close = () => {
     closedThisSession = true;
-    if (popup.isVerified) {
-      try {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(VERIFIED_DISMISS_KEY, '1');
-        }
-      } catch {
-        // ignore
-      }
-    }
     setPopup(null);
   };
 
