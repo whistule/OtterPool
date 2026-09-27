@@ -38,7 +38,7 @@ export function StepProgress({
                 ]}
               />
             ) : null}
-            <Pressable style={styles.step} onPress={() => onJump(num)}>
+            <Pressable accessibilityRole="button" style={styles.step} onPress={() => onJump(num)}>
               <View
                 style={[
                   styles.circle,

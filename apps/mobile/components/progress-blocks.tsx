@@ -193,13 +193,20 @@ export function CeilingsCard({
               {value}
             </Text>
             {onPressTrack ? (
-              <Text style={[styles.ceilingChevron, { color: palette.muted }]}>›</Text>
+              <Text aria-hidden style={[styles.ceilingChevron, { color: palette.muted }]}>
+                ›
+              </Text>
             ) : null}
           </Row>
         );
         if (onPressTrack) {
           return (
-            <Pressable key={t} onPress={() => onPressTrack(t)} testID={`ceiling-row-${t}`}>
+            <Pressable
+              accessibilityRole="button"
+              key={t}
+              onPress={() => onPressTrack(t)}
+              testID={`ceiling-row-${t}`}
+            >
               {row}
             </Pressable>
           );

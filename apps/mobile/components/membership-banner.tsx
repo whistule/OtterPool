@@ -167,7 +167,13 @@ export function MembershipBanner() {
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: content.tone }]}>{content.title}</Text>
           {content.onDismiss ? (
-            <Pressable onPress={content.onDismiss} hitSlop={8} testID="membership-banner-dismiss">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss"
+              onPress={content.onDismiss}
+              hitSlop={8}
+              testID="membership-banner-dismiss"
+            >
               <Text style={[styles.dismiss, { color: content.tone }]}>✕</Text>
             </Pressable>
           ) : null}
@@ -175,6 +181,7 @@ export function MembershipBanner() {
         {content.body ? <Text style={styles.text}>{content.body}</Text> : null}
         {content.action ? (
           <Pressable
+            accessibilityRole="button"
             onPress={content.action.onPress}
             style={[styles.action, { backgroundColor: content.tone }]}
             testID="membership-banner-action"

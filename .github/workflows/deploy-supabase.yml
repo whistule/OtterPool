@@ -50,9 +50,11 @@ jobs:
       # the newest release on every run, which is easily rate-limited on shared
       # runners ("Failed to resolve latest ... rate limit exceeded"). Also pass
       # the built-in token so any GitHub API calls are authenticated.
+      # Pinned to devenv's pkgs.supabase-cli so migrations are applied by the
+      # same CLI they were written and tested with. Bump both together.
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.117.0
+          version: 2.111.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # link resolves the pooler connection for us; db push then applies the
@@ -70,7 +72,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.117.0
+          version: 2.111.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Deploys all functions under supabase/functions, honouring per-function

@@ -963,6 +963,8 @@ export default function EventForm(props: EventFormProps) {
                     const isActive = opt.value === applyToSeries;
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={String(opt.value)}
                         testID={`event-scope-${opt.value ? 'series' : 'single'}`}
                         onPress={() => setApplyToSeries(opt.value)}
@@ -1021,6 +1023,8 @@ export default function EventForm(props: EventFormProps) {
                     const meta = categoryChip(category.name);
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={category.id}
                         testID={`category-chip-${category.id}`}
                         onPress={() => onPickCategory(category)}
@@ -1069,6 +1073,8 @@ export default function EventForm(props: EventFormProps) {
                           const isActive = g === grade;
                           return (
                             <Pressable
+                              accessibilityState={{ selected: isActive }}
+                              accessibilityRole="button"
                               key={g}
                               testID={`grade-chip-${g}`}
                               onPress={() => setGrade(g)}
@@ -1131,6 +1137,7 @@ export default function EventForm(props: EventFormProps) {
                           .slice(0, 6)
                           .map((m) => (
                             <Pressable
+                              accessibilityRole="button"
                               key={m.id}
                               onPress={() => {
                                 setLeaderId(m.id);
@@ -1158,6 +1165,7 @@ export default function EventForm(props: EventFormProps) {
                       {members.find((m) => m.id === assistantId)?.name ?? 'Selected member'}
                     </Text>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => setAssistantId(null)}
                       style={[styles.chip, { borderColor: palette.border }]}
                     >
@@ -1180,6 +1188,7 @@ export default function EventForm(props: EventFormProps) {
                           .slice(0, 6)
                           .map((m) => (
                             <Pressable
+                              accessibilityRole="button"
                               key={m.id}
                               onPress={() => {
                                 setAssistantId(m.id);
@@ -1221,6 +1230,8 @@ export default function EventForm(props: EventFormProps) {
                     const isActive = opt.value === multiDay;
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={String(opt.value)}
                         testID={`event-multiday-${opt.value ? 'on' : 'off'}`}
                         onPress={() => {
@@ -1328,6 +1339,8 @@ export default function EventForm(props: EventFormProps) {
                         const isActive = opt.value === repeatEnabled;
                         return (
                           <Pressable
+                            accessibilityState={{ selected: isActive }}
+                            accessibilityRole="button"
                             key={String(opt.value)}
                             testID={`event-repeat-${opt.value ? 'on' : 'off'}`}
                             onPress={() => setRepeatEnabled(opt.value)}
@@ -1357,6 +1370,8 @@ export default function EventForm(props: EventFormProps) {
                             const isActive = freq === repeatFrequency;
                             return (
                               <Pressable
+                                accessibilityState={{ selected: isActive }}
+                                accessibilityRole="button"
                                 key={freq}
                                 testID={`event-repeat-${freq}`}
                                 onPress={() => setRepeatFrequency(freq)}
@@ -1526,6 +1541,8 @@ export default function EventForm(props: EventFormProps) {
                     const isActive = lv === minLevel;
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={lv}
                         onPress={() => {
                           setMinLevel(lv);
@@ -1597,6 +1614,7 @@ export default function EventForm(props: EventFormProps) {
                 </Text>
                 {priceTiers.length === 0 ? (
                   <Pressable
+                    accessibilityRole="button"
                     testID="event-add-tiers"
                     onPress={() =>
                       setPriceTiers([
@@ -1652,6 +1670,8 @@ export default function EventForm(props: EventFormProps) {
                           />
                         </View>
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Remove ${tier.label.trim() || 'this'} rate`}
                           testID={`event-remove-tier-${i}`}
                           onPress={() => setPriceTiers((prev) => prev.filter((_, j) => j !== i))}
                           style={[styles.tierRemoveBtn, { borderColor: palette.border }]}
@@ -1662,6 +1682,7 @@ export default function EventForm(props: EventFormProps) {
                     ))}
                     <FieldError text={fieldErrors.priceTiers} />
                     <Pressable
+                      accessibilityRole="button"
                       testID="event-add-tier-row"
                       onPress={() => setPriceTiers((prev) => [...prev, { label: '', amount: '' }])}
                       style={[styles.tierAddBtn, { borderColor: palette.border, marginTop: 8 }]}
@@ -1681,6 +1702,8 @@ export default function EventForm(props: EventFormProps) {
                     const isActive = mode === approvalMode;
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={mode}
                         onPress={() => setApprovalMode(mode)}
                         style={[
@@ -1723,6 +1746,7 @@ export default function EventForm(props: EventFormProps) {
                 ) : null}
                 <Row style={{ gap: 8 }}>
                   <Pressable
+                    accessibilityRole="button"
                     testID="event-pick-photo"
                     onPress={onPickPhoto}
                     style={[
@@ -1738,6 +1762,7 @@ export default function EventForm(props: EventFormProps) {
                   </Pressable>
                   {photoAsset || selectedSuggestion || (originalPhotoPath && !removePhotoFlag) ? (
                     <Pressable
+                      accessibilityRole="button"
                       onPress={onClearPhoto}
                       style={[
                         styles.chip,
@@ -1761,6 +1786,7 @@ export default function EventForm(props: EventFormProps) {
                         const isSel = path === selectedSuggestion;
                         return (
                           <Pressable
+                            accessibilityRole="button"
                             key={path}
                             onPress={() => onPickSuggestion(path)}
                             testID={`photo-suggestion-${path}`}
@@ -1815,6 +1841,7 @@ export default function EventForm(props: EventFormProps) {
                 <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                   {KIT_TEMPLATES.map((t) => (
                     <Pressable
+                      accessibilityRole="button"
                       key={t.key}
                       onPress={() => {
                         setWhatToBring(t.text);
@@ -1860,6 +1887,8 @@ export default function EventForm(props: EventFormProps) {
                     const isActive = opt.value === status;
                     return (
                       <Pressable
+                        accessibilityState={{ selected: isActive }}
+                        accessibilityRole="button"
                         key={opt.value}
                         onPress={() => setStatus(opt.value)}
                         style={[
@@ -1898,6 +1927,7 @@ export default function EventForm(props: EventFormProps) {
                   Deleting removes this event and all its sign-ups. Refund any paid sign-ups first.
                 </Text>
                 <Pressable
+                  accessibilityRole="button"
                   testID="event-delete"
                   onPress={busy ? undefined : onDelete}
                   disabled={busy}
@@ -1922,6 +1952,7 @@ export default function EventForm(props: EventFormProps) {
                 </Pressable>
                 {confirmDelete ? (
                   <Pressable
+                    accessibilityRole="button"
                     onPress={() => setConfirmDelete(false)}
                     style={{ marginTop: 8, alignItems: 'center' }}
                   >
@@ -1945,7 +1976,11 @@ export default function EventForm(props: EventFormProps) {
           ]}
         >
           {error ? (
-            <Text style={[styles.footerError, { color: OtterPalette.ice }]} numberOfLines={2}>
+            <Text
+              accessibilityRole="alert"
+              style={[styles.footerError, { color: OtterPalette.ice }]}
+              numberOfLines={2}
+            >
               {error}
             </Text>
           ) : null}
@@ -1953,6 +1988,7 @@ export default function EventForm(props: EventFormProps) {
             <Row style={{ gap: 10 }}>
               {step > 1 ? (
                 <Pressable
+                  accessibilityRole="button"
                   testID="event-step-back"
                   onPress={() => setStep(step - 1)}
                   style={[
@@ -1970,6 +2006,7 @@ export default function EventForm(props: EventFormProps) {
               ) : null}
               {step < 4 ? (
                 <Pressable
+                  accessibilityRole="button"
                   testID="event-step-next"
                   onPress={() => setStep(step + 1)}
                   style={[styles.primaryBtn, { flex: 1, backgroundColor: OtterPalette.slateNavy }]}
@@ -1978,6 +2015,7 @@ export default function EventForm(props: EventFormProps) {
                 </Pressable>
               ) : (
                 <Pressable
+                  accessibilityRole="button"
                   testID="event-create-submit"
                   onPress={busy ? undefined : () => submit()}
                   disabled={busy}
@@ -1996,6 +2034,7 @@ export default function EventForm(props: EventFormProps) {
             </Row>
           ) : (
             <Pressable
+              accessibilityRole="button"
               testID="event-edit-submit"
               onPress={busy ? undefined : () => submit()}
               disabled={busy}
@@ -2023,6 +2062,7 @@ export default function EventForm(props: EventFormProps) {
               You've made changes that haven't been saved. What would you like to do?
             </Text>
             <Pressable
+              accessibilityRole="button"
               testID="leave-save"
               onPress={saveAndLeave}
               style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
@@ -2030,6 +2070,7 @@ export default function EventForm(props: EventFormProps) {
               <Text style={[styles.dialogBtnText, { color: '#fff' }]}>Save and exit</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               testID="leave-discard"
               onPress={discardAndLeave}
               style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: OtterPalette.ice }]}
@@ -2039,6 +2080,7 @@ export default function EventForm(props: EventFormProps) {
               </Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               testID="leave-cancel"
               onPress={() => setShowLeave(false)}
               style={styles.dialogCancel}
@@ -2061,6 +2103,7 @@ export default function EventForm(props: EventFormProps) {
               event in the series, or just this one?
             </Text>
             <Pressable
+              accessibilityRole="button"
               testID="photo-scope-series"
               onPress={() => {
                 setShowPhotoScope(false);
@@ -2073,6 +2116,7 @@ export default function EventForm(props: EventFormProps) {
               </Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               testID="photo-scope-single"
               onPress={() => {
                 setShowPhotoScope(false);
@@ -2083,6 +2127,7 @@ export default function EventForm(props: EventFormProps) {
               <Text style={[styles.dialogBtnText, { color: palette.text }]}>This event only</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               testID="photo-scope-cancel"
               onPress={() => setShowPhotoScope(false)}
               style={styles.dialogCancel}

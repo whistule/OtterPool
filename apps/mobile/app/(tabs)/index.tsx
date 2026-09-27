@@ -229,6 +229,7 @@ export default function CalendarScreen() {
       <PageTitle title="Calendar" />
       {canCreate ? (
         <Pressable
+          accessibilityRole="button"
           testID="calendar-create-event"
           onPress={() => router.push('/event/new')}
           style={[styles.fab, { backgroundColor: OtterPalette.slateNavy }]}
@@ -266,7 +267,12 @@ export default function CalendarScreen() {
           {DISCIPLINES.map((d) => {
             const isActive = active === d;
             return (
-              <Pressable key={d} onPress={() => selectDiscipline(d)} style={styles.disciplineBtn}>
+              <Pressable
+                accessibilityRole="button"
+                key={d}
+                onPress={() => selectDiscipline(d)}
+                style={styles.disciplineBtn}
+              >
                 <Row style={{ gap: 5, alignItems: 'center' }}>
                   {DISCIPLINE_COLOR[d] ? (
                     <View style={[styles.discDot, { backgroundColor: DISCIPLINE_COLOR[d] }]} />
@@ -321,6 +327,8 @@ export default function CalendarScreen() {
                 const color = DISCIPLINE_COLOR[active] ?? OtterPalette.slateNavy;
                 return (
                   <Pressable
+                    accessibilityState={{ selected: on }}
+                    accessibilityRole="button"
                     key={g}
                     testID={`subcat-${g}`}
                     onPress={() => setSubFilter(on ? null : g)}
@@ -337,7 +345,11 @@ export default function CalendarScreen() {
           ) : null}
         </View>
         {selectedDay ? (
-          <Pressable onPress={() => setSelectedDay(null)} style={styles.showAll}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setSelectedDay(null)}
+            style={styles.showAll}
+          >
             <Text style={[styles.showAllText, { color: OtterPalette.slateNavy }]}>
               Show all days
             </Text>
@@ -364,6 +376,7 @@ export default function CalendarScreen() {
             const levelEmoji = LEVEL_EMOJI[ev.min_level as ProgressionLevel] ?? '🦆';
             return (
               <Pressable
+                accessibilityRole="button"
                 key={ev.id}
                 testID={`calendar-event-${ev.id}`}
                 onPress={() => router.push(`/event/${ev.id}`)}

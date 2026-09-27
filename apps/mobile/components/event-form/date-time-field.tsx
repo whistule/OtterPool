@@ -94,7 +94,11 @@ function NativeDateTimeField({ value, onChange, style, placeholderColor }: DateT
 
   return (
     <>
-      <Pressable onPress={() => setPicking('date')} style={style as never}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setPicking('date')}
+        style={style as never}
+      >
         <Text style={{ fontSize: 15, color: (current ? flat.color : placeholderColor) as string }}>
           {current ? formatDateTime(current) : 'Pick a date and time'}
         </Text>

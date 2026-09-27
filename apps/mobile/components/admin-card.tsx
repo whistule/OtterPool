@@ -7,7 +7,11 @@ import { OtterPalette } from '@/constants/theme';
 /** Shortcut into the members list. Rendered on Profile and Progress for admins. */
 export function ManageMembersCard() {
   return (
-    <Pressable onPress={() => router.push('/members')} testID="admin-manage-members">
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push('/members')}
+      testID="admin-manage-members"
+    >
       <Card style={styles.card}>
         <Text style={styles.kicker}>Admin</Text>
         <Text style={styles.action}>Manage members ›</Text>

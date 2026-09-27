@@ -118,6 +118,7 @@ export default function MembershipImportScreen() {
         {canPickFile ? (
           <>
             <Pressable
+              accessibilityRole="button"
               testID="membership-import-choose-file"
               onPress={pickFile}
               style={[styles.chooseBtn, { borderColor: OtterPalette.slateNavy }]}
@@ -139,6 +140,7 @@ export default function MembershipImportScreen() {
         ) : null}
 
         <TextInput
+          accessibilityLabel="Membership list, one email and expiry date per line"
           value={paste}
           onChangeText={(t) => {
             setPaste(t);
@@ -157,7 +159,9 @@ export default function MembershipImportScreen() {
 
         {paste.trim() && parsed.problem ? (
           <Card style={{ borderWidth: 1.5, borderColor: OtterPalette.ice }}>
-            <Text style={[styles.body, { color: OtterPalette.ice }]}>{parsed.problem}</Text>
+            <Text accessibilityRole="alert" style={[styles.body, { color: OtterPalette.ice }]}>
+              {parsed.problem}
+            </Text>
           </Card>
         ) : null}
 
@@ -175,7 +179,9 @@ export default function MembershipImportScreen() {
 
         {error ? (
           <Card style={{ borderWidth: 1.5, borderColor: OtterPalette.ice }}>
-            <Text style={[styles.body, { color: OtterPalette.ice }]}>{error}</Text>
+            <Text accessibilityRole="alert" style={[styles.body, { color: OtterPalette.ice }]}>
+              {error}
+            </Text>
           </Card>
         ) : null}
 
@@ -199,6 +205,7 @@ export default function MembershipImportScreen() {
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
           testID="membership-import-run"
           onPress={busy || parsed.rows.length === 0 ? undefined : runImport}
           disabled={busy || parsed.rows.length === 0}

@@ -10,6 +10,10 @@ import {
 
 import { publicUrl } from '@/lib/photos';
 
+// Both components are decorative: every avatar sits beside the member's name
+// and every event photo beside the event title, so screen readers skip them
+// (aria-hidden) rather than announcing an unlabelled image or a stray emoji.
+
 /** Round avatar. Falls back to the level emoji when no avatar_path is set. */
 export function Avatar({
   path,
@@ -29,13 +33,14 @@ export function Avatar({
       <Image
         source={{ uri: url }}
         style={[dim, style as StyleProp<ImageStyle>]}
+        aria-hidden
         contentFit="cover"
         transition={120}
       />
     );
   }
   return (
-    <View style={[styles.fallback, dim, style]}>
+    <View aria-hidden style={[styles.fallback, dim, style]}>
       <Text style={{ fontSize: Math.round(size * 0.55) }}>{fallback ?? '🦦'}</Text>
     </View>
   );
@@ -61,13 +66,14 @@ export function EventPhoto({
       <Image
         source={{ uri: url }}
         style={[baseStyle, style as StyleProp<ImageStyle>]}
+        aria-hidden
         contentFit="cover"
         transition={120}
       />
     );
   }
   return (
-    <View style={[styles.placeholder, baseStyle, style]}>
+    <View aria-hidden style={[styles.placeholder, baseStyle, style]}>
       <Text style={styles.placeholderLabel}>{thumb ? '📷' : 'event photo'}</Text>
     </View>
   );

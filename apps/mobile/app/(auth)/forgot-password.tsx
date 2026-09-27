@@ -61,7 +61,9 @@ export default function ForgotPasswordScreen() {
       >
         <View style={styles.brand}>
           <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
-          <Text style={[styles.tag, { color: palette.muted }]}>Reset your password</Text>
+          <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
+            Reset your password
+          </Text>
         </View>
 
         <View
@@ -69,10 +71,11 @@ export default function ForgotPasswordScreen() {
         >
           {sent ? (
             <>
-              <Text style={[styles.info, { color: palette.text }]}>
+              <Text accessibilityRole="alert" style={[styles.info, { color: palette.text }]}>
                 Check your inbox. We've sent a link to reset your password.
               </Text>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => router.replace('/sign-in')}
                 style={[styles.primaryBtn, { backgroundColor: OtterPalette.slateNavy }]}
               >
@@ -83,6 +86,7 @@ export default function ForgotPasswordScreen() {
             <>
               <Text style={[styles.label, { color: palette.muted }]}>Email</Text>
               <TextInput
+                accessibilityLabel="Email"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -98,10 +102,13 @@ export default function ForgotPasswordScreen() {
               />
 
               {error ? (
-                <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text>
+                <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
+                  {error}
+                </Text>
               ) : null}
 
               <Pressable
+                accessibilityRole="button"
                 onPress={handleSend}
                 disabled={busy}
                 style={[
@@ -117,7 +124,7 @@ export default function ForgotPasswordScreen() {
               </Pressable>
 
               <Link href="/sign-in" asChild>
-                <Pressable disabled={busy} style={styles.secondaryBtn}>
+                <Pressable accessibilityRole="button" disabled={busy} style={styles.secondaryBtn}>
                   <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
                     Back to sign in
                   </Text>

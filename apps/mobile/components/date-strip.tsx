@@ -42,6 +42,8 @@ export function DateStrip({
         const on = selected === d.key;
         return (
           <Pressable
+            accessibilityState={{ selected: on }}
+            accessibilityRole="button"
             key={d.key}
             testID={`date-strip-${d.key}`}
             onPress={() => onSelect(on ? null : d.key)}

@@ -9,7 +9,7 @@ export function LoadingCenter({ fill }: { fill?: boolean }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <View style={[styles.center, fill && styles.fill]}>
-      <ActivityIndicator color={palette.tint} />
+      <ActivityIndicator accessibilityLabel="Loading" color={palette.tint} />
     </View>
   );
 }
@@ -18,7 +18,9 @@ export function ErrorCard({ title, message }: { title: string; message?: string 
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <Card>
-      <Text style={[styles.errTitle, { color: OtterPalette.ice }]}>{title}</Text>
+      <Text accessibilityRole="alert" style={[styles.errTitle, { color: OtterPalette.ice }]}>
+        {title}
+      </Text>
       {message ? <Text style={[styles.muted, { color: palette.muted }]}>{message}</Text> : null}
     </Card>
   );

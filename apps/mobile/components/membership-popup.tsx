@@ -162,6 +162,7 @@ export function MembershipPopup() {
           <View style={styles.btns}>
             {popup.primary ? (
               <Pressable
+                accessibilityRole="button"
                 testID="membership-popup-primary"
                 onPress={() => {
                   popup.primary?.onPress();
@@ -173,6 +174,7 @@ export function MembershipPopup() {
               </Pressable>
             ) : null}
             <Pressable
+              accessibilityRole="button"
               testID="membership-popup-dismiss"
               onPress={close}
               style={styles.secondaryBtn}

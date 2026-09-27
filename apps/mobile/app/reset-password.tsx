@@ -198,7 +198,9 @@ export default function ResetPasswordScreen() {
       >
         <View style={styles.brand}>
           <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
-          <Text style={[styles.tag, { color: palette.muted }]}>Choose a new password</Text>
+          <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
+            Choose a new password
+          </Text>
         </View>
 
         <View
@@ -210,6 +212,7 @@ export default function ResetPasswordScreen() {
                 Password updated. Sign in with your new password.
               </Text>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => router.replace('/sign-in')}
                 style={[styles.primaryBtn, { backgroundColor: OtterPalette.slateNavy }]}
               >
@@ -218,8 +221,11 @@ export default function ResetPasswordScreen() {
             </>
           ) : tokenError ? (
             <>
-              <Text style={[styles.error, { color: OtterPalette.ice }]}>{tokenError}</Text>
+              <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
+                {tokenError}
+              </Text>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => router.replace('/forgot-password')}
                 style={[styles.primaryBtn, { backgroundColor: OtterPalette.slateNavy }]}
               >
@@ -237,6 +243,7 @@ export default function ResetPasswordScreen() {
             <>
               <Text style={[styles.label, { color: palette.muted }]}>New password</Text>
               <TextInput
+                accessibilityLabel="New password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -251,6 +258,7 @@ export default function ResetPasswordScreen() {
                 Confirm password
               </Text>
               <TextInput
+                accessibilityLabel="Confirm new password"
                 value={confirm}
                 onChangeText={setConfirm}
                 secureTextEntry
@@ -264,10 +272,13 @@ export default function ResetPasswordScreen() {
               />
 
               {error ? (
-                <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text>
+                <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
+                  {error}
+                </Text>
               ) : null}
 
               <Pressable
+                accessibilityRole="button"
                 onPress={handleSubmit}
                 disabled={busy}
                 style={[

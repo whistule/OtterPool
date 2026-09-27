@@ -50,7 +50,12 @@ export default function SignInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
-          <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
+          <Text
+            accessibilityRole="header"
+            style={[styles.wordmark, { color: OtterPalette.slateNavy }]}
+          >
+            OtterPool
+          </Text>
           <Text style={[styles.tag, { color: palette.muted }]}>DCKC</Text>
         </View>
 
@@ -59,6 +64,7 @@ export default function SignInScreen() {
         >
           <Text style={[styles.label, { color: palette.muted }]}>Email</Text>
           <TextInput
+            accessibilityLabel="Email"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -83,6 +89,7 @@ export default function SignInScreen() {
 
           <Text style={[styles.label, { color: palette.muted, marginTop: 14 }]}>Password</Text>
           <TextInput
+            accessibilityLabel="Password"
             ref={passwordRef}
             value={password}
             onChangeText={setPassword}
@@ -97,9 +104,14 @@ export default function SignInScreen() {
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
           />
 
-          {error ? <Text style={[styles.error, { color: OtterPalette.ice }]}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
+              {error}
+            </Text>
+          ) : null}
 
           <Pressable
+            accessibilityRole="button"
             onPress={handleSignIn}
             disabled={busy}
             style={[
@@ -115,7 +127,7 @@ export default function SignInScreen() {
           </Pressable>
 
           <Link href="/sign-up" asChild>
-            <Pressable disabled={busy} style={styles.secondaryBtn}>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.secondaryBtn}>
               <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
                 Create account
               </Text>
@@ -123,7 +135,7 @@ export default function SignInScreen() {
           </Link>
 
           <Link href="/forgot-password" asChild>
-            <Pressable disabled={busy} style={styles.tertiaryBtn}>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
               <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
                 Forgot password?
               </Text>
