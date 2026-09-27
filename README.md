@@ -1,160 +1,54 @@
-# OtterPool v1.3.14
+# OtterPool
 
-A kayak club management app prototype for [DCKC](https://dckc.co.uk) — Drumchapel and Clydebank Kayak Club, Glasgow.
+Club management app for [DCKC](https://dckc.co.uk), Drumchapel and Clydebank Kayak Club in Glasgow. Members browse and sign up to trips, leaders run their events and review sign-ups, and admins look after membership and levels.
 
-Covers membership, event sign-up, progressive experience tracking, leader approval workflows, notification preferences, and emergency contact management.
+Live on the web at https://otterpool.dckc.co.uk, with Android builds via EAS.
 
----
+## Stack
 
-## Screens
-
-| Screen | Description |
-|---|---|
-| Calendar | Event browsing with discipline tabs (Sea, River, Pinkston, Loch/Pool, Skills) and grade filtering. Compact event cards with inline avatars, grades, prices. Featured cards for sea/river trips with descriptions and leader info |
-| Event Detail | Full event view with hero image, key info, participant strip, accordions, request to join button |
-| Approval Questionnaire | 7-question assessment flow for trip requests. Pre-filled answers with edit/resubmit/clear options |
-| My Trips | Upcoming confirmed trips and past trip log with experience tally |
-| Progress | Current level card with journey ladder, stat row, grade grids (sea/river/Pinkston), corroboration record. Leadership tab with BC qualifications, trips led, event permissions, extended remit evidence. Witnessing flow to help others progress. Privacy note |
-| Levels Reference | Full level descriptions with craft control and rescue benchmarks |
-| Notifications | Push notification settings — subscribe to trip types by grade, event reminders (1 month/week/day/hour), message preferences with daily digest option. Leader/event changes always on |
-| Admin | Member directory with search and role filters (Active/Aspirants/Leaders/Expired). Member management sheet with club role dropdown, event permission levels (PSL/CL/SKL/WWKL/AWKL), level override |
-| Supermentor | Approvals dashboard, extended remit tracking, member lookup |
-| Leader Approval | Queue-based approval with member record, assessment and summary tabs |
-| Participant List | Event attendees with ICE data access for leaders |
-| Post-trip | Member emoji response, anonymous leader feedback, leader trip report with grade adjustment (A/A+/B/B+/C/C+), "everyone attended and coped well" quick action, per-participant composure and notes |
-| Profile | Personal details, ICE card management, leaving the club options (email data & leave / leave & keep data / leave & delete all) |
-| Create Event | 6-step event creation flow with category selection (Sea A/B/C, River, Pinkston, Tue Evening Loch/Pool, All Away, Microsession, Skills, 2nd Saturday, Training) |
-
----
-
-## Dashboard
-
-The home screen serves as a dev/demo directory for accessing all screens. Three role views accessible via toggle bar:
-
-- **Admin** — member directory and management
-- **Supermentor** — approvals, extended remit, member oversight
-- **Web Dev** — all screen templates for development
-
-The OtterPool wordmark is clickable on any screen to return to the dashboard.
-
----
-
-## Permission model
-
-**Event permissions** are set by default from BC qualifications:
-
-| Qualification | Default permissions |
-|---|---|
-| No qualification | Cannot create events |
-| Event organiser | Non-paddling events (socials, meetings) |
-| Paddlesport Leader | Loch/Pool sessions, Tuesday evenings, All Away trips |
-| Coastal Leader | All PSL + Sea A and Sea B trips |
-| Sea Kayak Leader | All CL + Sea C expeditions |
-| WW Kayak Leader | River trips up to Grade 3(4) |
-| Advanced WWKL | River trips up to Grade 4 |
-
-A supermentor can extend someone's remit beyond their default qualification. Extended members appear on the supermentor dashboard with evidence trail.
-
----
-
-## Progression system
-
-Zone 1 — internal club progression:
-
-| Level | Animal | Description |
-|---|---|---|
-| 1 | 🐸 Frog | New to kayaking |
-| 2 | 🦆 Duck | Completed capsize drill with spray-deck |
-| 3 | 🦦 Otter | Reliable on-water rescue using heel hook |
-| 4 | 🐬 Dolphin | Accomplished paddler, can assist others |
-
-Zone 2 — British Canoeing qualifications, all represented as 🦭 Selkie:
-
-- Paddlesport Leader
-- Coastal Leader
-- Sea Kayak Leader (SKL)
-- Whitewater Kayak Leader (WWKL)
-- Advanced SKL / Advanced WWKL
-
-Witnessing: Members can witness progression steps for others, provided they are 2+ levels above the person being witnessed.
-
----
-
-## Project structure
-
-```
-OtterPool/
-├── apps/
-│   └── mobile/                 ← Expo React Native app (iOS / Android / web)
-├── supabase/                   ← Supabase project: migrations, edge functions, seed
-├── docs/
-│   ├── DCKC-Platform-Spec-v0.9.md
-│   ├── otterpool.html          ← combined wireframe (legacy reference)
-│   ├── otter-pool-*.html       ← individual wireframe screens (legacy)
-│   ├── equipment-lists.json
-│   ├── combine.py              ← wireframe build script (legacy)
-│   └── files.zip               ← asset archive
-├── devenv.nix / devenv.yaml    ← repo-wide dev shell (Node, Playwright)
-├── AGENTS.md
-└── README.md
-```
-
----
+- `apps/mobile/` - Expo Router app (iOS / Android / web), React Native + TypeScript
+- `supabase/` - Postgres schema and RLS in `migrations/`, edge functions in `functions/` (sign-up, review, cancel, Stripe webhook, push notifications)
+- Payments through Stripe Checkout, push through Expo
+- `devenv.nix` - dev shell with Node, Biome, the Supabase CLI and Playwright's browsers
 
 ## Running locally
 
-The mobile app is the live product:
-
 ```sh
-cd apps/mobile
-devenv shell -- npx expo start --web
+cp apps/mobile/.env.example apps/mobile/.env.local   # dev project values
+cd apps/mobile && npm install
+npx expo start --web
 ```
 
-The legacy wireframes still open standalone — see `docs/otterpool.html`.
+The app refuses to start without `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`, there is no fallback on purpose. See `AGENTS.md` for the details and the Metro cache gotcha.
 
----
+## Tests
 
-## Design
+| What | Command | Where it runs |
+|---|---|---|
+| Format + lint (Biome) | `npm run check` from the root | CI (`test.yml`) |
+| Typecheck | `npx tsc --noEmit` in `apps/mobile` | CI |
+| Unit tests - `apps/mobile/lib/*.test.ts` and `supabase/functions/_shared/*.test.ts` | `npm run test:unit` in `apps/mobile` | CI |
+| e2e (Playwright), including the RLS guards in `e2e/rls-guards.spec.ts` | `npm run test:e2e` in `apps/mobile` | locally only |
 
-**Typography:** Fraunces (wordmark) + Plus Jakarta Sans (headings, body, UI)
+e2e stays out of CI because it seeds fixtures with the service-role key against a hosted project, so running it per PR would write to a live database. `AGENTS.md` covers running it on NixOS.
 
-**Emoji:** Noto Color Emoji via Twemoji replacement
+## Deploys
 
-**Colour palette:**
+Everything deploys on merge to `main`:
 
-| Role | Colour |
-|---|---|
-| Topbar / nav | `#2a4560` slate navy |
-| Sea grades | `#00c8b4` / `#0098a0` / `#005a6e` teal range |
-| River grades | `#58d048` / `#28a030` / `#0a5018` green range |
-| Pinkston | `#d4703a` / `#b85530` / `#8a2e10` burnt orange range |
-| Loch / Pool | `#5a7080` |
-| Role toggle | `#b85530` burnt orange |
-| ICE / emergency | `#8a1a1a` deep red |
-| Forest / UI chrome | `#2c4a2e` |
+- `deploy-web.yml` - exports the web build and publishes it to GitHub Pages
+- `deploy-supabase.yml` - applies pending migrations, then deploys the edge functions (in that order, since functions depend on new columns)
 
-**Bottom nav:** Calendar, My Trips, Progress (current level emoji), Notify, Profile
+## Roles and levels
 
-**Composure scale** (leader private emoji per participant):
+Progression levels, low to high: 🐸 Frog, 🦆 Duck, 🦦 Otter, 🐬 Dolphin, 🦭 Selkie (BC-qualified leader). Selkies can create and lead events, and an event's minimum level gates who can sign up.
 
-😁 Relaxed · 🤨 Focused · 😬 Stretched · 😨 Out of depth · 😱 Struggling
+Admin roles are separate flags on the profile: membership admin (member status and the membership list import), paddling admin (levels, approval ceilings, any event) and super admin (both, plus granting roles). RLS and triggers enforce all of this in the database, the UI only hides what you cant do.
 
----
+Membership status is `aspirant` until the member's email matches the club's imported membership list. Aspirants get 3 trial events before they need to join. See `docs/membership-verification.md`.
 
-## Status
+## Docs
 
-Prototype v1.3.14 — HTML/CSS/JS, no backend. All data is illustrative.
-
-**Screens complete:** 14 screens built and linked.
-
-**Not yet built:**
-- Homescreen preference — default calendar filter by sea grade (A/B/C) or river grade (G1–G5) so users land on the trips most relevant to them
-- Authentication / onboarding flow
-- Membership renewal popup variants (aspirant/expiring/expired)
-- Backend (suggested: Supabase + Stripe)
-- Real data layer
-- React migration
-
----
-
-*Built for DCKC, Glasgow · 2025–2026*
+- `docs/DCKC-Platform-Spec-v0.9.md` - the original spec
+- `docs/membership-verification.md` - membership list matching and trial rules
+- `docs/otterpool.html`, `docs/otter-pool-*.html` - the HTML wireframes the app started from, kept for reference

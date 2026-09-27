@@ -5,12 +5,13 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { confirmedCount } from './capacity.ts';
+import { mayCharge } from './pricing.ts';
 import { sendPush } from './push.ts';
 
 export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string): Promise<void> {
   const { data: ev } = await admin
     .from('events')
-    .select('id, title, max_participants, status, cost')
+    .select('id, title, max_participants, status, cost, price_options')
     .eq('id', eventId)
     .maybeSingle();
   if (!ev) {
@@ -42,8 +43,7 @@ export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string
     return;
   }
 
-  const isPaid = Number(ev.cost ?? 0) > 0;
-  if (isPaid) {
+  if (mayCharge(ev)) {
     await sendPush(admin, [next.member_id], {
       title: 'A seat just opened',
       body: `${ev.title} — sign up again to grab your spot.`,

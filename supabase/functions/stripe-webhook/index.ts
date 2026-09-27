@@ -102,11 +102,49 @@ async function handlePaymentSucceeded(
     return new Response(`update failed: ${updateErr.message}`, { status: 500 });
   }
   if (!updated) {
-    return jsonOk();
+    return await recordUnmatchedPayment(admin, pi, signupId);
   }
 
   await markFullIfAtCapacity(admin, updated.event_id);
   await notifyPaymentConfirmed(admin, updated.event_id, updated.member_id, signupId);
+  return jsonOk();
+}
+
+/**
+ * Money arrived but no pending_payment row took it: the sign-up was cancelled
+ * while its checkout was still open, the event was deleted, or the member paid
+ * twice. Stripe has the charge, so the database must too — otherwise nobody
+ * knows to refund it. Recorded once per PaymentIntent; a 500 makes Stripe retry.
+ */
+async function recordUnmatchedPayment(
+  admin: SupabaseClient,
+  pi: Stripe.PaymentIntent,
+  signupId: string,
+): Promise<Response> {
+  // Stripe redelivers events, so a row this payment already confirmed is fine.
+  const { data: row } = await admin
+    .from('event_signups')
+    .select('payment_intent_id')
+    .eq('id', signupId)
+    .maybeSingle();
+  if (row?.payment_intent_id === pi.id) {
+    return jsonOk();
+  }
+
+  console.error('[stripe-webhook] payment matched no pending sign-up', pi.id, signupId);
+  const { error } = await admin.from('unmatched_payments').upsert(
+    {
+      payment_intent_id: pi.id,
+      signup_id: signupId,
+      event_id: pi.metadata?.event_id ?? null,
+      member_id: pi.metadata?.member_id ?? null,
+      amount_pence: pi.amount,
+    },
+    { onConflict: 'payment_intent_id', ignoreDuplicates: true },
+  );
+  if (error) {
+    return new Response(`record failed: ${error.message}`, { status: 500 });
+  }
   return jsonOk();
 }
 
