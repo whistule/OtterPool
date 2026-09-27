@@ -63,7 +63,7 @@ $$;
 -- Not counting pending_payment let an aspirant open checkout on any number of
 -- paid trips and then pay for all of them — nothing re-checks at payment time,
 -- and a payment can't be refused once taken. A held checkout is released by
--- payment_intent.canceled when the session expires, which frees the trial too.
+-- checkout.session.expired two hours after checkout opens, which frees the trial too.
 -- Mirrors countTrialSignups() in the sign-up edge function.
 create or replace function public.my_membership()
 returns jsonb
@@ -164,6 +164,13 @@ create policy "Paddling admins read unmatched payments"
   on public.unmatched_payments for select
   to authenticated
   using (public.is_paddling_admin());
+
+-- ---------- 5b. which checkout session holds the seat ----------
+-- Every retry opens a new Checkout session. Only the latest one may release
+-- the seat when it expires, otherwise an abandoned first attempt expiring
+-- withdraws a seat the member is paying for through a second one.
+alter table public.event_signups
+  add column if not exists checkout_session_id text;
 
 -- ---------- 6. storage buckets only take images ----------
 -- The app uploads downscaled JPEGs (lib/photos.ts); png/webp stay allowed for

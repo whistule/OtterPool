@@ -17,9 +17,10 @@ export function isEventFullError(error: { message?: string } | string | null | u
  * 'confirmed' let every member of a full paid trip open checkout at once and
  * all get charged for a seat that didn't exist.
  *
- * ponytail: a held seat is released by the payment_intent.canceled webhook,
- * which Stripe fires when the checkout session expires (~24h). If that ever
- * proves too slow, sweep pending_payment rows older than the session TTL.
+ * A held seat is released by the checkout.session.expired webhook two hours
+ * after checkout opens (CHECKOUT_TTL_SECONDS in sign-up).
+ * ponytail: relies on Stripe delivering that webhook. If one is ever lost the
+ * seat stays held, so sweep pending_payment rows older than the TTL if it happens.
  */
 export async function confirmedCount(
   admin: SupabaseClient,

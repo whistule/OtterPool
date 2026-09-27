@@ -35,6 +35,9 @@ const WAITLISTED: Routing = {
 /** Statuses a fresh sign-up call may overwrite on an existing row. */
 const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
 
+/** How long a Checkout session (and the seat it holds) lives. Stripe allows 30 min – 24 h. */
+const CHECKOUT_TTL_SECONDS = 2 * 60 * 60;
+
 /** How many events an aspirant may sign up to before they must join. */
 const TRIAL_LIMIT = 3;
 
@@ -148,7 +151,7 @@ Deno.serve(async (req) => {
     }
 
     if (signupId) {
-      const checkoutUrl = await createCheckoutSession({
+      const checkout = await createCheckoutSession(admin, {
         event,
         userId: user.id,
         userEmail: user.email,
@@ -160,7 +163,7 @@ Deno.serve(async (req) => {
       return ok({
         signup: { id: signupId, status: 'pending_payment' },
         message: 'Continue to payment to complete sign-up',
-        payment: { checkout_url: checkoutUrl, amount_pence: costPence },
+        payment: { checkout_url: checkout.url, amount_pence: costPence },
       });
     }
 
@@ -251,8 +254,8 @@ async function loadExistingSignup(
  * Trial usage for the aspirant cap: places the member holds — confirmed,
  * mid-checkout, awaiting review, or waitlisted. Cancelled (withdrawn) and
  * declined sign-ups don't count, so cancelling frees the trial. An abandoned
- * checkout frees it when Stripe expires the session (payment_intent.canceled
- * withdraws the row). Counting pending_payment matters: nothing re-checks the
+ * checkout frees it when the session expires after two hours
+ * (checkout.session.expired withdraws the row). Counting pending_payment matters: nothing re-checks the
  * cap at payment time, so without it an aspirant could open checkout on any
  * number of trips and pay for them all. One row per (event, member), so the
  * row count is the number of events. Mirrors public.my_membership().
@@ -351,15 +354,18 @@ async function ensurePendingPaymentRow(
   return data.id;
 }
 
-async function createCheckoutSession(args: {
-  event: EventRow;
-  userId: string;
-  userEmail?: string;
-  signupId: string;
-  costPence: number;
-  priceLabel: string | null;
-  returnUrl: string;
-}): Promise<string | null> {
+async function createCheckoutSession(
+  admin: SupabaseClient,
+  args: {
+    event: EventRow;
+    userId: string;
+    userEmail?: string;
+    signupId: string;
+    costPence: number;
+    priceLabel: string | null;
+    returnUrl: string;
+  },
+): Promise<{ url: string | null }> {
   const { event, userId, userEmail, signupId, costPence, priceLabel, returnUrl } = args;
   const sep = returnUrl.includes('?') ? '&' : '?';
   const stripe = getStripe();
@@ -388,10 +394,21 @@ async function createCheckoutSession(args: {
     },
     metadata,
     customer_email: userEmail,
+    // Stripe's default is 24h, and a held seat (and an aspirant's trial) is
+    // locked for as long as the session lives. Two hours is plenty to pay.
+    expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SECONDS,
     success_url: `${returnUrl}${sep}paid=1`,
     cancel_url: `${returnUrl}${sep}cancelled=1`,
   });
-  return session.url;
+  // Mark this session as the one holding the seat — see handleCheckoutExpired.
+  const { error } = await admin
+    .from('event_signups')
+    .update({ checkout_session_id: session.id })
+    .eq('id', signupId);
+  if (error) {
+    throw new Error(`Failed to record checkout session: ${error.message}`);
+  }
+  return { url: session.url };
 }
 
 // ---------- Notifications ----------
