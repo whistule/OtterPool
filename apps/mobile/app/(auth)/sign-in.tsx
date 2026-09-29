@@ -26,13 +26,20 @@ export default function SignInScreen() {
   const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
+    // Trim to match sign-up and forgot-password, which both store/look up the
+    // trimmed address — without this a stray space makes a real account look
+    // like bad credentials here and nowhere else.
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       setError('Email and password are required');
       return;
     }
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    });
     setBusy(false);
     if (error) {
       setError(error.message);
