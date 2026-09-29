@@ -1,3 +1,4 @@
+import { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -18,6 +19,12 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { setRecoveryPending } from '@/lib/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
+
+// react-native-web passes autoComplete straight to the DOM (TextInput/index.js
+// :347), and 'password-new' is React Native's Android token, not an HTML one —
+// browsers discard it, leaving the change-password form with no hint at all.
+// The HTML token is 'new-password'; Android still wants 'password-new'.
+const NEW_PASSWORD_AUTOCOMPLETE = Platform.OS === 'web' ? 'new-password' : 'password-new';
 
 type RecoveryParams =
   | { kind: 'pkce'; code: string }
@@ -55,6 +62,7 @@ export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ code?: string }>();
   const [ready, setReady] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -65,9 +73,10 @@ export default function ResetPasswordScreen() {
   useEffect(() => {
     let cancelled = false;
 
-    const markReady = () => {
+    const markReady = (session: Session) => {
       if (!cancelled && !consumedRef.current) {
         consumedRef.current = true;
+        setEmail(session.user.email ?? '');
         setRecoveryPending(true);
         setReady(true);
       }
@@ -108,6 +117,7 @@ export default function ResetPasswordScreen() {
         setTokenError(result.error.message);
         return;
       }
+      setEmail(result.data.session?.user.email ?? '');
       setRecoveryPending(true);
       setReady(true);
     };
@@ -135,12 +145,12 @@ export default function ResetPasswordScreen() {
     // change too.
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        markReady();
+        markReady(data.session);
       }
     });
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        markReady();
+        markReady(session);
       }
     });
 
@@ -235,13 +245,31 @@ export default function ResetPasswordScreen() {
             </View>
           ) : (
             <>
-              <Text style={[styles.label, { color: palette.muted }]}>New password</Text>
+              {/*
+                A change-password page needs a username field for password
+                managers to tie the new password to the right saved login;
+                without one they save an entry with no account against it and
+                keep autofilling the old password at sign-in. Read-only: it
+                names the account the link was issued for, it isn't an input.
+              */}
+              <Text style={[styles.label, { color: palette.muted }]}>Account</Text>
+              <TextInput
+                value={email}
+                editable={false}
+                autoComplete="username"
+                textContentType="username"
+                style={[styles.input, { color: palette.muted, borderColor: palette.border }]}
+              />
+
+              <Text style={[styles.label, { color: palette.muted, marginTop: 14 }]}>
+                New password
+              </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
                 textContentType="newPassword"
-                autoComplete="password-new"
+                autoComplete={NEW_PASSWORD_AUTOCOMPLETE}
                 placeholder="At least 8 characters"
                 placeholderTextColor={palette.muted}
                 style={[styles.input, { color: palette.text, borderColor: palette.border }]}
@@ -255,7 +283,7 @@ export default function ResetPasswordScreen() {
                 onChangeText={setConfirm}
                 secureTextEntry
                 textContentType="newPassword"
-                autoComplete="password-new"
+                autoComplete={NEW_PASSWORD_AUTOCOMPLETE}
                 returnKeyType="go"
                 onSubmitEditing={handleSubmit}
                 placeholder="••••••••"
