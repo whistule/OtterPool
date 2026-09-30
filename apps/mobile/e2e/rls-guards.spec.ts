@@ -81,10 +81,10 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
     const { supabase, userId } = await memberClient();
     const { data: before } = await supabase
       .from('profiles')
-      .select('status')
+      .select('status_override')
       .eq('id', userId)
       .single();
-    const target = before!.status === 'active' ? 'lapsed' : 'active';
+    const target = before!.status_override === 'active' ? 'lapsed' : 'active';
 
     const { error } = await supabase
       .from('profiles')
@@ -96,10 +96,10 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
 
     const { data: after } = await supabase
       .from('profiles')
-      .select('status')
+      .select('status_override')
       .eq('id', userId)
       .single();
-    expect(after?.status, 'status must be unchanged').toBe(before!.status);
+    expect(after?.status_override, 'status must be unchanged').toBe(before!.status_override);
   });
 
   test('cannot insert a confirmed sign-up and skip payment', async () => {
