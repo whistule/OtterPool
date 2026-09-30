@@ -16,6 +16,10 @@
     PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
     PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+    # `expo start --web` spawns $BROWSER (or xdg-open) and dies if it's
+    # missing, which it is on headless hosts. "none" makes Expo skip it;
+    # open the printed URL yourself.
+    BROWSER = "none";
   };
 
   enterShell = ''
