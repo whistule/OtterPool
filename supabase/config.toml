@@ -380,7 +380,9 @@ verify_jwt = false
 verify_jwt = false
 
 [analytics]
-enabled = true
+# Off: only feeds the Studio log explorer, and its vector container fails
+# health checks under rootless Docker, which aborts `supabase start`.
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
