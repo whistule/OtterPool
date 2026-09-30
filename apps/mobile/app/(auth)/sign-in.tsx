@@ -133,8 +133,9 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          <Text style={[styles.createHintHead, { color: palette.text }]}>New here?</Text>
           <Text style={[styles.createHint, { color: palette.muted }]}>
-            New here? If you're a DCKC member, create your account with the{' '}
+            If you're a DCKC member, create your account with the{' '}
             <Text style={{ fontWeight: '700', color: palette.text }}>
               same email as your MemberMojo login
             </Text>{' '}
@@ -207,11 +208,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  createHint: {
-    fontSize: 12,
-    lineHeight: 17,
+  createHintHead: {
+    fontSize: 16,
+    fontWeight: '700',
     textAlign: 'center',
     marginTop: 20,
+  },
+  createHint: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 4,
   },
   secondaryBtn: {
     marginTop: 12,
