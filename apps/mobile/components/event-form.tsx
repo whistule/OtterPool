@@ -112,9 +112,9 @@ export default function EventForm(props: EventFormProps) {
   const [repeatCount, setRepeatCount] = useState('4');
   // How many events share this one's series (for the "apply photo to all X" prompt).
   const [seriesCount, setSeriesCount] = useState(0);
-  // Confirmation overlays: leaving with unsaved changes, and photo-to-series.
+  // Confirmation overlays: leaving with unsaved changes, and apply-to-series.
   const [showLeave, setShowLeave] = useState(false);
-  const [showPhotoScope, setShowPhotoScope] = useState(false);
+  const [showSeriesScope, setShowSeriesScope] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [forbidden, setForbidden] = useState(false);
@@ -188,8 +188,60 @@ export default function EventForm(props: EventFormProps) {
       repeatCount,
     ],
   );
+  // A signature of only the fields that are SHARED across a series (everything
+  // definitional — not the per-occurrence date/status, nor the create-only
+  // repeat controls). Editing any of these on one occurrence is the moment to
+  // ask whether the change should apply to the whole series.
+  const buildSharedSignature = useCallback(
+    () =>
+      JSON.stringify({
+        title,
+        categoryId,
+        grade,
+        location,
+        meetingPoint,
+        meetingTime,
+        putInPoint,
+        putInTime,
+        minLevel,
+        maxParticipants,
+        cost,
+        priceTiers,
+        approvalMode,
+        description,
+        whatToBring,
+        leaderId,
+        assistantId,
+        photo: photoAsset?.uri ?? null,
+        removePhotoFlag,
+        selectedSuggestion,
+      }),
+    [
+      title,
+      categoryId,
+      grade,
+      location,
+      meetingPoint,
+      meetingTime,
+      putInPoint,
+      putInTime,
+      minLevel,
+      maxParticipants,
+      cost,
+      priceTiers,
+      approvalMode,
+      description,
+      whatToBring,
+      leaderId,
+      assistantId,
+      photoAsset,
+      removePhotoFlag,
+      selectedSuggestion,
+    ],
+  );
   // Baseline captured once the form is ready; null until then.
   const initialSnapshotRef = useRef<string | null>(null);
+  const initialSharedSigRef = useRef<string | null>(null);
   // Set true right before an intentional navigation (save/discard) so the
   // unsaved-changes guard lets that one through.
   const leavingRef = useRef(false);
@@ -205,8 +257,9 @@ export default function EventForm(props: EventFormProps) {
   useEffect(() => {
     if (initialSnapshotRef.current === null && !loading) {
       initialSnapshotRef.current = buildSnapshot();
+      initialSharedSigRef.current = buildSharedSignature();
     }
-  }, [loading, buildSnapshot]);
+  }, [loading, buildSnapshot, buildSharedSignature]);
 
   // How many events are in this series, for the photo-to-series prompt copy.
   useEffect(() => {
@@ -529,7 +582,7 @@ export default function EventForm(props: EventFormProps) {
     await submit();
   };
 
-  const submit = async (opts?: { photoScope?: 'series' | 'single' }): Promise<boolean> => {
+  const submit = async (opts?: { scope?: 'series' | 'single' }): Promise<boolean> => {
     if (!session) {
       return false;
     }
@@ -628,16 +681,16 @@ export default function EventForm(props: EventFormProps) {
     }
     setFieldErrors({});
 
-    // Setting/replacing a photo on a series event: ask whether it applies to
-    // the whole series before writing, unless the leader already chose "All in
-    // series" up top or answered this prompt.
-    const photoBeingSet =
-      !!photoAsset || (!!selectedSuggestion && selectedSuggestion !== originalPhotoPath);
-    if (isEdit && seriesId && !applyToSeries && photoBeingSet && opts?.photoScope === undefined) {
-      setShowPhotoScope(true);
+    // Editing any shared (definitional) field on one occurrence of a series:
+    // ask whether the change applies to the whole series before writing, unless
+    // the leader already chose "All in series" up top or answered this prompt.
+    const sharedChanged =
+      initialSharedSigRef.current !== null &&
+      buildSharedSignature() !== initialSharedSigRef.current;
+    if (isEdit && seriesId && !applyToSeries && opts?.scope === undefined && sharedChanged) {
+      setShowSeriesScope(true);
       return false;
     }
-    const photoToSeries = applyToSeries || opts?.photoScope === 'series';
 
     setBusy(true);
 
@@ -695,7 +748,7 @@ export default function EventForm(props: EventFormProps) {
         status,
       };
 
-      const applyAll = applyToSeries && !!seriesId;
+      const applyAll = (applyToSeries || opts?.scope === 'series') && !!seriesId;
       // This occurrence's own date/status always update just this row.
       const { data: occRows, error: occErr } = await supabase
         .from('events')
@@ -717,11 +770,6 @@ export default function EventForm(props: EventFormProps) {
       if (updateError) {
         setError(updateError);
         return false;
-      }
-      // Photo-to-series (when not already covered by the "All in series" scope):
-      // point every occurrence at the new photo so the whole series shows it.
-      if (!applyAll && photoToSeries && seriesId && newPath !== undefined) {
-        await supabase.from('events').update({ photo_path: newPath }).eq('series_id', seriesId);
       }
       if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
         await removeEventPhotoIfUnused(originalPhotoPath);
@@ -2091,23 +2139,24 @@ export default function EventForm(props: EventFormProps) {
         </View>
       ) : null}
 
-      {/* ---------- Apply photo to series ---------- */}
-      {showPhotoScope ? (
+      {/* ---------- Apply changes to series ---------- */}
+      {showSeriesScope ? (
         <View style={styles.overlay}>
           <View style={[styles.dialog, { backgroundColor: palette.background }]}>
             <Text style={[styles.dialogTitle, { color: palette.text }]}>
-              Apply photo to series?
+              Apply changes to the series?
             </Text>
             <Text style={[styles.dialogBody, { color: palette.muted }]}>
-              This event is one of {seriesCount} in a repeating series. Add this photo to every
-              event in the series, or just this one?
+              This event is one of {seriesCount} in a repeating series. Apply your changes (price,
+              details, photo — everything except the date) to every event in the series, or just
+              this one? Each event keeps its own date and status.
             </Text>
             <Pressable
               accessibilityRole="button"
-              testID="photo-scope-series"
+              testID="series-scope-series"
               onPress={() => {
-                setShowPhotoScope(false);
-                submit({ photoScope: 'series' });
+                setShowSeriesScope(false);
+                submit({ scope: 'series' });
               }}
               style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
             >
@@ -2117,10 +2166,10 @@ export default function EventForm(props: EventFormProps) {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              testID="photo-scope-single"
+              testID="series-scope-single"
               onPress={() => {
-                setShowPhotoScope(false);
-                submit({ photoScope: 'single' });
+                setShowSeriesScope(false);
+                submit({ scope: 'single' });
               }}
               style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: palette.border }]}
             >
@@ -2128,8 +2177,8 @@ export default function EventForm(props: EventFormProps) {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              testID="photo-scope-cancel"
-              onPress={() => setShowPhotoScope(false)}
+              testID="series-scope-cancel"
+              onPress={() => setShowSeriesScope(false)}
               style={styles.dialogCancel}
             >
               <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Cancel</Text>
