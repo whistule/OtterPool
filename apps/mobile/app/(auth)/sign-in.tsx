@@ -133,7 +133,7 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
-          <Text style={[styles.createHintHead, { color: palette.text }]}>New here?</Text>
+          <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
           <Text style={[styles.createHint, { color: palette.muted }]}>
             If you're a DCKC member, create your account with the{' '}
             <Text style={{ fontWeight: '700', color: palette.text }}>
