@@ -15,7 +15,8 @@ Schema, RLS and edge functions for the app. Production deploys itself: `deploy-s
 
 ## Projects
 
-- **dev** - `fguutbhbzradrdyrxixg`. The seed scripts only run against this one, `assert-dev-project.js` refuses anything else
+- **local** - `supabase start`, see the root README. Throwaway, so the seed scripts are allowed to run against it
+- **dev** - `fguutbhbzradrdyrxixg`. The seed scripts only run against this one or a local stack, `assert-dev-project.js` refuses anything else
 - **production** - `cunkkdbfylimkktwgfle`. Only CI writes to it
 
 ## Writing a migration
