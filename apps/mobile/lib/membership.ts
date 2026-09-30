@@ -6,11 +6,13 @@ import type { MemberStatus } from './status';
 
 export type ListRow = { expires_on: string | null };
 
-/** Today as 'YYYY-MM-DD' in local time, to compare against expires_on. */
+/**
+ * Today as 'YYYY-MM-DD' in UTC, to compare against expires_on. UTC, not the
+ * phone's clock, so the app and the sign-up edge function flip on the same
+ * instant (up to an hour after UK midnight in summer time).
+ */
 export function today(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function memberStatus(

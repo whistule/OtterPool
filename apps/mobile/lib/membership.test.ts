@@ -5,8 +5,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { memberStatus as edgeStatus } from '../../../supabase/functions/_shared/membership.ts';
-import { emailKey, memberStatus } from './membership.ts';
+import {
+  memberStatus as edgeStatus,
+  today as edgeToday,
+} from '../../../supabase/functions/_shared/membership.ts';
+import { emailKey, memberStatus, today } from './membership.ts';
 
 const ON = '2026-09-30';
 
@@ -50,4 +53,8 @@ for (const c of cases) {
 test('emailKey matches the lower(trim()) key the list is stored under', () => {
   assert.equal(emailKey('  Jo.Bloggs@Example.COM '), 'jo.bloggs@example.com');
   assert.equal(emailKey(null), '');
+});
+
+test('app and edge function agree on what day it is', () => {
+  assert.equal(today(), edgeToday());
 });

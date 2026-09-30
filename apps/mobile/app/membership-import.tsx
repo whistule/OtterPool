@@ -25,6 +25,7 @@ type ImportSummary = {
   added: number;
   updated: number;
   already_expired: number;
+  lapsed: number;
 };
 
 export default function MembershipImportScreen() {
@@ -94,20 +95,40 @@ export default function MembershipImportScreen() {
     // ponytail: one page of existing emails (API max 1000 rows); page it if the list outgrows that.
     const { data: existing, error: readError } = await supabase
       .from('verified_members')
-      .select('email_norm');
+      .select('email_norm, expires_on, imported_at');
     if (readError) {
       setBusy(false);
       setError(readError.message);
       return;
     }
-    const known = new Set((existing ?? []).map((r) => (r as { email_norm: string }).email_norm));
+    const prior = (existing ?? []) as {
+      email_norm: string;
+      expires_on: string | null;
+      imported_at: string;
+    }[];
+    const known = new Set(prior.map((r) => r.email_norm));
+    const inExport = new Set(parsed.rows.map((r) => r.email));
+    // Anyone missing from this export keeps their last expiry, so they lapse
+    // when it passes. A row with no expiry would stay active for ever, so it
+    // expires yesterday instead. Their imported_at is left as it was.
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const dropped = prior
+      .filter((r) => r.expires_on === null && !inExport.has(r.email_norm))
+      .map((r) => ({
+        email_norm: r.email_norm,
+        expires_on: yesterday,
+        imported_at: r.imported_at,
+      }));
     const importedAt = new Date().toISOString();
     const { error: writeError } = await supabase.from('verified_members').upsert(
-      parsed.rows.map((r) => ({
-        email_norm: r.email,
-        expires_on: r.expires,
-        imported_at: importedAt,
-      })),
+      [
+        ...parsed.rows.map((r) => ({
+          email_norm: r.email,
+          expires_on: r.expires,
+          imported_at: importedAt,
+        })),
+        ...dropped,
+      ],
       { onConflict: 'email_norm' },
     );
     setBusy(false);
@@ -121,6 +142,7 @@ export default function MembershipImportScreen() {
       added,
       updated: parsed.rows.length - added,
       already_expired: parsed.rows.filter((r) => r.expires !== null && r.expires < on).length,
+      lapsed: dropped.length,
     });
   };
 
@@ -220,6 +242,12 @@ export default function MembershipImportScreen() {
                 : ''}
               .
             </Text>
+            {summary.lapsed > 0 ? (
+              <Text style={[styles.body, { color: palette.muted, marginTop: 6 }]}>
+                {summary.lapsed} member{summary.lapsed === 1 ? '' : 's'} with no expiry date{' '}
+                {summary.lapsed === 1 ? 'is' : 'are'} missing from this export and now lapsed.
+              </Text>
+            ) : null}
           </Card>
         ) : null}
 
