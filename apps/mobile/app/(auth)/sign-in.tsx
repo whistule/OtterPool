@@ -135,6 +135,14 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          <Link href="/forgot-password" asChild>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
+              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </Link>
+
           <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
           <Text style={[styles.createHint, { color: palette.muted }]}>
             If you're a DCKC member, create your account with the{' '}
@@ -153,14 +161,6 @@ export default function SignInScreen() {
               style={StyleSheet.flatten([styles.secondaryBtn, { borderColor: palette.tint }])}
             >
               <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
-            </Pressable>
-          </Link>
-
-          <Link href="/forgot-password" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
-              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
-                Forgot password?
-              </Text>
             </Pressable>
           </Link>
         </View>
