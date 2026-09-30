@@ -17,15 +17,14 @@ import { Card } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { today } from '@/lib/membership';
 import { parseMemberPaste } from '@/lib/membership-import';
 import { supabase } from '@/lib/supabase';
 
 type ImportSummary = {
-  imported: number;
+  added: number;
+  updated: number;
   already_expired: number;
-  activated: number;
-  restamped: number;
-  lapsed: number;
 };
 
 export default function MembershipImportScreen() {
@@ -90,15 +89,39 @@ export default function MembershipImportScreen() {
     setBusy(true);
     setError(null);
     setSummary(null);
-    const { data, error: rpcError } = await supabase.rpc('import_verified_members', {
-      p_rows: parsed.rows.map((r) => ({ email: r.email, expires: r.expires })),
-    });
-    setBusy(false);
-    if (rpcError) {
-      setError(rpcError.message);
+    // The parser has already normalised and de-duplicated the emails. RLS lets
+    // only membership admins read and write the list.
+    // ponytail: one page of existing emails (API max 1000 rows); page it if the list outgrows that.
+    const { data: existing, error: readError } = await supabase
+      .from('verified_members')
+      .select('email_norm');
+    if (readError) {
+      setBusy(false);
+      setError(readError.message);
       return;
     }
-    setSummary(data as ImportSummary);
+    const known = new Set((existing ?? []).map((r) => (r as { email_norm: string }).email_norm));
+    const importedAt = new Date().toISOString();
+    const { error: writeError } = await supabase.from('verified_members').upsert(
+      parsed.rows.map((r) => ({
+        email_norm: r.email,
+        expires_on: r.expires,
+        imported_at: importedAt,
+      })),
+      { onConflict: 'email_norm' },
+    );
+    setBusy(false);
+    if (writeError) {
+      setError(writeError.message);
+      return;
+    }
+    const added = parsed.rows.filter((r) => !known.has(r.email)).length;
+    const on = today();
+    setSummary({
+      added,
+      updated: parsed.rows.length - added,
+      already_expired: parsed.rows.filter((r) => r.expires !== null && r.expires < on).length,
+    });
   };
 
   return (
@@ -110,8 +133,8 @@ export default function MembershipImportScreen() {
           <Text style={[styles.body, { color: palette.text }]}>
             Import the members export from MemberMojo — the whole CSV is fine (email, "Expires on"
             and "Membership state" columns are picked out automatically). Only members whose state
-            is Active are imported. Importing replaces the whole list and re-checks everyone's
-            membership.
+            is Active are imported. Emails already on the list are updated and anyone missing from
+            this export keeps their last expiry date, so importing the same file twice is safe.
           </Text>
         </Card>
 
@@ -191,15 +214,11 @@ export default function MembershipImportScreen() {
               Import complete
             </Text>
             <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
-              {summary.imported} email{summary.imported === 1 ? '' : 's'} on the list
+              {summary.added} new · {summary.updated} updated
               {summary.already_expired > 0
                 ? ` (${summary.already_expired} already past their expiry)`
                 : ''}
               .
-            </Text>
-            <Text style={[styles.body, { color: palette.muted, marginTop: 6 }]}>
-              {summary.activated} activated · {summary.restamped} re-linked · {summary.lapsed}{' '}
-              lapsed
             </Text>
           </Card>
         ) : null}

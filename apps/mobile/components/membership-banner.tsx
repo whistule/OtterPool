@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OtterPalette } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { fetchMyMembership, type Membership, useAuth } from '@/lib/auth';
 
 // DCKC's MemberMojo pages. Renewals go to the renew page; new joiners go to
 // the club's MemberMojo home, which offers the join options.
@@ -13,8 +12,6 @@ export const MEMBERMOJO_JOIN_URL = 'https://membermojo.co.uk/dckc';
 const TRIAL_LIMIT = 3;
 const EXPIRY_WARN_DAYS = 42; // 6 weeks
 const VERIFIED_DISMISS_KEY = 'op_membership_verified_dismissed';
-
-type Membership = { status: string; expires_on: string | null; trials_used: number };
 
 function openExternal(url: string) {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -51,7 +48,7 @@ type BannerContent = {
  * A one-line membership status banner: confirms verified members, warns when a
  * membership is near expiry, nudges aspirants through their trial, and points
  * lapsed/suspended members at the fix. Reads the caller's own snapshot from
- * `my_membership()` (status + expiry + trial count).
+ * `fetchMyMembership()` (status + expiry + trial count).
  */
 export function MembershipBanner() {
   const { session, profile } = useAuth();
@@ -63,9 +60,9 @@ export function MembershipBanner() {
       return;
     }
     let active = true;
-    supabase.rpc('my_membership').then(({ data }) => {
-      if (active && data) {
-        setSnapshot(data as Membership);
+    fetchMyMembership(session).then((data) => {
+      if (active) {
+        setSnapshot(data);
       }
     });
     try {

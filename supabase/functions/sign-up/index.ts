@@ -7,6 +7,7 @@ import { gradeWithinCeiling, meetsLevel, trackForCategory } from '../_shared/pro
 import { type Stripe, getStripe } from '../_shared/stripe.ts';
 import { sendPush } from '../_shared/push.ts';
 import { isAtCapacity, isEventFullError, markFullIfAtCapacity } from '../_shared/capacity.ts';
+import { type ListRow, type MemberStatus, memberStatus } from '../_shared/membership.ts';
 import { type PriceOption, resolveCharge } from '../_shared/pricing.ts';
 
 type EventRow = {
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
       return err("You're the leader of this event — no sign-up needed", 409);
     }
 
-    const profile = await loadProfile(admin, user.id);
+    const profile = await loadProfile(admin, user);
     if (!profile) {
       return err('Profile not found — complete your profile first', 404);
     }
@@ -227,13 +228,40 @@ async function loadEvent(admin: SupabaseClient, eventId: string): Promise<EventR
   return (data as unknown as EventRow) ?? null;
 }
 
-async function loadProfile(admin: SupabaseClient, userId: string) {
-  const { data } = await admin
-    .from('profiles')
-    .select('id, full_name, level, status')
-    .eq('id', userId)
-    .single();
-  return data;
+// Status is worked out here, not stored: the admin's override, else the
+// member's row on the verified list. Only a confirmed email counts, since the
+// match is what proves they own the address.
+async function loadProfile(
+  admin: SupabaseClient,
+  user: { id: string; email?: string; email_confirmed_at?: string },
+) {
+  const [profRes, listRes] = await Promise.all([
+    admin
+      .from('profiles')
+      .select('id, full_name, level, status_override')
+      .eq('id', user.id)
+      .single(),
+    user.email && user.email_confirmed_at
+      ? admin
+          .from('verified_members')
+          .select('expires_on')
+          .eq('email_norm', user.email.trim().toLowerCase())
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const profile = profRes.data as {
+    id: string;
+    full_name: string | null;
+    level: string;
+    status_override: MemberStatus | null;
+  } | null;
+  if (!profile) {
+    return null;
+  }
+  return {
+    ...profile,
+    status: memberStatus(profile.status_override, (listRes.data as ListRow | null) ?? null),
+  };
 }
 
 async function loadExistingSignup(

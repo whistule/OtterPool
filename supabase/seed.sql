@@ -18,28 +18,28 @@
 --   full_name = 'Keira MacIntyre',
 --   display_name = 'Keira',
 --   level = 'selkie',
---   status = 'active'
+--   status_override = 'active'
 -- where id = '<leader-uuid>';
 
 -- update public.profiles set
 --   full_name = 'Jamie Reid',
 --   display_name = 'Jamie',
 --   level = 'dolphin',
---   status = 'active'
+--   status_override = 'active'
 -- where id = '<member1-uuid>';
 
 -- update public.profiles set
 --   full_name = 'Siobhan Daly',
 --   display_name = 'Siobhan',
 --   level = 'duck',
---   status = 'active'
+--   status_override = 'active'
 -- where id = '<member2-uuid>';
 
 -- update public.profiles set
 --   full_name = 'Chris Murray',
 --   display_name = 'Chris',
 --   level = 'frog',
---   status = 'aspirant'
+--   status_override = 'aspirant'
 -- where id = '<member3-uuid>';
 
 -- Step 2: Sample events (leader_id must match a real profile)

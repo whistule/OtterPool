@@ -36,7 +36,6 @@ type PendingSignup = {
     display_name: string | null;
     full_name: string | null;
     level: string;
-    status: string;
   } | null;
 };
 
@@ -64,7 +63,7 @@ export default function ReviewSignupsScreen() {
       supabase
         .from('event_signups')
         .select(
-          'id, status, signed_up_at, notes, member_id, member:profiles!event_signups_member_id_fkey(id, display_name, full_name, level, status)',
+          'id, status, signed_up_at, notes, member_id, member:profiles!event_signups_member_id_fkey(id, display_name, full_name, level)',
         )
         .eq('event_id', id)
         .eq('status', 'pending_review')
@@ -216,14 +215,6 @@ export default function ReviewSignupsScreen() {
                       label={`${levelEmoji} ${s.member.level}`}
                       color="#e3e1dc"
                       textStyle={{ color: '#2a2f33' }}
-                    />
-                  ) : null}
-                  {s.member?.status ? (
-                    <Pill
-                      label={s.member.status}
-                      color={
-                        s.member.status === 'active' ? OtterPalette.forest : OtterPalette.lochPool
-                      }
                     />
                   ) : null}
                 </Row>

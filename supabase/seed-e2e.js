@@ -99,7 +99,8 @@ async function ensureUser(spec) {
       full_name: spec.full_name,
       display_name: spec.display_name,
       level: spec.level,
-      status: spec.status,
+      // Fixture users aren't on the verified-members list, so pin their status.
+      status_override: spec.status,
       is_admin: spec.is_admin ?? false,
       is_membership_admin: spec.is_membership_admin ?? false,
       is_paddling_admin: spec.is_paddling_admin ?? false,

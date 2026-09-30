@@ -11,7 +11,9 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
+import { emailKey, memberStatus } from '@/lib/membership';
 import { LEVEL_EMOJI, LEVEL_LABEL, type ProgressionLevel } from '@/lib/progress';
+import type { MemberStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
 type MemberRow = {
@@ -19,14 +21,15 @@ type MemberRow = {
   full_name: string | null;
   display_name: string | null;
   level: ProgressionLevel;
-  status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
+  status_override: MemberStatus | null;
   email?: string | null;
+  status?: MemberStatus;
 };
 
 export default function MembersScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { profile: viewerProfile } = useAuth();
-  // Emails are membership-admin (and super-admin) data.
+  // Emails and membership status are membership-admin (and super-admin) data.
   const isAdmin = roleFlags(viewerProfile).membershipAdmin;
   const [members, setMembers] = useState<MemberRow[] | null>(null);
   const [query, setQuery] = useState('');
@@ -36,23 +39,36 @@ export default function MembersScreen() {
     setError(null);
     const { data, error: err } = await supabase
       .from('profiles')
-      .select('id, full_name, display_name, level, status')
+      .select('id, full_name, display_name, level, status_override')
       .order('full_name', { ascending: true });
     if (err) {
       setError(err.message);
     }
     const rows = (data as MemberRow[]) ?? [];
 
-    // Admins additionally see each member's email (gated server-side).
+    // Admins additionally see each member's email and status (both gated
+    // server-side: the email RPC and RLS on verified_members).
     if (isAdmin && rows.length > 0) {
-      const { data: emailData } = await supabase.rpc('admin_member_emails');
-      if (emailData) {
-        const byId = new Map(
-          (emailData as { id: string; email: string | null }[]).map((r) => [r.id, r.email]),
-        );
-        for (const row of rows) {
-          row.email = byId.get(row.id) ?? null;
-        }
+      const [emailRes, listRes] = await Promise.all([
+        supabase.rpc('admin_member_emails'),
+        // ponytail: one page (API max 1000 rows); page it if the list outgrows that.
+        supabase.from('verified_members').select('email_norm, expires_on'),
+      ]);
+      const emails = new Map(
+        ((emailRes.data ?? []) as { id: string; email: string | null }[]).map((r) => [
+          r.id,
+          r.email,
+        ]),
+      );
+      const listed = new Map(
+        ((listRes.data ?? []) as { email_norm: string; expires_on: string | null }[]).map((r) => [
+          r.email_norm,
+          r,
+        ]),
+      );
+      for (const row of rows) {
+        row.email = emails.get(row.id) ?? null;
+        row.status = memberStatus(row.status_override, listed.get(emailKey(row.email)) ?? null);
       }
     }
     setMembers(rows);
@@ -124,7 +140,9 @@ export default function MembersScreen() {
                       {m.email ? (
                         <Text style={[styles.muted, { color: palette.muted }]}>{m.email}</Text>
                       ) : null}
-                      <Text style={[styles.muted, { color: palette.muted }]}>{m.status}</Text>
+                      {m.status ? (
+                        <Text style={[styles.muted, { color: palette.muted }]}>{m.status}</Text>
+                      ) : null}
                     </View>
                     <Pill
                       label={`${LEVEL_EMOJI[m.level]} ${LEVEL_LABEL[m.level]}`}

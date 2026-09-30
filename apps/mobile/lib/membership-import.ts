@@ -8,7 +8,7 @@
 // keeping only rows whose state is Active (paid up). A simpler two-column paste
 // (email + date, tab- or comma-separated, no header) still works as a fallback.
 //
-// Output is a clean [{ email, expires }] array for `import_verified_members`,
+// Output is a clean [{ email, expires }] array, upserted into verified_members,
 // dates normalised to ISO 'YYYY-MM-DD' (expires null when none was parseable).
 
 export type ParsedMemberRow = { email: string; expires: string | null };

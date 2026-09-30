@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { OtterPalette } from '@/constants/theme';
-import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { fetchMyMembership, type Membership, useAuth } from '@/lib/auth';
 import { MEMBERMOJO_JOIN_URL, MEMBERMOJO_RENEW_URL } from './membership-banner';
 
 const TRIAL_LIMIT = 3;
@@ -12,8 +11,6 @@ const EXPIRY_WARN_DAYS = 42; // 6 weeks
 // Once the popup is closed we don't reopen it for the rest of the app session
 // (survives tab switches — module scope outlives the screen).
 let closedThisSession = false;
-
-type Membership = { status: string; expires_on: string | null; trials_used: number };
 
 function openExternal(url: string) {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -106,11 +103,11 @@ export function MembershipPopup() {
       return;
     }
     let active = true;
-    supabase.rpc('my_membership').then(({ data }) => {
-      if (!active || !data) {
+    fetchMyMembership(session).then((data) => {
+      if (!active) {
         return;
       }
-      const built = buildPopup(data as Membership);
+      const built = buildPopup(data);
       if (!built) {
         return;
       }

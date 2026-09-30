@@ -86,7 +86,10 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
       .single();
     const target = before!.status === 'active' ? 'lapsed' : 'active';
 
-    const { error } = await supabase.from('profiles').update({ status: target }).eq('id', userId);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status_override: target })
+      .eq('id', userId);
 
     expect(error, 'status self-service must be rejected').not.toBeNull();
     expect(error!.message).toContain('only membership admins can change a member status');
@@ -129,29 +132,5 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
     });
     expect(error, 'non-selkie event creation must be rejected').not.toBeNull();
     expect(error!.code, 'should be an RLS violation').toBe('42501');
-  });
-
-  test('cannot change their own membership source', async () => {
-    const { supabase, userId } = await memberClient();
-    const { data: before } = await supabase
-      .from('profiles')
-      .select('membership_source')
-      .eq('id', userId)
-      .single();
-    const flipped = before!.membership_source === 'manual' ? 'list' : 'manual';
-    const { error } = await supabase
-      .from('profiles')
-      .update({ membership_source: flipped })
-      .eq('id', userId);
-    expect(error, 'membership_source is membership-admin only').not.toBeNull();
-
-    const { data: after } = await supabase
-      .from('profiles')
-      .select('membership_source')
-      .eq('id', userId)
-      .single();
-    expect(after?.membership_source, 'membership_source must be unchanged').toBe(
-      before!.membership_source,
-    );
   });
 });
