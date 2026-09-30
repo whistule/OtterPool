@@ -8,12 +8,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
-// Same fallbacks as lib/supabase.ts — the publishable key is client-side by
-// design; these tests exist precisely because it can't be trusted.
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://fguutbhbzradrdyrxixg.supabase.co';
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_XXYU9OBfhMhMQevUmFQGsQ_GhTVmNNB';
+// Same values the app uses, from .env.local via playwright.config.ts. The
+// publishable key is client-side by design, these tests exist precisely
+// because it can't be trusted.
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 const MEMBER_EMAIL = process.env.E2E_MEMBER_EMAIL ?? 'e2e-member@test.com';
 const PASSWORD = process.env.E2E_PASSWORD ?? 'e2e-test-password';

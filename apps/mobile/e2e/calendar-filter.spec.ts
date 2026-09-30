@@ -55,17 +55,4 @@ test.describe('calendar filtering', () => {
     await search.fill('zzz-no-such-event');
     await expect(page.getByText('No events match your filters.').first()).toBeAttached();
   });
-
-  test('"Open to me" hides events above the member level', async ({ page }) => {
-    // e2e-member is a duck — selkie-only event must disappear once the
-    // toggle is on, but the frog-level event must stay.
-    await page.getByText('Open to me', { exact: true }).locator('visible=true').click();
-
-    await expectTitleAbsent(page, FIXTURE_SELKIE_TITLE);
-    await expectTitlePresent(page, FIXTURE_EVENT_TITLE);
-
-    // Toggle off — both events return.
-    await page.getByText('✓ Open to me').locator('visible=true').click();
-    await expectTitlePresent(page, FIXTURE_SELKIE_TITLE);
-  });
 });

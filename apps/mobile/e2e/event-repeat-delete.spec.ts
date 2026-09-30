@@ -19,11 +19,20 @@ async function signIn(page: Page, email: string) {
   });
 }
 
+// Create is a four-step wizard (What / When / Who / Logistics), edit shows
+// every section at once.
+async function step(page: Page, dir: 'next' | 'back', times = 1) {
+  for (let i = 0; i < times; i++) {
+    await page.locator(`[data-testid="event-step-${dir}"]:visible`).click();
+  }
+}
+
 async function fillBaseEvent(page: Page, title: string) {
   await page.locator('[data-testid="calendar-create-event"]:visible').click();
   await page.waitForURL(/\/event\/new/, { timeout: 15_000 });
   await page.locator('input[placeholder^="e.g. Sea Kayak"]:visible').fill(title);
   await page.locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`).click();
+  await step(page, 'next', 3);
   await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
   await page.locator('input[placeholder^="e.g. Club container"]:visible').fill('Reception');
 }
@@ -38,9 +47,12 @@ test.describe('event recurrence + delete — leader', () => {
     const title = `[E2E] Repeats ${Date.now()}`;
     await fillBaseEvent(page, title);
 
+    // Repeat lives on When, fillBaseEvent leaves the wizard on Logistics.
+    await step(page, 'back', 2);
     await page.locator('[data-testid="event-repeat-on"]:visible').click();
     await page.locator('[data-testid="event-repeat-weekly"]:visible').click();
     await page.locator('[data-testid="event-repeat-count"]:visible').fill('3');
+    await step(page, 'next', 2);
 
     await page.locator('[data-testid="event-create-submit"]:visible').click();
     await page.waitForURL(/\/event\/[0-9a-f-]{36}/, { timeout: 15_000 });
