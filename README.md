@@ -14,7 +14,7 @@ Live on the web at https://otterpool.dckc.co.uk, with Android builds via EAS.
 ## Running locally
 
 ```sh
-cp apps/mobile/.env.example apps/mobile/.env.local   # dev project values
+cp apps/mobile/.env.example apps/mobile/.env.local   # local stack values, see below
 cd apps/mobile && npm install
 npx expo start --web
 ```
