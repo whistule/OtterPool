@@ -63,7 +63,9 @@ export default function SignInScreen() {
           >
             OtterPool
           </Text>
-          <Text style={[styles.tag, { color: palette.muted }]}>DCKC</Text>
+          <Text style={[styles.tag, { color: palette.muted }]}>
+            Sign up for DCKC trips and events! 🙂
+          </Text>
         </View>
 
         <View
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   wordmark: { fontSize: 38, fontWeight: '700', letterSpacing: -0.5, fontStyle: 'italic' },
-  tag: { fontSize: 13, marginTop: 4, letterSpacing: 1.5 },
+  tag: { fontSize: 14, marginTop: 6, letterSpacing: 0.2, textAlign: 'center' },
   card: {
     marginHorizontal: 20,
     padding: 20,
