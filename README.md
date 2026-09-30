@@ -21,6 +21,27 @@ npx expo start --web
 
 The app refuses to start without `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`, there is no fallback on purpose. See `AGENTS.md` for the details and the Metro cache gotcha.
 
+### With a local backend (works on Windows)
+
+Runs the whole Supabase stack in Docker from `supabase/config.toml` - Postgres with every migration applied, auth, storage and the edge functions. Needs Docker Desktop and Node 24. On Windows use WSL2 and clone the repo inside the WSL filesystem, Metro doesnt see file changes on a mounted Windows drive.
+
+```sh
+npx supabase@2.111.0 start      # from the repo root, first run pulls the images
+npx supabase@2.111.0 status     # prints the API URL, anon key and service role key
+```
+
+Put the API URL (`http://127.0.0.1:54321`) and anon key in `apps/mobile/.env.local`, then for some test users and trips:
+
+```sh
+cd supabase
+cp config.js config.secret.js   # set SUPABASE_URL to http://127.0.0.1:54321 and add the local keys
+npm install && npm run seed:e2e
+```
+
+That gives you `e2e-leader@test.com` (selkie) and `e2e-member@test.com` (duck), both with password `e2e-test-password`. Then start the app as above with `npx expo start --web --clear`. Studio is at http://localhost:54323 and any emails the stack sends land in http://localhost:54324.
+
+Stripe isnt configured locally, so free trips work but paid sign-ups fail at checkout. `npx supabase@2.111.0 stop` shuts it down.
+
 ## Tests
 
 | What | Command | Where it runs |
