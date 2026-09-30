@@ -166,7 +166,7 @@ export default function SignInScreen() {
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
-          DCKC members only · Aspirants get 3 trial sessions
+          New paddlers welcome · aspirants get 3 trial sessions before joining DCKC
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
