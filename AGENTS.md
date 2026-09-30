@@ -5,13 +5,21 @@
 `apps/mobile/lib/supabase.ts` throws when `EXPO_PUBLIC_SUPABASE_URL` /
 `EXPO_PUBLIC_SUPABASE_ANON_KEY` are unset — there is deliberately no fallback,
 so a misconfigured build can't come up silently pointed at the wrong database.
-Before running or building anything:
+The easy way to get them is to run everything against a local stack (needs
+Docker), which writes `.env.local` and `supabase/config.secret.js` if they're
+missing, seeds the e2e fixtures and starts Expo web:
+
+```sh
+cd apps/mobile && npm run dev:local
+```
+
+Or copy the local-stack values by hand:
 
 ```sh
 cp apps/mobile/.env.example apps/mobile/.env.local
 ```
 
-`.env.local` is gitignored and holds the **dev** project's values. Production
+`.env.local` is gitignored and holds **local stack** values. Production
 and preview builds ignore it entirely and take their values from the `env`
 blocks in `eas.json` / `.github/workflows/deploy-web.yml`.
 
