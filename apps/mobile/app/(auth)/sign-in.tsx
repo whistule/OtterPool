@@ -63,7 +63,9 @@ export default function SignInScreen() {
           >
             OtterPool
           </Text>
-          <Text style={[styles.tag, { color: palette.muted }]}>DCKC</Text>
+          <Text style={[styles.tag, { color: palette.muted }]}>
+            Sign up for DCKC trips and events! 🙂
+          </Text>
         </View>
 
         <View
@@ -133,8 +135,17 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          <Link href="/forgot-password" asChild>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
+              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </Link>
+
+          <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
           <Text style={[styles.createHint, { color: palette.muted }]}>
-            New here? If you're a DCKC member, create your account with the{' '}
+            If you're a DCKC member, create your account with the{' '}
             <Text style={{ fontWeight: '700', color: palette.text }}>
               same email as your MemberMojo login
             </Text>{' '}
@@ -152,18 +163,10 @@ export default function SignInScreen() {
               <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
             </Pressable>
           </Link>
-
-          <Link href="/forgot-password" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
-              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
-                Forgot password?
-              </Text>
-            </Pressable>
-          </Link>
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
-          DCKC members only · Aspirants get 3 trial sessions
+          New paddlers welcome · aspirants get 3 trial sessions before joining DCKC
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   wordmark: { fontSize: 38, fontWeight: '700', letterSpacing: -0.5, fontStyle: 'italic' },
-  tag: { fontSize: 13, marginTop: 4, letterSpacing: 1.5 },
+  tag: { fontSize: 14, marginTop: 6, letterSpacing: 0.2, textAlign: 'center' },
   card: {
     marginHorizontal: 20,
     padding: 20,
@@ -207,11 +210,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  createHint: {
-    fontSize: 12,
-    lineHeight: 17,
+  createHintHead: {
+    fontSize: 16,
+    fontWeight: '700',
     textAlign: 'center',
     marginTop: 20,
+  },
+  createHint: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 4,
   },
   secondaryBtn: {
     marginTop: 12,
