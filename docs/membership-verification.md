@@ -5,6 +5,17 @@
 OtterPool so the app can gate event sign-up on membership.
 **Date:** 2026-09-21
 
+> **Superseded 2026-09-30** by
+> `supabase/migrations/20260930000000_computed_membership_status.sql`. Status is
+> no longer stored and synced, and no SQL function computes it: the app and the
+> sign-up edge function work it out in TypeScript (`memberStatus()` in
+> `apps/mobile/lib/membership.ts`, mirrored in `supabase/functions/_shared/`)
+> from an admin-set `profiles.status_override` and the member's
+> `verified_members` row. RLS lets members read their own row and membership
+> admins manage the list; the import is a plain upsert that keeps history.
+> Reconcile, claim-on-sign-in, `my_membership` and `membership_source` are
+> gone. The sections below on those pieces are historical.
+
 ---
 
 ## 1. Decisions locked so far

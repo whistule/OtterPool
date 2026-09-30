@@ -95,7 +95,7 @@ async function main() {
         full_name: u.full_name,
         display_name: u.display_name,
         level: u.level,
-        status: u.status,
+        status_override: u.status,
       })
       .eq('id', u.id);
 

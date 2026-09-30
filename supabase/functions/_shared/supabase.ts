@@ -8,7 +8,7 @@ export type Clients = {
   /** Service-role client — bypasses RLS */
   admin: SupabaseClient;
   /** The authenticated user */
-  user: { id: string; email?: string };
+  user: { id: string; email?: string; email_confirmed_at?: string };
 };
 
 /**

@@ -1,10 +1,12 @@
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { ExperienceAnswers } from './experience';
+import { emailKey, type ListRow, memberStatus } from './membership';
 import { registerForPushNotifications } from './notifications';
+import type { MemberStatus } from './status';
 import { supabase } from './supabase';
 
 // A password-recovery link signs the user in so the reset screen can call
@@ -38,7 +40,7 @@ export type Profile = {
   full_name: string | null;
   display_name: string | null;
   level: 'frog' | 'duck' | 'otter' | 'dolphin' | 'selkie';
-  status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
+  status: MemberStatus;
   is_admin: boolean;
   is_membership_admin: boolean;
   is_paddling_admin: boolean;
@@ -52,6 +54,43 @@ export type Profile = {
   experience_reviewed_at: string | null;
   avatar_path: string | null;
 };
+
+export type Membership = { status: MemberStatus; expires_on: string | null; trials_used: number };
+
+/**
+ * The signed-in member's own status and expiry. RLS lets a member read only
+ * their own verified_members row (matched on their JWT email), so the email
+ * list never reaches the client.
+ */
+async function fetchMyStatus(
+  user: User,
+): Promise<{ status: MemberStatus; expires_on: string | null }> {
+  const [profRes, listRes] = await Promise.all([
+    supabase.from('profiles').select('status_override').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('verified_members')
+      .select('expires_on')
+      .eq('email_norm', emailKey(user.email))
+      .maybeSingle(),
+  ]);
+  const override =
+    (profRes.data as { status_override: MemberStatus | null } | null)?.status_override ?? null;
+  const listed = (listRes.data as ListRow | null) ?? null;
+  return { status: memberStatus(override, listed), expires_on: listed?.expires_on ?? null };
+}
+
+/** Status, expiry and trial places held — what the popup and banner show. */
+export async function fetchMyMembership(session: Session): Promise<Membership> {
+  const [mine, trials] = await Promise.all([
+    fetchMyStatus(session.user),
+    supabase
+      .from('event_signups')
+      .select('id', { count: 'exact', head: true })
+      .eq('member_id', session.user.id)
+      .in('status', ['confirmed', 'pending_payment', 'pending_review', 'waitlisted']),
+  ]);
+  return { ...mine, trials_used: trials.count ?? 0 };
+}
 
 type AuthContextValue = {
   session: Session | null;
@@ -72,14 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string) => {
+  const loadProfile = useCallback(async (user: User) => {
+    const userId = user.id;
     // Sensitive fields live in member_private (self/admin-only); merge the
     // member's own private row into the in-memory profile.
-    const [profRes, privRes] = await Promise.all([
+    const [profRes, privRes, mine] = await Promise.all([
       supabase
         .from('profiles')
         .select(
-          'id, full_name, display_name, level, status, is_admin, is_membership_admin, is_paddling_admin, avatar_path',
+          'id, full_name, display_name, level, is_admin, is_membership_admin, is_paddling_admin, avatar_path',
         )
         .eq('id', userId)
         .maybeSingle(),
@@ -90,12 +130,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
         .eq('member_id', userId)
         .maybeSingle(),
+      fetchMyStatus(user),
     ]);
     if (!profRes.error && profRes.data) {
       const priv = privRes.data ?? {};
       setProfile({
         ...(profRes.data as Omit<
           Profile,
+          | 'status'
           | 'phone'
           | 'dob'
           | 'bc_membership_no'
@@ -105,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           | 'experience_submitted_at'
           | 'experience_reviewed_at'
         >),
+        status: mine.status,
         phone: (priv as { phone?: string | null }).phone ?? null,
         dob: (priv as { dob?: string | null }).dob ?? null,
         bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
@@ -119,15 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         experience_reviewed_at:
           (priv as { experience_reviewed_at?: string | null }).experience_reviewed_at ?? null,
       });
-      // Match-on-sign-in: an aspirant whose (confirmed) email is on the
-      // verified-members list is upgraded to active server-side. Reflect it
-      // immediately by reloading once — the reload sees 'active' so it stops.
-      if ((profRes.data as { status?: string }).status === 'aspirant') {
-        const { data: claim } = await supabase.rpc('claim_membership');
-        if ((claim as { matched?: boolean } | null)?.matched) {
-          await loadProfile(userId);
-        }
-      }
     } else if (!profRes.error) {
       setProfile(null);
     }
@@ -149,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession);
       setLoading(false);
       if (newSession) {
-        loadProfile(newSession.user.id);
+        loadProfile(newSession.user);
         registerForPushNotifications().catch((e) => {
           console.warn('[push] registration failed:', e);
         });
@@ -175,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (session) {
-      await loadProfile(session.user.id);
+      await loadProfile(session.user);
     }
   }, [session, loadProfile]);
 

@@ -22,6 +22,7 @@ import { logAdminAction } from '@/lib/audit';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { writeFailure } from '@/lib/errors';
 import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
+import { emailKey, type ListRow, memberStatus } from '@/lib/membership';
 import { MEMBER_STATUS_COLOR, type MemberStatus } from '@/lib/status';
 import {
   LEVEL_EMOJI,
@@ -39,7 +40,9 @@ type ProfileRow = {
   full_name: string | null;
   display_name: string | null;
   level: ProgressionLevel;
-  status: 'active' | 'aspirant' | 'lapsed' | 'suspended';
+  status_override: MemberStatus | null;
+  // Worked out from the list — only for membership admins, who can read it.
+  status?: MemberStatus;
   created_at: string;
   avatar_path: string | null;
   is_admin: boolean;
@@ -118,6 +121,7 @@ export default function MemberProfileScreen() {
   const [levelEditOpen, setLevelEditOpen] = useState(false);
   const [statusEditOpen, setStatusEditOpen] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [listRow, setListRow] = useState<ListRow | null>(null);
   const [trackEdit, setTrackEdit] = useState<Track | null>(null);
   const [savingRole, setSavingRole] = useState<RoleColumn | null>(null);
   const [confirmSuper, setConfirmSuper] = useState(false);
@@ -132,7 +136,7 @@ export default function MemberProfileScreen() {
       supabase
         .from('profiles')
         .select(
-          'id, full_name, display_name, level, status, created_at, avatar_path, is_admin, is_membership_admin, is_paddling_admin',
+          'id, full_name, display_name, level, status_override, created_at, avatar_path, is_admin, is_membership_admin, is_paddling_admin',
         )
         .eq('id', id)
         .maybeSingle(),
@@ -160,7 +164,16 @@ export default function MemberProfileScreen() {
           .eq('member_id', id)
           .order('is_primary', { ascending: false }),
       ]);
-      setEmail((emailRes.data as { email: string | null }[] | null)?.[0]?.email ?? null);
+      const memberEmail = (emailRes.data as { email: string | null }[] | null)?.[0]?.email ?? null;
+      setEmail(memberEmail);
+      const { data: listData } = await supabase
+        .from('verified_members')
+        .select('expires_on')
+        .eq('email_norm', emailKey(memberEmail))
+        .maybeSingle();
+      const listed = (listData as ListRow | null) ?? null;
+      setListRow(listed);
+      setProfile((p) => (p ? { ...p, status: memberStatus(p.status_override, listed) } : p));
       const p = privRes.data as Partial<PrivateFields> | null;
       setPriv({
         phone: p?.phone ?? '',
@@ -281,14 +294,15 @@ export default function MemberProfileScreen() {
     setLevelEditOpen(false);
   };
 
-  const onChangeStatus = async (next: MemberStatus) => {
+  // null clears the override, so status follows the verified-members list again.
+  const onChangeStatus = async (next: MemberStatus | null) => {
     if (!id) {
       return;
     }
     setSavingStatus(true);
     const { data, error: err } = await supabase
       .from('profiles')
-      .update({ status: next })
+      .update({ status_override: next })
       .eq('id', id)
       .select('id');
     setSavingStatus(false);
@@ -296,7 +310,9 @@ export default function MemberProfileScreen() {
     if (failure) {
       setError(failure);
     } else {
-      setProfile((p) => (p ? { ...p, status: next } : p));
+      setProfile((p) =>
+        p ? { ...p, status_override: next, status: memberStatus(next, listRow) } : p,
+      );
     }
     setStatusEditOpen(false);
   };
@@ -454,12 +470,12 @@ export default function MemberProfileScreen() {
                   label={`${levelEmoji} ${LEVEL_LABEL[profile.level]}`}
                   color={OtterPalette.slateNavy}
                 />
-                <Pill
-                  label={profile.status}
-                  color={
-                    MEMBER_STATUS_COLOR[profile.status as MemberStatus] ?? OtterPalette.lochPool
-                  }
-                />
+                {profile.status ? (
+                  <Pill
+                    label={profile.status}
+                    color={MEMBER_STATUS_COLOR[profile.status] ?? OtterPalette.lochPool}
+                  />
+                ) : null}
               </Row>
             </View>
           </Row>
@@ -537,13 +553,15 @@ export default function MemberProfileScreen() {
           </>
         ) : null}
 
-        {canMembership ? (
+        {canMembership && profile.status ? (
           <>
             <SectionTitle>Membership status</SectionTitle>
             <Card>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={[styles.muted, { color: palette.text, flex: 1 }]}>
-                  {`${name} is currently ${profile.status}.`}
+                  {profile.status_override
+                    ? `${name} is currently ${profile.status}, set by an admin.`
+                    : `${name} is currently ${profile.status}, from the members list.`}
                 </Text>
                 <Pill
                   label={profile.status}
@@ -774,7 +792,7 @@ export default function MemberProfileScreen() {
       />
       <StatusPicker
         visible={statusEditOpen}
-        current={profile.status}
+        current={profile.status_override}
         onClose={() => setStatusEditOpen(false)}
         onPick={onChangeStatus}
       />
@@ -889,9 +907,9 @@ function StatusPicker({
   onPick,
 }: {
   visible: boolean;
-  current: MemberStatus;
+  current: MemberStatus | null;
   onClose: () => void;
-  onPick: (s: MemberStatus) => void;
+  onPick: (s: MemberStatus | null) => void;
 }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
@@ -903,6 +921,24 @@ function StatusPicker({
           onPress={(e) => e.stopPropagation()}
         >
           <Text style={[styles.modalTitle, { color: palette.text }]}>Set membership status</Text>
+          <Pressable
+            accessibilityState={{ selected: current === null }}
+            accessibilityRole="button"
+            onPress={() => onPick(null)}
+            testID="status-pick-list"
+            style={[
+              styles.modalRow,
+              { borderColor: palette.border },
+              current === null && { backgroundColor: palette.background },
+            ]}
+          >
+            <Text style={[styles.modalRowLabel, { color: palette.text }]}>
+              Follow the members list
+            </Text>
+            {current === null ? (
+              <Text style={[styles.modalCurrent, { color: palette.muted }]}>Current</Text>
+            ) : null}
+          </Pressable>
           {MEMBER_STATUSES.map((s) => {
             const selected = s === current;
             return (
