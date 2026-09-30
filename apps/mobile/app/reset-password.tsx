@@ -1,4 +1,4 @@
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
