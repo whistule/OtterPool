@@ -145,11 +145,11 @@ export default function SignInScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={busy}
-              style={[styles.secondaryBtn, { borderColor: OtterPalette.slateNavy }]}
+              // Link asChild throws on a style array, so hand it one object.
+              // tint rather than slateNavy: navy on the dark card is unreadable.
+              style={StyleSheet.flatten([styles.secondaryBtn, { borderColor: palette.tint }])}
             >
-              <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
-                Create account
-              </Text>
+              <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
             </Pressable>
           </Link>
 
