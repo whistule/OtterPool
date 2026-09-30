@@ -19,6 +19,14 @@ async function signIn(page: Page, email: string) {
   });
 }
 
+// Create is a four-step wizard (What / When / Who / Logistics), edit shows
+// every section at once.
+async function step(page: Page, dir: 'next' | 'back', times = 1) {
+  for (let i = 0; i < times; i++) {
+    await page.locator(`[data-testid="event-step-${dir}"]:visible`).click();
+  }
+}
+
 test.describe('event create — leader', () => {
   test.beforeEach(async ({ page, context }) => {
     await context.clearCookies();
@@ -41,6 +49,7 @@ test.describe('event create — leader', () => {
 
     await page.locator(`[data-testid="category-chip-${POOL_LOCH_CATEGORY_ID}"]:visible`).click();
 
+    await step(page, 'next', 3);
     await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
     await page.locator('input[placeholder^="e.g. Club container"]:visible').fill('Reception');
 

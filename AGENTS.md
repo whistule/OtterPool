@@ -34,23 +34,24 @@ come from `pkgs.playwright-driver.browsers` via the repo-root `devenv.nix`, and
 the suite must be invoked inside the devenv shell so `PLAYWRIGHT_BROWSERS_PATH`
 points at the nix store path.
 
-1. Reseed fixtures (idempotent, requires `supabase/config.secret.js` with the
-   service role key):
+1. Start the local stack (needs Docker). This seeds the fixtures and serves
+   the app on 8081, which Playwright reuses:
 
    ```sh
-   cd supabase && npm run seed:e2e
+   cd apps/mobile && npm run dev:local
    ```
 
-   This recreates two events: `E2E Manual Review Trip` (frog min level) and
-   `E2E Selkie Only Trip` (selkie min level). Test users:
-   - `e2e-leader@test.com` — selkie, password `e2e-test-password`
-   - `e2e-member@test.com` — duck, password `e2e-test-password`
+   `npm run test:e2e` reseeds before every run (`pretest:e2e`), against
+   whatever `supabase/config.secret.js` points at, which `dev:local` writes
+   for the local stack. Test users, all with password `e2e-test-password`:
+   `e2e-leader@test.com` (selkie), `e2e-member@test.com` (duck),
+   `e2e-membership-admin@test.com` and `e2e-paddling-admin@test.com`.
 
 2. Run the suite. `devenv.nix` lives at the repo root, so enter the devenv
    shell from the root, then cd into the mobile app:
 
    ```sh
-   devenv shell -- bash -c 'cd apps/mobile && npx playwright test'
+   devenv shell -- bash -c 'cd apps/mobile && npm run test:e2e'
    ```
 
    If your shell already has `direnv` loaded for the repo, the env is
@@ -62,8 +63,9 @@ points at the nix store path.
 
    For a single spec, append the path: `npx playwright test e2e/calendar-filter.spec.ts`.
 
-   Playwright auto-starts the Expo web server on port 8081 (see
-   `playwright.config.ts`) — no need to start it yourself.
+   If nothing is on 8081 Playwright starts Expo itself (see
+   `playwright.config.ts`), which also reads `.env.local` for the specs
+   that call Supabase directly.
 
 ## RN-Web quirks the e2e specs have to work around
 

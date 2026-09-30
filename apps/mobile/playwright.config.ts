@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Expo loads .env.local for the app, but specs that talk to Supabase directly
+// (rls-guards) need the same values in their own process. Run from apps/mobile.
+process.loadEnvFile('.env.local');
+
 const PORT = 8081;
 const BASE_URL = `http://localhost:${PORT}`;
 

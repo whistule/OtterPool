@@ -49,9 +49,9 @@ Stripe isnt configured locally, so free trips work but paid sign-ups fail at che
 | Format + lint (Biome) | `npm run check` from the root | CI (`test.yml`) |
 | Typecheck | `npx tsc --noEmit` in `apps/mobile` | CI |
 | Unit tests - `apps/mobile/lib/*.test.ts` and `supabase/functions/_shared/*.test.ts` | `npm run test:unit` in `apps/mobile` | CI |
-| e2e (Playwright), including the RLS guards in `e2e/rls-guards.spec.ts` | `npm run test:e2e` in `apps/mobile` | locally only |
+| e2e (Playwright), including the RLS guards in `e2e/rls-guards.spec.ts` | `npm run test:e2e` in `apps/mobile` | locally, against `supabase start` |
 
-e2e stays out of CI because it seeds fixtures with the service-role key against a hosted project, so running it per PR would write to a live database. `AGENTS.md` covers running it on NixOS.
+e2e runs against the local stack, start it with `npm run dev:local` first (see above), and `test:e2e` reseeds the fixtures before every run. It isnt in CI yet. `AGENTS.md` covers running it on NixOS.
 
 ## Deploys
 
