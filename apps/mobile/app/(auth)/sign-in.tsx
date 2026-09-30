@@ -133,8 +133,20 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          <Text style={[styles.createHint, { color: palette.muted }]}>
+            New here? If you're a DCKC member, create your account with the{' '}
+            <Text style={{ fontWeight: '700', color: palette.text }}>
+              same email as your MemberMojo login
+            </Text>{' '}
+            and OtterPool will recognise you as a member.
+          </Text>
+
           <Link href="/sign-up" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.secondaryBtn}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              style={[styles.secondaryBtn, { borderColor: OtterPalette.slateNavy }]}
+            >
               <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
                 Create account
               </Text>
@@ -195,12 +207,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  createHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 20,
+  },
   secondaryBtn: {
-    marginTop: 10,
-    paddingVertical: 12,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '600' },
+  secondaryBtnText: { fontSize: 15, fontWeight: '700' },
   tertiaryBtn: { marginTop: 4, paddingVertical: 8, alignItems: 'center' },
   tertiaryBtnText: { fontSize: 13, fontWeight: '500' },
   footer: {
