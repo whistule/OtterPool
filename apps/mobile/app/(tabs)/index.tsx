@@ -132,10 +132,14 @@ export default function CalendarScreen() {
 
   const load = React.useCallback(async () => {
     setError(null);
+    // Keep an event listed until it finishes, not just until it starts, so
+    // members can still find it (and pay) once the trip is under way. Same
+    // end-or-start cutoff My Trips uses for "upcoming".
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .gte('starts_at', new Date().toISOString())
+      .or(`ends_at.gte.${now},and(ends_at.is.null,starts_at.gte.${now})`)
       .order('starts_at', { ascending: true });
     if (error) {
       setError(error.message);
@@ -395,6 +399,9 @@ export default function CalendarScreen() {
                   </Row>
 
                   <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {new Date(ev.starts_at).getTime() <= Date.now() ? (
+                      <Pill label="On now" color={OtterPalette.burntOrange} />
+                    ) : null}
                     <Pill label={pill.label} color={pill.color} />
                     <Pill
                       label={`${levelEmoji} ${ev.min_level}`}
