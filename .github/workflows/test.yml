@@ -11,7 +11,7 @@ permissions:
 jobs:
   # Formatting/lint and types are declared standards (root `npm run check`,
   # a clean `tsc`) but nothing enforced them, so drift could land on main
-  # unnoticed. e2e is its own workflow (e2e.yml), it takes ~10 minutes.
+  # unnoticed. e2e is its own workflow (e2e.yml), it takes ~5 minutes.
   lint:
     runs-on: ubuntu-latest
     steps:
