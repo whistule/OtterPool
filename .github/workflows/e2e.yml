@@ -30,8 +30,22 @@ jobs:
         with:
           version: 2.111.0
 
+      # Unauthenticated pulls from public.ecr.aws get throttled ("Rate
+      # exceeded") and only succeed on retry. The image set is fixed by the CLI
+      # pin and config.toml, so key on those and skip the pulls entirely.
+      - name: Cache Supabase images
+        id: images
+        uses: actions/cache@v6
+        with:
+          path: ~/supabase-images.tar
+          key: supabase-images-${{ hashFiles('.github/workflows/e2e.yml', 'supabase/config.toml') }}
+      - if: steps.images.outputs.cache-hit == 'true'
+        run: docker load -i ~/supabase-images.tar
+
       - name: Start Supabase
         run: supabase start
+      - if: steps.images.outputs.cache-hit != 'true'
+        run: docker save -o ~/supabase-images.tar $(docker images --format '{{.Repository}}:{{.Tag}}' | grep /supabase/)
       # Same files dev-local.sh writes, but on 127.0.0.1 since the browser runs
       # on the runner too.
       - name: Write local env
