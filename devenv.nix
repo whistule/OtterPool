@@ -37,7 +37,9 @@
     pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/test.yml
     pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/deploy-web.yml
     pin biome "@biomejs/biome@${pkgs.biome.version}" .github/workflows/test.yml
+    pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/e2e.yml
     pin supabase "version: ${pkgs.supabase-cli.version}" .github/workflows/deploy-supabase.yml
+    pin supabase "version: ${pkgs.supabase-cli.version}" .github/workflows/e2e.yml
     pin playwright '"@playwright/test": "${pkgs.playwright-driver.version}"' apps/mobile/package.json
   '';
 }

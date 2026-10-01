@@ -11,10 +11,7 @@ permissions:
 jobs:
   # Formatting/lint and types are declared standards (root `npm run check`,
   # a clean `tsc`) but nothing enforced them, so drift could land on main
-  # unnoticed. The e2e suite is deliberately NOT run here: it drives the app
-  # against the *hosted* Supabase project and `pretest:e2e` seeds fixtures
-  # with the service-role key, so putting it in CI would mean writing to the
-  # live database from every PR. Run `npm run test:e2e` locally instead.
+  # unnoticed. e2e is its own workflow (e2e.yml), it takes ~10 minutes.
   lint:
     runs-on: ubuntu-latest
     steps:
