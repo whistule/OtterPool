@@ -52,7 +52,7 @@ jobs:
       # the built-in token so any GitHub API calls are authenticated.
       # Pinned to devenv's pkgs.supabase-cli so migrations are applied by the
       # same CLI they were written and tested with. Bump both together.
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         with:
           version: 2.111.0
         env:
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         with:
           version: 2.111.0
         env:
