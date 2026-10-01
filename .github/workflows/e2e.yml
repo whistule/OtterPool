@@ -30,11 +30,8 @@ jobs:
         with:
           version: 2.111.0
 
-      # Studio, mailpit, postgres-meta and realtime aren't used by the specs
-      # (the one email flow is stubbed), and skipping them means fewer pulls
-      # from public.ecr.aws, which throttles ("Rate exceeded") and retries.
       - name: Start Supabase
-        run: supabase start -x studio,mailpit,postgres-meta,realtime
+        run: supabase start
       # Same files dev-local.sh writes, but on 127.0.0.1 since the browser runs
       # on the runner too.
       - name: Write local env

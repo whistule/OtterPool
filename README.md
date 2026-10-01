@@ -38,7 +38,7 @@ cp config.js config.secret.js   # set SUPABASE_URL to http://127.0.0.1:54321 and
 npm install && npm run seed:e2e
 ```
 
-That gives you `e2e-leader@test.com` (selkie) and `e2e-member@test.com` (duck), both with password `e2e-test-password`. Then start the app as above with `npx expo start --web --clear`. Studio is at http://localhost:54323 and any emails the stack sends land in http://localhost:54324.
+That gives you `e2e-leader@test.com` (selkie) and `e2e-member@test.com` (duck), both with password `e2e-test-password`. Then start the app as above with `npx expo start --web --clear`. Studio, realtime and mailpit are off in `supabase/config.toml` to keep the stack slim, flip `enabled` if you need one.
 
 Stripe isnt configured locally, so free trips work but paid sign-ups fail at checkout. `npx supabase@2.111.0 stop` shuts it down.
 
