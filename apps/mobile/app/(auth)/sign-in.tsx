@@ -71,6 +71,36 @@ export default function SignInScreen() {
         <View
           style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
+          <Text style={[styles.createHintHead, { marginTop: 0, color: palette.text }]}>
+            New to OtterPool?
+          </Text>
+          <Text style={[styles.createHint, { color: palette.muted }]}>
+            If you're a DCKC member, create your account with the{' '}
+            <Text style={{ fontWeight: '700', color: palette.text }}>
+              same email as your MemberMojo login
+            </Text>{' '}
+            and OtterPool will recognise you as a member.
+          </Text>
+
+          <Link href="/sign-up" asChild>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              // Link asChild throws on a style array, so hand it one object.
+              // tint rather than slateNavy: navy on the dark card is unreadable.
+              style={StyleSheet.flatten([styles.secondaryBtn, { borderColor: palette.tint }])}
+            >
+              <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
+            </Pressable>
+          </Link>
+
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Text
+            style={[styles.createHintHead, { marginTop: 0, marginBottom: 14, color: palette.text }]}
+          >
+            Already have an account?
+          </Text>
+
           <Text style={[styles.label, { color: palette.muted }]}>Email</Text>
           <TextInput
             accessibilityLabel="Email"
@@ -142,27 +172,6 @@ export default function SignInScreen() {
               </Text>
             </Pressable>
           </Link>
-
-          <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
-          <Text style={[styles.createHint, { color: palette.muted }]}>
-            If you're a DCKC member, create your account with the{' '}
-            <Text style={{ fontWeight: '700', color: palette.text }}>
-              same email as your MemberMojo login
-            </Text>{' '}
-            and OtterPool will recognise you as a member.
-          </Text>
-
-          <Link href="/sign-up" asChild>
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              // Link asChild throws on a style array, so hand it one object.
-              // tint rather than slateNavy: navy on the dark card is unreadable.
-              style={StyleSheet.flatten([styles.secondaryBtn, { borderColor: palette.tint }])}
-            >
-              <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
-            </Pressable>
-          </Link>
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
@@ -222,6 +231,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+  divider: { height: 1, marginVertical: 20 },
   secondaryBtn: {
     marginTop: 12,
     paddingVertical: 14,
