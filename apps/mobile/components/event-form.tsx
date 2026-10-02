@@ -34,6 +34,8 @@ import {
   CATEGORY_EQUIPMENT,
   CATEGORY_TITLE_HINTS,
   type Category,
+  DEFAULT_EVENT_COST,
+  defaultCostFor,
   defaultStartIso,
   durationHoursBetween,
   type FieldKey,
@@ -85,7 +87,7 @@ export default function EventForm(props: EventFormProps) {
   const [minLevel, setMinLevel] = useState<'frog' | 'duck' | 'otter' | 'dolphin'>('frog');
   const [minLevelTouched, setMinLevelTouched] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('12');
-  const [cost, setCost] = useState('0');
+  const [cost, setCost] = useState(String(DEFAULT_EVENT_COST));
   // Optional concession tiers, each { label, amount-in-pounds-as-text }. Empty
   // list ⇒ the single `cost` above applies. When present, tier 0 is the
   // standard rate and its amount tracks `cost`.
@@ -443,7 +445,7 @@ export default function EventForm(props: EventFormProps) {
       setMinLevel(c.default_min_level === 'selkie' ? 'dolphin' : c.default_min_level);
     }
     if (!isEdit) {
-      setCost(String(c.default_cost ?? 0));
+      setCost(String(defaultCostFor(c.name)));
     }
     const opts = gradeOptionsFor(c);
     if (!opts?.includes(grade as never)) {
@@ -1053,7 +1055,7 @@ export default function EventForm(props: EventFormProps) {
                 {selectedCategory ? (
                   <Text style={[styles.hint, { color: palette.muted, marginTop: 6 }]}>
                     Default min level: {selectedCategory.default_min_level} · default cost:{' '}
-                    {formatMoney(selectedCategory.default_cost)}
+                    {formatMoney(defaultCostFor(selectedCategory.name))}
                   </Text>
                 ) : null}
                 <FieldError text={fieldErrors.category} />

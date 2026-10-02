@@ -80,15 +80,27 @@ export const CATEGORY_TITLE_HINTS: Record<string, string> = {
   'Training / Qualifications': 'Training — leader assessment',
 };
 
+// Price (in pounds) pre-filled on every new event. Categories can override it
+// with `cost` in CATEGORY_DEFAULTS below.
+export const DEFAULT_EVENT_COST = 5;
+
 export const CATEGORY_DEFAULTS: Record<
   string,
-  { repeats?: { enabled: boolean; frequency: 'weekly' | 'fortnightly' }; location?: string }
+  {
+    repeats?: { enabled: boolean; frequency: 'weekly' | 'fortnightly' };
+    location?: string;
+    cost?: number;
+  }
 > = {
   'Tuesday Evening - Loch Lomond': {
     location: 'Loch Lomond, Balmaha',
   },
   Pinkston: { location: 'Pinkston Watersports Centre, Glasgow' },
+  'Skills Sessions / MicroSessions': { cost: 0 },
 };
+
+export const defaultCostFor = (categoryName: string | undefined): number =>
+  (categoryName ? CATEGORY_DEFAULTS[categoryName]?.cost : undefined) ?? DEFAULT_EVENT_COST;
 
 // Standard "what to bring" kit lists, coded in from the DCKC kit templates in
 // the prototype (docs/otter-pool-create-event.html). Offered as a drop-down in
