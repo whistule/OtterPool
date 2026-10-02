@@ -13,7 +13,8 @@ import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { formatShortDateTime } from '@/lib/datetime';
 import { readErrorMessage } from '@/lib/errors';
-import { LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
+import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
+import { LEVEL_EMOJI, LEVEL_LABEL, LEVEL_RANK, type ProgressionLevel } from '@/lib/progress';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 
@@ -23,7 +24,10 @@ type EventRow = {
   cost: number;
   leader_id: string;
   approval_mode: string;
+  min_level: string;
 };
+
+type Experience = { answers: ExperienceAnswers | null; reviewedAt: string | null };
 
 type PendingSignup = {
   id: string;
@@ -46,6 +50,8 @@ export default function ReviewSignupsScreen() {
 
   const [event, setEvent] = useState<EventRow | null>(null);
   const [signups, setSignups] = useState<PendingSignup[] | null>(null);
+  // Paddling experience by member id — only for people awaiting review here.
+  const [experience, setExperience] = useState<Record<string, Experience>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
@@ -54,10 +60,10 @@ export default function ReviewSignupsScreen() {
     if (!id) {
       return;
     }
-    const [eventRes, signupRes] = await Promise.all([
+    const [eventRes, signupRes, expRes] = await Promise.all([
       supabase
         .from('events')
-        .select('id, title, cost, leader_id, approval_mode')
+        .select('id, title, cost, leader_id, approval_mode, min_level')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -68,7 +74,23 @@ export default function ReviewSignupsScreen() {
         .eq('event_id', id)
         .eq('status', 'pending_review')
         .order('signed_up_at', { ascending: true }),
+      supabase.rpc('event_signup_experience', { p_event_id: id }),
     ]);
+
+    if (!expRes.error) {
+      const byMember: Record<string, Experience> = {};
+      for (const row of (expRes.data ?? []) as {
+        member_id: string;
+        experience_answers: ExperienceAnswers | null;
+        experience_reviewed_at: string | null;
+      }[]) {
+        byMember[row.member_id] = {
+          answers: row.experience_answers,
+          reviewedAt: row.experience_reviewed_at,
+        };
+      }
+      setExperience(byMember);
+    }
 
     if (!eventRes.error) {
       setEvent((eventRes.data as EventRow) ?? null);
@@ -196,6 +218,11 @@ export default function ReviewSignupsScreen() {
               ? (LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? '')
               : '';
             const busy = busyId === s.id;
+            const belowLevel =
+              !!s.member?.level &&
+              (LEVEL_RANK[s.member.level as ProgressionLevel] ?? 0) <
+                (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
+            const exp = experience[s.member_id];
             return (
               <Card key={s.id}>
                 <Pressable
@@ -217,7 +244,44 @@ export default function ReviewSignupsScreen() {
                       textStyle={{ color: '#2a2f33' }}
                     />
                   ) : null}
+                  {belowLevel ? (
+                    <Pill
+                      testID={`review-below-level-${s.id}`}
+                      label={`Below minimum · trip is ${LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level}+`}
+                      color={OtterPalette.burntOrange}
+                    />
+                  ) : null}
                 </Row>
+
+                {hasAnyAnswer(exp?.answers) ? (
+                  <View
+                    testID={`review-experience-${s.id}`}
+                    style={[styles.experience, { borderColor: palette.border }]}
+                  >
+                    <Text style={[styles.expHeading, { color: palette.text }]}>
+                      Their paddling experience
+                    </Text>
+                    <Text style={[styles.muted, { color: palette.muted, marginBottom: 8 }]}>
+                      {exp?.reviewedAt
+                        ? `A coach reviewed this on ${formatShortDateTime(exp.reviewedAt)}.`
+                        : 'Not yet reviewed by a coach — this is in their own words.'}
+                    </Text>
+                    {EXPERIENCE_QUESTIONS.filter(
+                      (q) => (exp?.answers?.[q.key] ?? '').trim().length > 0,
+                    ).map((q) => (
+                      <View key={q.key} style={{ marginBottom: 8 }}>
+                        <Text style={[styles.muted, { color: palette.muted }]}>{q.label}</Text>
+                        <Text style={[styles.body, { color: palette.text }]}>
+                          {exp?.answers?.[q.key]}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : belowLevel ? (
+                  <Text style={[styles.body, { color: palette.muted, marginBottom: 10 }]}>
+                    They haven't filled in their paddling experience.
+                  </Text>
+                ) : null}
 
                 {s.notes ? (
                   <Text style={[styles.body, { color: palette.text, marginBottom: 10 }]}>
@@ -273,6 +337,13 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 15, fontWeight: '700' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
+  experience: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  expHeading: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   btn: {
     flex: 1,
     paddingVertical: 12,

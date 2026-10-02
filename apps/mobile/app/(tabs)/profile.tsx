@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -117,6 +117,26 @@ export default function ProfileScreen() {
   const [expDraft, setExpDraft] = useState<ExperienceAnswers>({});
   const [savingExp, setSavingExp] = useState(false);
   const [requestingReview, setRequestingReview] = useState(false);
+
+  // Arriving from a trip's "tell us your experience" link: open the form,
+  // and once saved send them back to the trip so they can ask the leader.
+  // Only same-app event paths are honoured as a return target.
+  const { editExperience, returnTo } = useLocalSearchParams<{
+    editExperience?: string;
+    returnTo?: string;
+  }>();
+  const tripReturn = returnTo?.startsWith('/event/') ? returnTo : null;
+  const scrollRef = useRef<ScrollView>(null);
+  const experienceY = useRef(0);
+  useEffect(() => {
+    if (editExperience === '1' && profile) {
+      setExpDraft({ ...(profile.experience_answers ?? {}) });
+      setExpEditing(true);
+      router.setParams({ editExperience: undefined });
+      // Wait a frame for the section to lay out, then bring the form into view.
+      setTimeout(() => scrollRef.current?.scrollTo({ y: experienceY.current, animated: true }), 50);
+    }
+  }, [editExperience, profile]);
 
   const emptyContactDraft = {
     name: '',
@@ -295,6 +315,10 @@ export default function ProfileScreen() {
     }
     await refreshProfile();
     setExpEditing(false);
+    if (tripReturn && hasAnyAnswer(cleaned)) {
+      router.setParams({ returnTo: undefined });
+      router.push(tripReturn as never);
+    }
   };
 
   const requestReview = async () => {
@@ -443,6 +467,7 @@ export default function ProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -594,13 +619,20 @@ export default function ProfileScreen() {
             </Card>
           )}
 
-          <SectionTitle>Paddling experience</SectionTitle>
+          <View
+            onLayout={(e) => {
+              experienceY.current = e.nativeEvent.layout.y;
+            }}
+          >
+            <SectionTitle>Paddling experience</SectionTitle>
+          </View>
           <Card>
             {expEditing ? (
               <>
                 <Text style={[styles.body, { color: palette.text, marginBottom: 12 }]}>
-                  Help a coach set your starting level. The more specific and honest, the better —
-                  answer what applies, skip what doesn’t.
+                  {tripReturn
+                    ? 'The trip leader will read this to decide whether to take you. The more specific and honest, the better — answer what applies, skip what doesn’t. Saving takes you back to the trip.'
+                    : 'Help a coach set your starting level. The more specific and honest, the better — answer what applies, skip what doesn’t.'}
                 </Text>
                 {EXPERIENCE_QUESTIONS.map((q) => (
                   <FormField
