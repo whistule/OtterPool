@@ -63,6 +63,16 @@ const WEEKDAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const dateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const keyFromIso = (iso: string) => dateKey(new Date(iso));
+// A trip already under way belongs on today, not on the (past) day it started,
+// so multi-day trips still show up in the strip and under "today".
+const listKey = (r: CalendarRow) => {
+  const start = keyFromIso(r.starts_at);
+  const today = dateKey(new Date());
+  return start < today ? today : start;
+};
+
+// Events stay listed this long after they end (or start, with no end time).
+const GRACE_MS = 6 * 60 * 60 * 1000;
 
 function categoryToDiscipline(category: string): Discipline {
   if (category.startsWith('Sea Kayak')) {
@@ -132,10 +142,14 @@ export default function CalendarScreen() {
 
   const load = React.useCallback(async () => {
     setError(null);
+    // Keep an event listed for a grace period after it finishes (or starts,
+    // with no end time), so members can still find it (and pay) once the trip
+    // is under way or just over.
+    const graceIso = new Date(Date.now() - GRACE_MS).toISOString();
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .gte('starts_at', new Date().toISOString())
+      .or(`ends_at.gte.${graceIso},and(ends_at.is.null,starts_at.gte.${graceIso})`)
       .order('starts_at', { ascending: true });
     if (error) {
       setError(error.message);
@@ -189,7 +203,7 @@ export default function CalendarScreen() {
   const days = useMemo<DayCell[]>(() => {
     const counts = new Map<string, { count: number; color?: string }>();
     for (const r of filtered ?? []) {
-      const key = keyFromIso(r.starts_at);
+      const key = listKey(r);
       const cur = counts.get(key);
       if (cur) {
         cur.count += 1;
@@ -221,7 +235,7 @@ export default function CalendarScreen() {
     if (!filtered) {
       return null;
     }
-    return selectedDay ? filtered.filter((r) => keyFromIso(r.starts_at) === selectedDay) : filtered;
+    return selectedDay ? filtered.filter((r) => listKey(r) === selectedDay) : filtered;
   }, [filtered, selectedDay]);
 
   return (
@@ -395,6 +409,10 @@ export default function CalendarScreen() {
                   </Row>
 
                   <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {new Date(ev.starts_at).getTime() <= Date.now() &&
+                    (ev.ends_at == null || new Date(ev.ends_at).getTime() >= Date.now()) ? (
+                      <Pill label="On now" color={OtterPalette.burntOrange} />
+                    ) : null}
                     <Pill label={pill.label} color={pill.color} />
                     <Pill
                       label={`${levelEmoji} ${ev.min_level}`}

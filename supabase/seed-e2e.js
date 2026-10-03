@@ -224,6 +224,42 @@ async function resetFixtureEvent(leader) {
     throw photoErr;
   }
 
+  // Calendar cutoff fixtures, timed relative to now (pretest:e2e reseeds
+  // before every run). The '[E2E] ' prefix gets them cleared above.
+  const hoursFromNow = (h) => new Date(Date.now() + h * 3_600_000).toISOString();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(10, 0, 0, 0);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(16, 0, 0, 0);
+  const timingFixtures = [
+    ['[E2E] Under Way Multi-day', yesterday.toISOString(), tomorrow.toISOString()],
+    ['[E2E] Started No End', hoursFromNow(-2), null],
+    ['[E2E] Stale No End', hoursFromNow(-7), null],
+    ['[E2E] Just Finished', hoursFromNow(-3), hoursFromNow(-1)],
+    ['[E2E] Long Finished', hoursFromNow(-10), hoursFromNow(-7)],
+  ];
+  const { error: timingErr } = await admin.from('events').insert(
+    timingFixtures.map(([title, starts_at, ends_at]) => ({
+      title,
+      category_id: 7,
+      starts_at,
+      ends_at,
+      location: 'E2E timing',
+      meeting_point: 'Reception',
+      min_level: 'frog',
+      max_participants: 6,
+      cost: 0,
+      status: 'open',
+      approval_mode: 'auto',
+      leader_id: leader.id,
+    })),
+  );
+  if (timingErr) {
+    throw timingErr;
+  }
+
   console.log(`  + fixture event ${FIXTURE_EVENT_TITLE} (${data.id})`);
   console.log(`  + fixture event ${FIXTURE_SELKIE_TITLE}`);
   console.log(`  + fixture event ${FIXTURE_PHOTO_TITLE}`);
