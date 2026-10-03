@@ -236,7 +236,8 @@ async function resetFixtureEvent(leader) {
     ['[E2E] Under Way Multi-day', yesterday.toISOString(), tomorrow.toISOString()],
     ['[E2E] Started No End', hoursFromNow(-2), null],
     ['[E2E] Stale No End', hoursFromNow(-7), null],
-    ['[E2E] Already Finished', hoursFromNow(-3), hoursFromNow(-1)],
+    ['[E2E] Just Finished', hoursFromNow(-3), hoursFromNow(-1)],
+    ['[E2E] Long Finished', hoursFromNow(-10), hoursFromNow(-7)],
   ];
   const { error: timingErr } = await admin.from('events').insert(
     timingFixtures.map(([title, starts_at, ends_at]) => ({

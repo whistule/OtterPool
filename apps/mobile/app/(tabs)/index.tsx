@@ -71,8 +71,8 @@ const listKey = (r: CalendarRow) => {
   return start < today ? today : start;
 };
 
-// Events with no end time stay listed this long after they start.
-const NO_END_GRACE_MS = 6 * 60 * 60 * 1000;
+// Events stay listed this long after they end (or start, with no end time).
+const GRACE_MS = 6 * 60 * 60 * 1000;
 
 function categoryToDiscipline(category: string): Discipline {
   if (category.startsWith('Sea Kayak')) {
@@ -142,16 +142,14 @@ export default function CalendarScreen() {
 
   const load = React.useCallback(async () => {
     setError(null);
-    // Keep an event listed until it finishes, not just until it starts, so
-    // members can still find it (and pay) once the trip is under way. With no
-    // end time, fall back to a grace period after the start.
-    const now = Date.now();
-    const nowIso = new Date(now).toISOString();
-    const graceIso = new Date(now - NO_END_GRACE_MS).toISOString();
+    // Keep an event listed for a grace period after it finishes (or starts,
+    // with no end time), so members can still find it (and pay) once the trip
+    // is under way or just over.
+    const graceIso = new Date(Date.now() - GRACE_MS).toISOString();
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${graceIso})`)
+      .or(`ends_at.gte.${graceIso},and(ends_at.is.null,starts_at.gte.${graceIso})`)
       .order('starts_at', { ascending: true });
     if (error) {
       setError(error.message);
@@ -411,7 +409,8 @@ export default function CalendarScreen() {
                   </Row>
 
                   <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                    {new Date(ev.starts_at).getTime() <= Date.now() ? (
+                    {new Date(ev.starts_at).getTime() <= Date.now() &&
+                    (ev.ends_at == null || new Date(ev.ends_at).getTime() >= Date.now()) ? (
                       <Pill label="On now" color={OtterPalette.burntOrange} />
                     ) : null}
                     <Pill label={pill.label} color={pill.color} />

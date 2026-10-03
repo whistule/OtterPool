@@ -7,7 +7,8 @@ const PASSWORD = process.env.E2E_PASSWORD ?? 'e2e-test-password';
 const UNDER_WAY = '[E2E] Under Way Multi-day'; // started yesterday, ends tomorrow
 const STARTED_NO_END = '[E2E] Started No End'; // started 2h ago, no end time
 const STALE_NO_END = '[E2E] Stale No End'; // started 7h ago, no end time
-const FINISHED = '[E2E] Already Finished'; // ended 1h ago
+const JUST_FINISHED = '[E2E] Just Finished'; // ended 1h ago
+const LONG_FINISHED = '[E2E] Long Finished'; // ended 7h ago
 
 async function signIn(page: Page) {
   await page.goto('/');
@@ -40,14 +41,16 @@ test.describe('calendar cutoff', () => {
     await expect(card(page, UNDER_WAY)).toHaveCount(1, { timeout: 15_000 });
   });
 
-  test('keeps events until they finish, or 6h after start with no end', async ({ page }) => {
+  test('keeps events until 6h after they end, or after start with no end', async ({ page }) => {
     await expect(card(page, STARTED_NO_END)).toHaveCount(1);
     await expect(card(page, STALE_NO_END)).toHaveCount(0);
-    await expect(card(page, FINISHED)).toHaveCount(0);
+    await expect(card(page, JUST_FINISHED)).toHaveCount(1);
+    await expect(card(page, LONG_FINISHED)).toHaveCount(0);
   });
 
   test('marks events already under way "On now"', async ({ page }) => {
     await expect(card(page, UNDER_WAY)).toContainText('On now');
+    await expect(card(page, JUST_FINISHED)).not.toContainText('On now');
     await expect(card(page, 'E2E Manual Review Trip')).not.toContainText('On now');
   });
 
