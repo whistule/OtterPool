@@ -63,6 +63,16 @@ const WEEKDAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const dateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const keyFromIso = (iso: string) => dateKey(new Date(iso));
+// A trip already under way belongs on today, not on the (past) day it started,
+// so multi-day trips still show up in the strip and under "today".
+const listKey = (r: CalendarRow) => {
+  const start = keyFromIso(r.starts_at);
+  const today = dateKey(new Date());
+  return start < today ? today : start;
+};
+
+// Events with no end time stay listed this long after they start.
+const NO_END_GRACE_MS = 6 * 60 * 60 * 1000;
 
 function categoryToDiscipline(category: string): Discipline {
   if (category.startsWith('Sea Kayak')) {
@@ -133,13 +143,15 @@ export default function CalendarScreen() {
   const load = React.useCallback(async () => {
     setError(null);
     // Keep an event listed until it finishes, not just until it starts, so
-    // members can still find it (and pay) once the trip is under way. Same
-    // end-or-start cutoff My Trips uses for "upcoming".
-    const now = new Date().toISOString();
+    // members can still find it (and pay) once the trip is under way. With no
+    // end time, fall back to a grace period after the start.
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const graceIso = new Date(now - NO_END_GRACE_MS).toISOString();
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .or(`ends_at.gte.${now},and(ends_at.is.null,starts_at.gte.${now})`)
+      .or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${graceIso})`)
       .order('starts_at', { ascending: true });
     if (error) {
       setError(error.message);
@@ -193,7 +205,7 @@ export default function CalendarScreen() {
   const days = useMemo<DayCell[]>(() => {
     const counts = new Map<string, { count: number; color?: string }>();
     for (const r of filtered ?? []) {
-      const key = keyFromIso(r.starts_at);
+      const key = listKey(r);
       const cur = counts.get(key);
       if (cur) {
         cur.count += 1;
@@ -225,7 +237,7 @@ export default function CalendarScreen() {
     if (!filtered) {
       return null;
     }
-    return selectedDay ? filtered.filter((r) => keyFromIso(r.starts_at) === selectedDay) : filtered;
+    return selectedDay ? filtered.filter((r) => listKey(r) === selectedDay) : filtered;
   }, [filtered, selectedDay]);
 
   return (
