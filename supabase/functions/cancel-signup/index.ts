@@ -1,8 +1,15 @@
-// Withdraws a sign-up at the member's (or leader's, or admin's) request.
-// Flips status to 'withdrawn' and, if the freed seat was confirmed, promotes
-// the oldest waitlisted member.
+// Cancels a sign-up at the member's (or leader's, or admin's) request.
 //
-// Refunds are out of scope — if a paid 'confirmed' signup withdraws, the
+// mode:
+//   'reallow' (default) → status 'withdrawn'. The member may sign up again
+//                         (sign-up treats 'withdrawn' as rejoinable).
+//   'block'             → status 'declined'. The member cannot sign up again
+//                         (sign-up rejects 'declined'). Leader/admin only — a
+//                         member can't block themselves.
+// If the freed place was a seat (confirmed/pending_payment) the oldest
+// waitlisted member is promoted either way.
+//
+// Refunds are out of scope — if a paid 'confirmed' signup is cancelled, the
 // money stays put and the leader handles the refund manually. Cancelling a
 // 'pending_payment' row before payment is fine because no charge happened.
 
@@ -23,7 +30,6 @@ type LoadedSignup = {
 };
 
 const SEAT_STATUSES = new Set(['confirmed', 'pending_payment']);
-const TERMINAL_STATUSES = new Set(['withdrawn', 'declined']);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -37,29 +43,41 @@ Deno.serve(async (req) => {
     }
     const { admin, user } = auth.clients;
 
-    const { signup_id } = await req.json();
+    const { signup_id, mode } = await req.json();
     if (!signup_id) {
       return err('signup_id is required', 400);
     }
+    if (mode !== undefined && mode !== 'reallow' && mode !== 'block') {
+      return err("mode must be 'reallow' or 'block'", 400);
+    }
+    const block = mode === 'block';
+    const newStatus = block ? 'declined' : 'withdrawn';
 
     const signup = await loadSignup(admin, signup_id);
     if (!signup) {
       return err('Sign-up not found', 404);
     }
 
-    if (!(await canCancel(admin, signup, user.id))) {
+    const isMember = signup.member_id === user.id;
+    const leaderOrAdmin = signup.leader_id === user.id || (await isPaddlingAdmin(admin, user.id));
+    if (!(isMember || leaderOrAdmin)) {
       return err('Not allowed to cancel this sign-up', 403);
     }
+    // Blocking re-sign-up is a leader/admin decision, not something a member
+    // does to their own place.
+    if (block && !leaderOrAdmin) {
+      return err('Only the event leader or a paddling admin can block re-sign-up', 403);
+    }
 
-    if (TERMINAL_STATUSES.has(signup.status)) {
-      return ok({ status: signup.status, message: 'Already cancelled' });
+    if (signup.status === newStatus) {
+      return ok({ status: newStatus, message: 'Already set' });
     }
 
     const wasSeat = SEAT_STATUSES.has(signup.status);
 
     const { error: updateErr } = await admin
       .from('event_signups')
-      .update({ status: 'withdrawn' })
+      .update({ status: newStatus })
       .eq('id', signup_id);
     if (updateErr) {
       return err(`Failed to cancel: ${updateErr.message}`, 500);
@@ -69,7 +87,7 @@ Deno.serve(async (req) => {
       await promoteFromWaitlist(admin, signup.event_id);
     }
 
-    return ok({ status: 'withdrawn', promoted: wasSeat });
+    return ok({ status: newStatus, promoted: wasSeat });
   } catch (e) {
     return err(`Internal error: ${String(e)}`, 500);
   }
@@ -92,18 +110,4 @@ async function loadSignup(admin: SupabaseClient, signupId: string): Promise<Load
     member_id: data.member_id,
     leader_id: event?.leader_id ?? null,
   };
-}
-
-async function canCancel(
-  admin: SupabaseClient,
-  signup: LoadedSignup,
-  userId: string,
-): Promise<boolean> {
-  if (signup.member_id === userId) {
-    return true;
-  }
-  if (signup.leader_id === userId) {
-    return true;
-  }
-  return await isPaddlingAdmin(admin, userId);
 }
