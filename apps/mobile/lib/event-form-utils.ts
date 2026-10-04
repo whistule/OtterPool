@@ -455,3 +455,36 @@ export function formatPreviewDate(d: Date): string {
     minute: '2-digit',
   });
 }
+
+// Which events in a repeating series an edit applies to.
+export type SeriesScope = 'single' | 'following' | 'all';
+
+// How each shared column is named in the "you changed …" prompt. cost and
+// price_options both read as "price" so a tier edit isn't listed twice.
+export const SHARED_FIELD_LABELS: Record<string, string> = {
+  title: 'title',
+  category_id: 'category',
+  description: 'description',
+  what_to_bring: 'what to bring',
+  leader_id: 'leader',
+  assistant_id: 'assistant',
+  grade_advertised: 'grade',
+  location: 'location',
+  meeting_point: 'meeting point',
+  meeting_time: 'meeting time',
+  put_in_point: 'put-in point',
+  put_in_time: 'put-in time',
+  min_level: 'minimum level',
+  max_participants: 'max participants',
+  cost: 'price',
+  price_options: 'price',
+  approval_mode: 'approval',
+};
+
+// ["price", "photo"] → "price and photo"; three or more get commas.
+export function joinLabels(labels: string[]): string {
+  if (labels.length <= 1) {
+    return labels[0] ?? '';
+  }
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}

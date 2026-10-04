@@ -40,9 +40,12 @@ import {
   formatPreviewDate,
   gradeOptionsFor,
   categoryChip,
+  joinLabels,
   KIT_TEMPLATES,
   LEVELS,
   type LoadedEvent,
+  SHARED_FIELD_LABELS,
+  type SeriesScope,
   type Status,
   STATUS_OPTIONS,
   toLocalIsoMinutes,
@@ -106,15 +109,15 @@ export default function EventForm(props: EventFormProps) {
   const [photoSuggestions, setPhotoSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [seriesId, setSeriesId] = useState<string | null>(null);
-  const [applyToSeries, setApplyToSeries] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatFrequency, setRepeatFrequency] = useState<'weekly' | 'fortnightly'>('weekly');
   const [repeatCount, setRepeatCount] = useState('4');
-  // How many events share this one's series (for the "apply photo to all X" prompt).
+  // How many events share this one's series (for the "all X events" option).
   const [seriesCount, setSeriesCount] = useState(0);
-  // Confirmation overlays: leaving with unsaved changes, and photo-to-series.
+  // Confirmation overlays: leaving with unsaved changes, and which events in a
+  // series a save applies to (holds the labels of the fields that changed).
   const [showLeave, setShowLeave] = useState(false);
-  const [showPhotoScope, setShowPhotoScope] = useState(false);
+  const [seriesScopeChanges, setSeriesScopeChanges] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(isEdit);
   const [forbidden, setForbidden] = useState(false);
@@ -188,8 +191,66 @@ export default function EventForm(props: EventFormProps) {
       repeatCount,
     ],
   );
+  // Definitional fields shared across a series, as written to the row. Date and
+  // status stay per-occurrence (each repeat is its own day with its own
+  // sign-ups). Parsing is lenient so it can also serve as the baseline to diff
+  // against; submit() validates before writing it.
+  const buildSharedPayload = useCallback((): Record<string, unknown> => {
+    const tiers =
+      priceTiers.length > 0
+        ? priceTiers.map((t) => ({
+            label: t.label.trim(),
+            pence: Math.round(Number(t.amount) * 100),
+          }))
+        : null;
+    return {
+      title: title.trim(),
+      category_id: categoryId,
+      description: description.trim() || null,
+      what_to_bring: whatToBring.trim() || null,
+      leader_id: leaderId ?? session?.user.id,
+      assistant_id: assistantId,
+      grade_advertised: grade.trim() || null,
+      location: location.trim() || null,
+      meeting_point: meetingPoint.trim() || null,
+      meeting_time: meetingTime.trim() || null,
+      put_in_point: putInPoint.trim() || null,
+      put_in_time: putInTime.trim() || null,
+      min_level: minLevel,
+      max_participants: maxParticipants.trim() ? Number(maxParticipants) : null,
+      // The first tier is the standard rate, so it becomes the event's `cost`
+      // (keeping single-price displays and `isPaid` consistent).
+      cost: tiers ? tiers[0].pence / 100 : Number(cost),
+      price_options: tiers,
+      approval_mode: approvalMode,
+    };
+  }, [
+    title,
+    categoryId,
+    description,
+    whatToBring,
+    leaderId,
+    session,
+    assistantId,
+    grade,
+    location,
+    meetingPoint,
+    meetingTime,
+    putInPoint,
+    putInTime,
+    minLevel,
+    maxParticipants,
+    cost,
+    priceTiers,
+    approvalMode,
+  ]);
   // Baseline captured once the form is ready; null until then.
   const initialSnapshotRef = useRef<string | null>(null);
+  // The shared payload as loaded, so a series save only pushes what changed.
+  const initialSharedRef = useRef<Record<string, unknown> | null>(null);
+  // This occurrence's start as loaded: "this and following" counts from here
+  // even if the leader moves this one's date in the same save.
+  const loadedStartsAtRef = useRef<string | null>(null);
   // Set true right before an intentional navigation (save/discard) so the
   // unsaved-changes guard lets that one through.
   const leavingRef = useRef(false);
@@ -205,8 +266,9 @@ export default function EventForm(props: EventFormProps) {
   useEffect(() => {
     if (initialSnapshotRef.current === null && !loading) {
       initialSnapshotRef.current = buildSnapshot();
+      initialSharedRef.current = buildSharedPayload();
     }
-  }, [loading, buildSnapshot]);
+  }, [loading, buildSnapshot, buildSharedPayload]);
 
   // How many events are in this series, for the photo-to-series prompt copy.
   useEffect(() => {
@@ -368,6 +430,7 @@ export default function EventForm(props: EventFormProps) {
         setLeaderId(ev.leader_id);
         setOriginalPhotoPath(ev.photo_path);
         setSeriesId(ev.series_id);
+        loadedStartsAtRef.current = ev.starts_at;
         setLoading(false);
       }
     })();
@@ -529,7 +592,7 @@ export default function EventForm(props: EventFormProps) {
     await submit();
   };
 
-  const submit = async (opts?: { photoScope?: 'series' | 'single' }): Promise<boolean> => {
+  const submit = async (opts?: { scope?: SeriesScope }): Promise<boolean> => {
     if (!session) {
       return false;
     }
@@ -585,29 +648,15 @@ export default function EventForm(props: EventFormProps) {
       errs.cost = 'Cost must be 0 or a positive number';
     }
 
-    // Concession tiers → validated [{label, pence}] or null. When present, the
-    // first tier is the standard rate and its amount becomes the event's `cost`
-    // (so single-price displays and `isPaid` stay consistent).
-    let priceOptionsPayload: { label: string; pence: number }[] | null = null;
-    if (priceTiers.length > 0) {
-      const built: { label: string; pence: number }[] = [];
-      for (const t of priceTiers) {
-        const label = t.label.trim();
+    // Concession tiers each need a name and a non-negative amount.
+    if (
+      priceTiers.some((t) => {
         const amt = Number(t.amount);
-        if (!label || Number.isNaN(amt) || amt < 0) {
-          errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
-          break;
-        }
-        built.push({ label, pence: Math.round(amt * 100) });
-      }
-      if (!errs.priceTiers) {
-        priceOptionsPayload = built;
-      }
+        return !t.label.trim() || Number.isNaN(amt) || amt < 0;
+      })
+    ) {
+      errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
     }
-    const effectiveCost =
-      priceOptionsPayload && priceOptionsPayload.length > 0
-        ? priceOptionsPayload[0].pence / 100
-        : costNum;
 
     let occurrences = 1;
     let newSeriesId: string | null = null;
@@ -628,16 +677,29 @@ export default function EventForm(props: EventFormProps) {
     }
     setFieldErrors({});
 
-    // Setting/replacing a photo on a series event: ask whether it applies to
-    // the whole series before writing, unless the leader already chose "All in
-    // series" up top or answered this prompt.
-    const photoBeingSet =
-      !!photoAsset || (!!selectedSuggestion && selectedSuggestion !== originalPhotoPath);
-    if (isEdit && seriesId && !applyToSeries && photoBeingSet && opts?.photoScope === undefined) {
-      setShowPhotoScope(true);
+    const shared = buildSharedPayload();
+
+    // Editing one event in a series: work out which shared fields actually
+    // changed, and if any did, ask which events they apply to. Only those
+    // fields are written to the other events, so an event with its own tweaks
+    // (a different put-in, a one-off price) keeps them.
+    const baseline = initialSharedRef.current ?? {};
+    const changedKeys = Object.keys(shared).filter(
+      (k) => JSON.stringify(shared[k]) !== JSON.stringify(baseline[k]),
+    );
+    const photoChanged =
+      !!photoAsset ||
+      (!!selectedSuggestion && selectedSuggestion !== originalPhotoPath) ||
+      (removePhotoFlag && !!originalPhotoPath);
+    if (isEdit && seriesId && opts?.scope === undefined && (changedKeys.length || photoChanged)) {
+      const labels = [...new Set(changedKeys.map((k) => SHARED_FIELD_LABELS[k] ?? k))];
+      if (photoChanged) {
+        labels.push('photo');
+      }
+      setSeriesScopeChanges(labels);
       return false;
     }
-    const photoToSeries = applyToSeries || opts?.photoScope === 'series';
+    const scope: SeriesScope = (seriesId && opts?.scope) || 'single';
 
     setBusy(true);
 
@@ -665,66 +727,78 @@ export default function EventForm(props: EventFormProps) {
         newPath = result.path;
       }
 
-      // Definitional fields shared across a series; date and status stay
-      // per-occurrence (each repeat is its own day with its own sign-ups).
-      const shared: Record<string, unknown> = {
-        title: title.trim(),
-        category_id: categoryId,
-        description: description.trim() || null,
-        what_to_bring: whatToBring.trim() || null,
-        leader_id: leaderId ?? session?.user.id,
-        assistant_id: assistantId,
-        grade_advertised: grade.trim() || null,
-        location: location.trim() || null,
-        meeting_point: meetingPoint.trim() || null,
-        meeting_time: meetingTime.trim() || null,
-        put_in_point: putInPoint.trim() || null,
-        put_in_time: putInTime.trim() || null,
-        min_level: minLevel,
-        max_participants: maxP,
-        cost: effectiveCost,
-        price_options: priceOptionsPayload,
-        approval_mode: approvalMode,
-      };
+      // Only the changed shared fields go to the rest of the series.
+      const seriesChanges: Record<string, unknown> = Object.fromEntries(
+        changedKeys.map((k) => [k, shared[k]]),
+      );
       if (newPath !== undefined) {
         shared.photo_path = newPath;
+        seriesChanges.photo_path = newPath;
       }
-      const perOccurrence: Record<string, unknown> = {
-        starts_at: startDate.toISOString(),
-        ends_at: endDate ? endDate.toISOString() : null,
-        status,
-      };
+      const applySeries = scope !== 'single' && Object.keys(seriesChanges).length > 0;
+      // "This and following" counts from this event's date as loaded, so past
+      // sessions are left alone.
+      const fromStart = scope === 'following' ? (loadedStartsAtRef.current ?? '') : null;
 
-      const applyAll = applyToSeries && !!seriesId;
-      // This occurrence's own date/status always update just this row.
+      // Photos the other events show now, binned below if nothing renders them
+      // after the series takes the new one.
+      let replacedPhotos: string[] = [];
+      if (applySeries && newPath !== undefined) {
+        let photoQuery = supabase
+          .from('events')
+          .select('photo_path')
+          .eq('series_id', seriesId ?? '');
+        if (fromStart) {
+          photoQuery = photoQuery.gte('starts_at', fromStart);
+        }
+        const { data } = await photoQuery;
+        replacedPhotos = ((data ?? []) as { photo_path: string | null }[])
+          .map((r) => r.photo_path)
+          .filter((p): p is string => !!p);
+      }
+
+      // Series first, while this event's starts_at still matches the
+      // "following" filter; then this event's full form, date and status.
+      let seriesRows: { id: string }[] | null = null;
+      let seriesErr: { message: string } | null = null;
+      if (applySeries) {
+        let seriesQuery = supabase
+          .from('events')
+          .update(seriesChanges)
+          .eq('series_id', seriesId ?? '');
+        if (fromStart) {
+          seriesQuery = seriesQuery.gte('starts_at', fromStart);
+        }
+        ({ data: seriesRows, error: seriesErr } = await seriesQuery.select('id'));
+      }
       const { data: occRows, error: occErr } = await supabase
         .from('events')
-        .update(applyAll ? perOccurrence : { ...shared, ...perOccurrence })
+        .update({
+          ...shared,
+          starts_at: startDate.toISOString(),
+          ends_at: endDate ? endDate.toISOString() : null,
+          status,
+        })
         .eq('id', eventId)
         .select('id');
-      // When applying to the whole series, push the shared fields to every
-      // occurrence sharing this series_id.
-      const { data: seriesRows, error: seriesErr } = applyAll
-        ? await supabase.from('events').update(shared).eq('series_id', seriesId).select('id')
-        : { data: null, error: null };
       setBusy(false);
 
       // An update RLS filtered away returns neither an error nor rows, so
       // without the row check this navigated to the event as if it had saved.
       // Only judge the series write when there actually was one.
       const updateError =
-        writeFailure(occErr, occRows) ?? (applyAll ? writeFailure(seriesErr, seriesRows) : null);
+        (applySeries ? writeFailure(seriesErr, seriesRows) : null) ?? writeFailure(occErr, occRows);
       if (updateError) {
         setError(updateError);
         return false;
       }
-      // Photo-to-series (when not already covered by the "All in series" scope):
-      // point every occurrence at the new photo so the whole series shows it.
-      if (!applyAll && photoToSeries && seriesId && newPath !== undefined) {
-        await supabase.from('events').update({ photo_path: newPath }).eq('series_id', seriesId);
-      }
-      if (newPath !== undefined && originalPhotoPath && originalPhotoPath !== newPath) {
-        await removeEventPhotoIfUnused(originalPhotoPath);
+      if (newPath !== undefined) {
+        const stale = new Set([...replacedPhotos, originalPhotoPath]);
+        for (const p of stale) {
+          if (p && p !== newPath) {
+            await removeEventPhotoIfUnused(p);
+          }
+        }
       }
       leavingRef.current = true;
       router.replace(`/event/${eventId}`);
@@ -734,24 +808,8 @@ export default function EventForm(props: EventFormProps) {
     // ---------- CREATE path ----------
     const stepDays = repeatFrequency === 'fortnightly' ? 14 : 7;
     const baseRow = {
-      title: title.trim(),
-      category_id: categoryId,
-      description: description.trim() || null,
-      what_to_bring: whatToBring.trim() || null,
-      assistant_id: assistantId,
-      grade_advertised: grade.trim() || null,
-      location: location.trim() || null,
-      meeting_point: meetingPoint.trim() || null,
-      meeting_time: meetingTime.trim() || null,
-      put_in_point: putInPoint.trim() || null,
-      put_in_time: putInTime.trim() || null,
-      min_level: minLevel,
-      max_participants: maxP,
-      cost: effectiveCost,
-      price_options: priceOptionsPayload,
-      approval_mode: approvalMode,
+      ...shared,
       status: 'open' as const,
-      leader_id: leaderId ?? session.user.id,
       series_id: newSeriesId,
     };
 
@@ -923,9 +981,7 @@ export default function EventForm(props: EventFormProps) {
 
   const screenTitle = isEdit ? 'Edit event' : 'Create event';
   const submitLabel = isEdit
-    ? applyToSeries && seriesId
-      ? 'Save changes to series'
-      : 'Save changes'
+    ? 'Save changes'
     : repeatEnabled
       ? `Create ${Number(repeatCount) || ''} events`.trim()
       : 'Create event';
@@ -947,48 +1003,14 @@ export default function EventForm(props: EventFormProps) {
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ---------- Repeating-series scope (edit only) ---------- */}
+          {/* ---------- Repeating-series note (edit only) ---------- */}
           {isEdit && seriesId ? (
             <>
               <SectionTitle>Repeating event</SectionTitle>
               <Card>
-                <FieldLabel palette={palette}>Apply changes to</FieldLabel>
-                <Row style={{ gap: 8, flexWrap: 'wrap' }}>
-                  {(
-                    [
-                      { value: false, label: 'This event only' },
-                      { value: true, label: 'All in series' },
-                    ] as const
-                  ).map((opt) => {
-                    const isActive = opt.value === applyToSeries;
-                    return (
-                      <Pressable
-                        accessibilityState={{ selected: isActive }}
-                        accessibilityRole="button"
-                        key={String(opt.value)}
-                        testID={`event-scope-${opt.value ? 'series' : 'single'}`}
-                        onPress={() => setApplyToSeries(opt.value)}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: isActive ? OtterPalette.slateNavy : palette.surface,
-                            borderColor: isActive ? OtterPalette.slateNavy : palette.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.chipText, { color: isActive ? '#fff' : palette.text }]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </Row>
-                <Text style={[styles.hint, { color: palette.muted, marginTop: 8 }]}>
-                  {applyToSeries
-                    ? 'Shared details (title, description, location, cost, etc.) update every occurrence. Each event keeps its own date and status.'
-                    : 'Only this occurrence changes.'}
+                <Text style={[styles.hint, { color: palette.muted }]}>
+                  This is one of {seriesCount || 'several'} events in a series. When you save, you
+                  can choose whether your changes also go to the other events.
                 </Text>
               </Card>
             </>
@@ -1587,6 +1609,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 1 }}>
                     <FieldLabel palette={palette}>Cost (£)</FieldLabel>
                     <TextInput
+                      testID="event-cost"
                       value={cost}
                       onChangeText={(t) => {
                         setCost(t);
@@ -2091,45 +2114,51 @@ export default function EventForm(props: EventFormProps) {
         </View>
       ) : null}
 
-      {/* ---------- Apply photo to series ---------- */}
-      {showPhotoScope ? (
+      {/* ---------- Which events in the series a save applies to ---------- */}
+      {seriesScopeChanges ? (
         <View style={styles.overlay}>
           <View style={[styles.dialog, { backgroundColor: palette.background }]}>
             <Text style={[styles.dialogTitle, { color: palette.text }]}>
-              Apply photo to series?
+              Change other events too?
             </Text>
             <Text style={[styles.dialogBody, { color: palette.muted }]}>
-              This event is one of {seriesCount} in a repeating series. Add this photo to every
-              event in the series, or just this one?
+              You changed {joinLabels(seriesScopeChanges)}. Only{' '}
+              {seriesScopeChanges.length === 1 ? 'that' : 'those'} will be copied — anything else
+              set differently on other events stays as it is. Dates and status are never copied.
             </Text>
+            {(
+              [
+                { scope: 'following', label: 'This and following events', primary: true },
+                { scope: 'all', label: seriesCount ? `All ${seriesCount} events` : 'All events' },
+                { scope: 'single', label: 'This event only' },
+              ] as { scope: SeriesScope; label: string; primary?: boolean }[]
+            ).map((opt) => (
+              <Pressable
+                key={opt.scope}
+                accessibilityRole="button"
+                testID={`series-scope-${opt.scope}`}
+                onPress={() => {
+                  setSeriesScopeChanges(null);
+                  submit({ scope: opt.scope });
+                }}
+                style={[
+                  styles.dialogBtn,
+                  opt.primary
+                    ? { backgroundColor: OtterPalette.slateNavy }
+                    : { borderWidth: 1.5, borderColor: palette.border },
+                ]}
+              >
+                <Text
+                  style={[styles.dialogBtnText, { color: opt.primary ? '#fff' : palette.text }]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
             <Pressable
               accessibilityRole="button"
-              testID="photo-scope-series"
-              onPress={() => {
-                setShowPhotoScope(false);
-                submit({ photoScope: 'series' });
-              }}
-              style={[styles.dialogBtn, { backgroundColor: OtterPalette.slateNavy }]}
-            >
-              <Text style={[styles.dialogBtnText, { color: '#fff' }]}>
-                Apply to all {seriesCount} events
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              testID="photo-scope-single"
-              onPress={() => {
-                setShowPhotoScope(false);
-                submit({ photoScope: 'single' });
-              }}
-              style={[styles.dialogBtn, { borderWidth: 1.5, borderColor: palette.border }]}
-            >
-              <Text style={[styles.dialogBtnText, { color: palette.text }]}>This event only</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              testID="photo-scope-cancel"
-              onPress={() => setShowPhotoScope(false)}
+              testID="series-scope-cancel"
+              onPress={() => setSeriesScopeChanges(null)}
               style={styles.dialogCancel}
             >
               <Text style={[styles.dialogBtnText, { color: palette.muted }]}>Cancel</Text>
