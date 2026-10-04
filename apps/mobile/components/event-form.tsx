@@ -1836,7 +1836,8 @@ export default function EventForm(props: EventFormProps) {
                 <FieldLabel palette={palette}>What to bring (optional)</FieldLabel>
                 <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
                   Load a standard list, then edit as needed — or type your own. One item per line; a
-                  line ending in a colon becomes a heading.
+                  line ending in a colon becomes a heading (e.g. "Optional:"), and a line starting
+                  "Note:" becomes small print.
                 </Text>
                 <Row style={{ flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                   {KIT_TEMPLATES.map((t) => (
