@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const MEMBER_EMAIL = process.env.E2E_MEMBER_EMAIL ?? 'e2e-member@test.com';
-const LEADER_EMAIL = process.env.E2E_LEADER_EMAIL ?? 'e2e-leader@test.com';
+// Not e2e-leader: that account is_admin, which would pass the experience
+// RPCs on the admin branch and hide a broken leader branch.
+const LEADER_EMAIL = 'e2e-trip-leader@test.com';
 const PASSWORD = process.env.E2E_PASSWORD ?? 'e2e-test-password';
 // Selkie minimum; the e2e member is a duck, so they're below it.
 const FIXTURE_TITLE = 'E2E Selkie Only Trip';
