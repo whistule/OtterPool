@@ -1,3 +1,4 @@
+import * as Print from 'expo-print';
 import { Platform } from 'react-native';
 
 // "What to bring" text → sections. One item per line; a line ending in ":" starts
@@ -70,12 +71,15 @@ ${body}
 </body></html>`;
 }
 
-// Web only: opens the checklist in a new tab, ready to print or save as PDF.
-export function openKitChecklist(title: string, when: string, text: string) {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+// Opens the checklist ready to print or save as PDF: the system print sheet on
+// native, a new tab on web (expo-print's web printAsync prints the current page).
+export async function openKitChecklist(title: string, when: string, text: string) {
+  const html = buildKitChecklistHtml(title, when, text);
+  if (Platform.OS !== 'web') {
+    await Print.printAsync({ html });
     return;
   }
-  const blob = new Blob([buildKitChecklistHtml(title, when, text)], {
+  const blob = new Blob([html], {
     type: 'text/html;charset=utf-8',
   });
   const url = URL.createObjectURL(blob);

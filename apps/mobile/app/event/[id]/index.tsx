@@ -809,24 +809,22 @@ export default function EventDetailScreen() {
                   ))}
                 </View>
               ))}
-              {Platform.OS === 'web' ? (
-                <Pressable
-                  accessibilityRole="button"
-                  testID="event-kit-checklist"
-                  onPress={() =>
-                    openKitChecklist(
-                      event.title,
-                      formatFullRange(event.starts_at, event.ends_at),
-                      event.what_to_bring ?? '',
-                    )
-                  }
-                  style={{ marginTop: 16, alignSelf: 'flex-start' }}
-                >
-                  <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
-                    ⬇ Download checklist (print or save as PDF)
-                  </Text>
-                </Pressable>
-              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                testID="event-kit-checklist"
+                onPress={() =>
+                  openKitChecklist(
+                    event.title,
+                    formatFullRange(event.starts_at, event.ends_at),
+                    event.what_to_bring ?? '',
+                  ).catch((e) => console.warn('[kit] checklist failed:', e))
+                }
+                style={{ marginTop: 16, alignSelf: 'flex-start' }}
+              >
+                <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  ⬇ Download checklist (print or save as PDF)
+                </Text>
+              </Pressable>
             </Card>
           </>
         ) : null}
