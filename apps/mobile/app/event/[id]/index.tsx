@@ -659,9 +659,7 @@ export default function EventDetailScreen() {
           <>
             <SectionTitle>Description</SectionTitle>
             <Card>
-              <Text style={[styles.description, { color: palette.text }]}>
-                {event.description}
-              </Text>
+              <Text style={[styles.description, { color: palette.text }]}>{event.description}</Text>
             </Card>
           </>
         ) : null}
@@ -787,7 +785,9 @@ export default function EventDetailScreen() {
                 // biome-ignore lint/suspicious/noArrayIndexKey: sections of static text
                 <View key={si} style={{ marginTop: si === 0 ? 0 : 16 }}>
                   {sec.heading ? (
-                    <Text style={[styles.value, { color: OtterPalette.slateNavy, marginBottom: 4 }]}>
+                    <Text
+                      style={[styles.value, { color: OtterPalette.slateNavy, marginBottom: 4 }]}
+                    >
                       {sec.heading}
                     </Text>
                   ) : null}
