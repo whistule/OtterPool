@@ -53,7 +53,8 @@ export default function SignInScreen() {
     >
       <PageTitle title="Sign in" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        // Cap the column so the card isn't stretched across a desktop browser.
+        style={{ flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
@@ -113,6 +114,14 @@ export default function SignInScreen() {
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
           />
 
+          <Link href="/forgot-password" asChild>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
+              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </Link>
+
           {error ? (
             <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
               {error}
@@ -135,22 +144,8 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
-          <Link href="/forgot-password" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
-              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
-                Forgot password?
-              </Text>
-            </Pressable>
-          </Link>
-
-          <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
-          <Text style={[styles.createHint, { color: palette.muted }]}>
-            If you're a DCKC member, create your account with the{' '}
-            <Text style={{ fontWeight: '700', color: palette.text }}>
-              same email as your MemberMojo login
-            </Text>{' '}
-            and OtterPool will recognise you as a member.
-          </Text>
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Text style={[styles.newHead, { color: palette.text }]}>New to OtterPool?</Text>
 
           <Link href="/sign-up" asChild>
             <Pressable
@@ -204,24 +199,12 @@ const styles = StyleSheet.create({
   },
   error: { fontSize: 13, marginTop: 12, fontWeight: '500' },
   primaryBtn: {
-    marginTop: 20,
+    marginTop: 14,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  createHintHead: {
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  createHint: {
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-    marginTop: 4,
-  },
   secondaryBtn: {
     marginTop: 12,
     paddingVertical: 14,
@@ -230,7 +213,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryBtnText: { fontSize: 15, fontWeight: '700' },
-  tertiaryBtn: { marginTop: 4, paddingVertical: 8, alignItems: 'center' },
+  tertiaryBtn: { alignSelf: 'flex-end', marginTop: 4, paddingVertical: 6 },
+  divider: { height: 1, marginVertical: 20 },
+  newHead: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
   tertiaryBtnText: { fontSize: 13, fontWeight: '500' },
   footer: {
     textAlign: 'center',
