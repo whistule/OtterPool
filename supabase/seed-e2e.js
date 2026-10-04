@@ -68,6 +68,16 @@ const E2E_USERS = [
     status: 'active',
     is_paddling_admin: true,
   },
+  // A leader with no admin flags, so specs can prove a plain leader's access
+  // rather than riding on e2e-leader's is_admin.
+  {
+    email: 'e2e-trip-leader@test.com',
+    password: 'e2e-test-password',
+    full_name: 'E2E Trip Leader',
+    display_name: 'E2E Trip Leader',
+    level: 'selkie',
+    status: 'active',
+  },
 ];
 
 async function ensureUser(spec) {
@@ -127,7 +137,7 @@ async function ensureUser(spec) {
   return { ...spec, id: user.id };
 }
 
-async function resetFixtureEvent(leader) {
+async function resetFixtureEvent(leader, tripLeader) {
   // Drop any prior fixture events by title — keeps history clean and means
   // we don't accumulate stale rows across runs.
   const { error: delErr } = await admin
@@ -174,7 +184,8 @@ async function resetFixtureEvent(leader) {
   }
 
   // Selkie-only fixture used by the calendar-filter spec to verify that
-  // "Open to me" hides events the signed-in member can't attend.
+  // "Open to me" hides events the signed-in member can't attend. Led by the
+  // non-admin trip leader for the below-level spec.
   const selkieStartsAt = new Date(startsAt);
   selkieStartsAt.setDate(selkieStartsAt.getDate() + 1);
   const selkieEndsAt = new Date(selkieStartsAt);
@@ -192,7 +203,7 @@ async function resetFixtureEvent(leader) {
     cost: 0,
     status: 'open',
     approval_mode: 'auto',
-    leader_id: leader.id,
+    leader_id: tripLeader.id,
   });
   if (selkieErr) {
     throw selkieErr;
@@ -299,7 +310,12 @@ async function main() {
     throw new Error('e2e-leader user missing after seed');
   }
 
-  const eventId = await resetFixtureEvent(leader);
+  const tripLeader = users.find((u) => u.email === 'e2e-trip-leader@test.com');
+  if (!tripLeader) {
+    throw new Error('e2e-trip-leader user missing after seed');
+  }
+
+  const eventId = await resetFixtureEvent(leader, tripLeader);
   const memberIds = users.map((u) => u.id);
   await clearSignups(eventId, memberIds);
   await clearApprovals(memberIds);

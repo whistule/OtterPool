@@ -45,7 +45,8 @@ points at the nix store path.
    whatever `supabase/config.secret.js` points at, which `dev:local` writes
    for the local stack. Test users, all with password `e2e-test-password`:
    `e2e-leader@test.com` (selkie), `e2e-member@test.com` (duck),
-   `e2e-membership-admin@test.com` and `e2e-paddling-admin@test.com`.
+   `e2e-membership-admin@test.com`, `e2e-paddling-admin@test.com` and
+   `e2e-trip-leader@test.com` (selkie, no admin flags, leads `E2E Selkie Only Trip`).
 
 2. Run the suite. `devenv.nix` lives at the repo root, so enter the devenv
    shell from the root, then cd into the mobile app:
