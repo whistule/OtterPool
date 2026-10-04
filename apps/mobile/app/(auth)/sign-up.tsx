@@ -92,7 +92,8 @@ export default function SignUpScreen() {
     >
       <PageTitle title="Sign up" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        // Cap the column so the card isn't stretched across a desktop browser.
+        style={{ flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -106,6 +107,15 @@ export default function SignUpScreen() {
           <View
             style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >
+            <Text style={[styles.createHintHead, { color: palette.text }]}>New to OtterPool?</Text>
+            <Text style={[styles.createHint, { color: palette.muted }]}>
+              If you're a DCKC member, create your account with the{' '}
+              <Text style={{ fontWeight: '700', color: palette.text }}>
+                same email as your MemberMojo login
+              </Text>{' '}
+              and OtterPool will recognise you as a member.
+            </Text>
+
             <Text style={[styles.label, { color: palette.muted }]}>Full name</Text>
             <TextInput
               accessibilityLabel="Full name"
@@ -289,6 +299,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  createHintHead: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  createHint: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 20,
+  },
   secondaryBtn: {
     marginTop: 10,
     paddingVertical: 12,
