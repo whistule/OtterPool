@@ -49,7 +49,8 @@ test.describe('login', () => {
 
     await page.getByText('Sign in', { exact: true }).click();
 
-    await expect(page.getByText(/invalid login credentials/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Wrong email or password.')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Create an account', { exact: true })).toBeVisible();
     await expect(page.getByPlaceholder('you@example.com')).toBeVisible();
   });
 });

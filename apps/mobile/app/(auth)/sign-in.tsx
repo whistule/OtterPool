@@ -23,6 +23,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Supabase can't tell "wrong password" from "no account", so point at sign-up either way.
+  const [badCredentials, setBadCredentials] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
@@ -30,6 +32,7 @@ export default function SignInScreen() {
     // trimmed address — without this a stray space makes a real account look
     // like bad credentials here and nowhere else.
     const trimmedEmail = email.trim();
+    setBadCredentials(false);
     if (!trimmedEmail || !password) {
       setError('Email and password are required');
       return;
@@ -41,7 +44,10 @@ export default function SignInScreen() {
       password,
     });
     setBusy(false);
-    if (error) {
+    if (error?.code === 'invalid_credentials') {
+      setBadCredentials(true);
+      setError('Wrong email or password.');
+    } else if (error) {
       setError(error.message);
     }
   };
@@ -125,6 +131,16 @@ export default function SignInScreen() {
           {error ? (
             <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
               {error}
+              {badCredentials ? (
+                <>
+                  {' '}
+                  New to OtterPool?{' '}
+                  <Link href="/sign-up" style={styles.errorLink}>
+                    Create an account
+                  </Link>{' '}
+                  first.
+                </>
+              ) : null}
             </Text>
           ) : null}
 
@@ -198,6 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   error: { fontSize: 13, marginTop: 12, fontWeight: '500' },
+  errorLink: { fontWeight: '700', textDecorationLine: 'underline' },
   primaryBtn: {
     marginTop: 14,
     paddingVertical: 14,
