@@ -51,6 +51,16 @@ jobs:
       - run: npm run test:e2e
         working-directory: apps/mobile
 
+      # Screenshots specs take on purpose (test-results/screens/), kept on
+      # success too so a flow can be reviewed without running it locally.
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: apps/mobile/test-results/screens/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

@@ -48,13 +48,16 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
 export function Card({
   children,
   style,
+  testID,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   const palette = Colors[useColorScheme() ?? 'light'];
   return (
     <View
+      testID={testID}
       style={[
         styles.card,
         { backgroundColor: palette.surface, borderColor: palette.border },

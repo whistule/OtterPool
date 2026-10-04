@@ -184,9 +184,11 @@ export default function MemberProfileScreen() {
       setContacts((contactRes.data ?? []) as EmergencyContact[]);
     }
 
-    // Paddling admins (who set the level) read the member's self-declared
-    // paddling experience via an RPC that exposes only these fields.
-    if (roleFlags(viewerProfile).paddlingAdmin) {
+    // The member's self-declared paddling experience, via an RPC that exposes
+    // only these fields. Paddling admins (who set the level) see everyone's;
+    // a leader sees it for anyone signed up to one of their trips. Anyone
+    // else gets no rows back, and the section stays hidden.
+    if (session) {
       const { data: expData } = await supabase.rpc('admin_member_experience', {
         p_member_id: id,
       });
@@ -500,9 +502,9 @@ export default function MemberProfileScreen() {
           </Pressable>
         ) : null}
 
-        {canEditLevel &&
-        experience &&
-        (hasAnyAnswer(experience.experience_answers) || experience.experience_review_requested) ? (
+        {experience &&
+        (hasAnyAnswer(experience.experience_answers) ||
+          (canEditLevel && experience.experience_review_requested)) ? (
           <>
             <SectionTitle>Paddling experience</SectionTitle>
             <Card>
@@ -536,7 +538,7 @@ export default function MemberProfileScreen() {
                   No answers written yet.
                 </Text>
               )}
-              {experience.experience_review_requested ? (
+              {canEditLevel && experience.experience_review_requested ? (
                 <Pressable
                   accessibilityRole="button"
                   onPress={markingReviewed ? undefined : markReviewed}

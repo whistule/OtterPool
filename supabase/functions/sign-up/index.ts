@@ -33,6 +33,15 @@ const WAITLISTED: Routing = {
   message: "Event is full — you've been added to the waitlist",
 };
 
+// Always to the leader, even when the trip is full: they decide first, and
+// review-signup re-checks capacity (waitlisting if needed) when they confirm.
+// Never auto-waitlisted, or a promotion could seat them without a review.
+const BELOW_LEVEL: Routing = {
+  status: 'pending_review',
+  message:
+    "Request sent — you're below this trip's minimum level, so the leader will look at your paddling experience and decide",
+};
+
 /** Statuses a fresh sign-up call may overwrite on an existing row. */
 const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
 
@@ -82,10 +91,6 @@ Deno.serve(async (req) => {
     if (profile.status === 'suspended') {
       return err('Your account is suspended', 403);
     }
-    if (!meetsLevel(profile.level, event.min_level)) {
-      return err(`Requires ${event.min_level} level — you are currently ${profile.level}`, 403);
-    }
-
     const existing = await loadExistingSignup(admin, event_id, user.id);
     // 'withdrawn' is the member's own cancellation, so let them rejoin by
     // reusing the row (unique on event_id+member_id). 'declined' is the
@@ -97,6 +102,18 @@ Deno.serve(async (req) => {
     // A pending_payment row is a seat already granted — auto-confirmed or
     // leader-approved — that the member is coming back to pay for.
     const resuming = existing?.status === 'pending_payment';
+
+    // Below the minimum level isn't a hard stop: the member can ask the
+    // leader, who decides with their paddling experience in front of them.
+    // The questionnaire is required so the leader has something to go on.
+    // A leader-approved seat (resuming) has already been through this.
+    const belowLevel = !resuming && !meetsLevel(profile.level, event.min_level);
+    if (belowLevel && !(await hasExperienceAnswers(admin, user.id))) {
+      return err(
+        `This trip needs ${event.min_level} level or above — you're ${profile.level}. Tell us your paddling experience and you can ask the leader.`,
+        403,
+      );
+    }
 
     // Aspirants (prospective members not yet matched to the paid list) get a
     // 3-event trial, then must join. A trial is used by a place they hold —
@@ -124,7 +141,7 @@ Deno.serve(async (req) => {
     const costPence = charge.pence;
     const isPaid = costPence > 0;
 
-    let routing = await decideRouting(admin, event, user.id);
+    let routing = belowLevel ? BELOW_LEVEL : await decideRouting(admin, event, user.id);
     // Resuming an approved seat skips review again. If the member picked a £0
     // tier this confirms them outright instead of bouncing back to review.
     // Capacity still wins: a seat that filled meanwhile gets the waitlist.
@@ -207,7 +224,7 @@ Deno.serve(async (req) => {
       await markFullIfAtCapacity(admin, event_id);
     }
 
-    await notifyLeader(admin, event, profile.full_name, signup.id, routing.status);
+    await notifyLeader(admin, event, profile, signup.id, routing.status, belowLevel);
 
     return ok({ signup, message: routing.message });
   } catch (e) {
@@ -276,6 +293,19 @@ async function loadExistingSignup(
     .eq('member_id', userId)
     .maybeSingle();
   return data;
+}
+
+/** True if the member has answered at least one experience question. */
+async function hasExperienceAnswers(admin: SupabaseClient, userId: string): Promise<boolean> {
+  const { data } = await admin
+    .from('member_private')
+    .select('experience_answers')
+    .eq('member_id', userId)
+    .maybeSingle();
+  const answers = (data?.experience_answers ?? null) as Record<string, unknown> | null;
+  return (
+    !!answers && Object.values(answers).some((v) => typeof v === 'string' && v.trim().length > 0)
+  );
 }
 
 /**
@@ -444,16 +474,24 @@ async function createCheckoutSession(
 async function notifyLeader(
   admin: SupabaseClient,
   event: EventRow,
-  memberFullName: string | null,
+  member: { full_name: string | null; level: string },
   signupId: string,
   targetStatus: string,
+  belowLevel: boolean,
 ): Promise<void> {
+  const memberName = member.full_name ?? 'A member';
   // pending_review needs the leader's action; confirmed is FYI.
-  const title = targetStatus === 'pending_review' ? 'New sign-up to review' : 'New sign-up';
-  const memberName = memberFullName ?? 'A member';
+  const title = belowLevel
+    ? 'Below-level request to review'
+    : targetStatus === 'pending_review'
+      ? 'New sign-up to review'
+      : 'New sign-up';
+  const body = belowLevel
+    ? `${memberName} (${member.level}) asked to join ${event.title}, which needs ${event.min_level}. Their paddling experience is in the review list.`
+    : `${memberName} signed up to ${event.title}`;
   await sendPush(admin, [event.leader_id], {
     title,
-    body: `${memberName} signed up to ${event.title}`,
+    body,
     data: { type: 'signup', event_id: event.id, signup_id: signupId, status: targetStatus },
   });
 }

@@ -25,7 +25,14 @@ import { formatDateTime, formatFullRange } from '@/lib/datetime';
 import { openKitChecklist, parseKitList } from '@/lib/kit-list';
 import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
-import { isCredibilityGrade, LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
+import { hasAnyAnswer } from '@/lib/experience';
+import {
+  isCredibilityGrade,
+  LEVEL_EMOJI,
+  LEVEL_LABEL,
+  LEVEL_RANK,
+  type ProgressionLevel,
+} from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
@@ -417,11 +424,25 @@ export default function EventDetailScreen() {
   if (event.status === 'draft') {
     primaryLabel = 'Not yet open';
   }
+  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
+
+  // Below the minimum level the member can still ask the leader, but only
+  // once they've told us their paddling experience — that's what the leader
+  // decides on. A leader-approved seat (pending payment) is past this.
+  const belowLevel =
+    !!profile &&
+    showFooterCta &&
+    !isPending &&
+    LEVEL_RANK[profile.level] < (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
+  const hasExperience = hasAnyAnswer(profile?.experience_answers);
+  const experienceHref = `/profile?editExperience=1&returnTo=${encodeURIComponent(`/event/${id}`)}`;
+  if (belowLevel && (event.status === 'open' || event.status === 'full')) {
+    primaryLabel = hasExperience ? 'Ask the leader' : 'Tell us your experience first';
+  }
+
   if (isPending) {
     primaryLabel = isLeaderApproved ? `Pay ${selectedMoney} to confirm` : `Pay ${selectedMoney}`;
   }
-
-  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
 
   // Credibility nudge: a serious grade (Sea B+, river G3+) is the moment to
   // invite an experienced joiner to establish their credentials. It's aimed at
@@ -432,6 +453,7 @@ export default function EventDetailScreen() {
     !isLeader &&
     !isAssistant &&
     !isConfirmed &&
+    !belowLevel &&
     !profile.experience_reviewed_at &&
     isCredibilityGrade(event.grade_advertised);
 
@@ -553,6 +575,35 @@ export default function EventDetailScreen() {
             ) : null}
           </Row>
         </View>
+
+        {/* ---------- Below the minimum level → ask the leader ---------- */}
+        {belowLevel && profile ? (
+          <Card
+            testID="event-below-level"
+            style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}
+          >
+            <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>
+              {`This trip is for ${LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? ''} ${
+                LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level
+              } and above`}
+            </Text>
+            <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
+              {hasExperience
+                ? `You're ${LEVEL_LABEL[profile.level]}, but you can still ask. The leader will see your paddling experience and decide.`
+                : `You're ${LEVEL_LABEL[profile.level]}. To ask the leader, first tell us your paddling experience. They'll read it and decide.`}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              testID="event-below-level-experience"
+              onPress={() => router.push(experienceHref as never)}
+              style={{ marginTop: 10, alignSelf: 'flex-start' }}
+            >
+              <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                {hasExperience ? 'Check or update your experience' : 'Tell us your experience'}
+              </Text>
+            </Pressable>
+          </Card>
+        ) : null}
 
         {/* ---------- Serious grade → invite an experienced joiner to vouch ---------- */}
         {needsCredibility ? (
@@ -952,7 +1003,13 @@ export default function EventDetailScreen() {
           <Pressable
             accessibilityRole="button"
             testID="event-primary-cta"
-            onPress={canSignUp ? handleSignUp : undefined}
+            onPress={
+              !canSignUp
+                ? undefined
+                : belowLevel && !hasExperience
+                  ? () => router.push(experienceHref as never)
+                  : handleSignUp
+            }
             disabled={!canSignUp}
             style={[
               styles.primaryBtn,
@@ -970,7 +1027,7 @@ export default function EventDetailScreen() {
           </Pressable>
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
-              {event.approval_mode === 'manual_all'
+              {event.approval_mode === 'manual_all' || belowLevel
                 ? `${selectedMoney} taken after the leader confirms your spot.`
                 : `Card payment of ${selectedMoney} taken on sign-up.`}
             </Text>
