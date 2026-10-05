@@ -26,7 +26,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { roleFlags, useAuth } from '@/lib/auth';
-import { writeFailure } from '@/lib/errors';
+import { readErrorMessage, writeFailure } from '@/lib/errors';
 import {
   cleanAnswers,
   EXPERIENCE_QUESTIONS,
@@ -316,6 +316,21 @@ export default function ProfileScreen() {
     await refreshProfile();
     setExpEditing(false);
     if (tripReturn && hasAnyAnswer(cleaned)) {
+      // Saving from a trip also sends the request, so the member can't save,
+      // land back on the trip and miss that there was a second step. Below
+      // the minimum level the server routes this to the leader's review
+      // queue, never to payment, so no return_url is needed.
+      setSavingExp(true);
+      const { error: signUpErr } = await supabase.functions.invoke('sign-up', {
+        body: { event_id: tripReturn.slice('/event/'.length) },
+      });
+      setSavingExp(false);
+      if (signUpErr) {
+        // Experience is saved; the trip's "Ask the leader" button can retry.
+        setError(await readErrorMessage(signUpErr));
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
       router.setParams({ returnTo: undefined });
       router.push(tripReturn as never);
     }
@@ -631,7 +646,7 @@ export default function ProfileScreen() {
               <>
                 <Text style={[styles.body, { color: palette.text, marginBottom: 12 }]}>
                   {tripReturn
-                    ? 'The trip leader will read this to decide whether to take you. The more specific and honest, the better — answer what applies, skip what doesn’t. Saving takes you back to the trip.'
+                    ? 'The trip leader will read this to decide whether to take you. The more specific and honest, the better — answer what applies, skip what doesn’t. Saving sends it to the leader and takes you back to the trip.'
                     : 'Help a coach set your starting level. The more specific and honest, the better — answer what applies, skip what doesn’t.'}
                 </Text>
                 {EXPERIENCE_QUESTIONS.map((q) => (
@@ -653,7 +668,9 @@ export default function ProfileScreen() {
                     disabled={savingExp}
                     style={[styles.primaryBtn, savingExp && { opacity: 0.6 }]}
                   >
-                    <Text style={styles.primaryBtnText}>{savingExp ? 'Saving…' : 'Save'}</Text>
+                    <Text style={styles.primaryBtnText}>
+                      {savingExp ? 'Saving…' : tripReturn ? 'Save and ask the leader' : 'Save'}
+                    </Text>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
