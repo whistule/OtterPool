@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       signup.checkout_session_id &&
       !(await expireCheckout(signup.checkout_session_id))
     ) {
-      return err('They have just paid, so their place is confirmed. Refresh to see it.', 409);
+      return err('Payment has just gone through, so the place is confirmed. Refresh to see it.', 409);
     }
 
     const { error: updateErr } = await admin
