@@ -396,6 +396,9 @@ export default function EventDetailScreen() {
   // A withdrawn row is the member's own cancellation — the sign-up function
   // will reuse it, so treat it as if they had never signed up.
   const isWithdrawn = signup?.status === 'withdrawn';
+  // A seat opened while they were waitlisted. Paid events don't promote
+  // automatically, so signing up again is how the member claims it.
+  const canClaim = signup?.status === 'waitlisted' && event.status === 'open';
 
   const statusInfo = signup
     ? isLeaderApproved
@@ -407,7 +410,7 @@ export default function EventDetailScreen() {
     : null;
 
   const canSignUp =
-    (!signup || isPending || isWithdrawn) &&
+    (!signup || isPending || isWithdrawn || canClaim) &&
     !busy &&
     (event.status === 'open' || event.status === 'full');
 
@@ -424,7 +427,8 @@ export default function EventDetailScreen() {
   if (event.status === 'draft') {
     primaryLabel = 'Not yet open';
   }
-  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
+  const showFooterCta =
+    !isLeader && !isAssistant && (!signup || isPending || isWithdrawn || canClaim);
 
   // Below the minimum level the member can still ask the leader, but only
   // once they've told us their paddling experience — that's what the leader
@@ -433,6 +437,7 @@ export default function EventDetailScreen() {
     !!profile &&
     showFooterCta &&
     !isPending &&
+    !canClaim &&
     LEVEL_RANK[profile.level] < (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
   const hasExperience = hasAnyAnswer(profile?.experience_answers);
   const experienceHref = `/profile?editExperience=1&returnTo=${encodeURIComponent(`/event/${id}`)}`;
@@ -440,6 +445,9 @@ export default function EventDetailScreen() {
     primaryLabel = hasExperience ? 'Ask the leader' : 'Tell us your experience first';
   }
 
+  if (canClaim) {
+    primaryLabel = 'Claim your seat';
+  }
   if (isPending) {
     primaryLabel = isLeaderApproved ? `Pay ${selectedMoney} to confirm` : `Pay ${selectedMoney}`;
   }
