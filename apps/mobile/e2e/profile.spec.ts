@@ -90,6 +90,6 @@ test.describe('profile — settings & info links', () => {
     await page.locator('[data-testid="profile-level-pill"]:visible').click();
     await expect(page).toHaveURL(/\/levels$/);
     // Opens scrolled to the member's own level, not the intro.
-    await expect(page.getByText('Your level').first()).toBeInViewport();
+    await expect(page.locator('[data-testid="levels-your-level"]')).toBeInViewport();
   });
 });

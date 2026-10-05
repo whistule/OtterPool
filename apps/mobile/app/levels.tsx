@@ -301,7 +301,10 @@ export default function LevelsScreen() {
                     <Row style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Text style={[styles.name, { color: palette.text }]}>{lv.name}</Text>
                       {isMine ? (
-                        <Text style={[styles.badge, { backgroundColor: OtterPalette.forest }]}>
+                        <Text
+                          testID="levels-your-level"
+                          style={[styles.badge, { backgroundColor: OtterPalette.forest }]}
+                        >
                           Your level
                         </Text>
                       ) : null}
