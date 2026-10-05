@@ -16,6 +16,10 @@
     PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
     PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+    # `expo start --web` spawns $BROWSER (or xdg-open) and dies if it's
+    # missing, which it is on headless hosts. "none" makes Expo skip it;
+    # open the printed URL yourself.
+    BROWSER = "none";
   };
 
   enterShell = ''
@@ -33,7 +37,9 @@
     pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/test.yml
     pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/deploy-web.yml
     pin biome "@biomejs/biome@${pkgs.biome.version}" .github/workflows/test.yml
+    pin node "node-version: ${pkgs.nodejs_24.version}" .github/workflows/e2e.yml
     pin supabase "version: ${pkgs.supabase-cli.version}" .github/workflows/deploy-supabase.yml
+    pin supabase "version: ${pkgs.supabase-cli.version}" .github/workflows/e2e.yml
     pin playwright '"@playwright/test": "${pkgs.playwright-driver.version}"' apps/mobile/package.json
   '';
 }

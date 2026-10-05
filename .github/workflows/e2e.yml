@@ -1,0 +1,69 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/mobile/**', 'supabase/**', '.github/workflows/e2e.yml']
+  pull_request:
+    paths: ['apps/mobile/**', 'supabase/**', '.github/workflows/e2e.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  # Playwright against a throwaway `supabase start` stack on the runner, so
+  # seeding with the service-role key never touches a hosted project.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # Same pins as test.yml / deploy-supabase.yml, bump with devenv.
+          node-version: 24.20.0
+          cache: npm
+          cache-dependency-path: |
+            apps/mobile/package-lock.json
+            supabase/package-lock.json
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.111.0
+
+      - name: Start Supabase
+        run: supabase start
+      # Same files dev-local.sh writes, but on 127.0.0.1 since the browser runs
+      # on the runner too.
+      - name: Write local env
+        run: |
+          eval "$(supabase status -o env)"
+          printf 'EXPO_PUBLIC_SUPABASE_URL=%s\nEXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$API_URL" "$ANON_KEY" > apps/mobile/.env.local
+          printf "export const SUPABASE_URL = '%s';\nexport const SUPABASE_SERVICE_ROLE_KEY = '%s';\n" "$API_URL" "$SERVICE_ROLE_KEY" > supabase/config.secret.js
+
+      - run: npm ci
+        working-directory: supabase
+      - run: npm ci
+        working-directory: apps/mobile
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/mobile
+
+      # pretest:e2e seeds the fixtures, Playwright starts Expo itself.
+      - run: npm run test:e2e
+        working-directory: apps/mobile
+
+      # Screenshots specs take on purpose (test-results/screens/), kept on
+      # success too so a flow can be reviewed without running it locally.
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: apps/mobile/test-results/screens/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-test-results
+          path: apps/mobile/test-results/
+          retention-days: 7

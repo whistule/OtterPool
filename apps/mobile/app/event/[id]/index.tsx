@@ -22,9 +22,17 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
+import { openKitChecklist, parseKitList } from '@/lib/kit-list';
 import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
 import { cancelEventReminder, scheduleEventReminder } from '@/lib/notifications';
-import { isCredibilityGrade, LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
+import { hasAnyAnswer } from '@/lib/experience';
+import {
+  isCredibilityGrade,
+  LEVEL_EMOJI,
+  LEVEL_LABEL,
+  LEVEL_RANK,
+  type ProgressionLevel,
+} from '@/lib/progress';
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
@@ -416,11 +424,25 @@ export default function EventDetailScreen() {
   if (event.status === 'draft') {
     primaryLabel = 'Not yet open';
   }
+  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
+
+  // Below the minimum level the member can still ask the leader, but only
+  // once they've told us their paddling experience — that's what the leader
+  // decides on. A leader-approved seat (pending payment) is past this.
+  const belowLevel =
+    !!profile &&
+    showFooterCta &&
+    !isPending &&
+    LEVEL_RANK[profile.level] < (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
+  const hasExperience = hasAnyAnswer(profile?.experience_answers);
+  const experienceHref = `/profile?editExperience=1&returnTo=${encodeURIComponent(`/event/${id}`)}`;
+  if (belowLevel && (event.status === 'open' || event.status === 'full')) {
+    primaryLabel = hasExperience ? 'Ask the leader' : 'Tell us your experience first';
+  }
+
   if (isPending) {
     primaryLabel = isLeaderApproved ? `Pay ${selectedMoney} to confirm` : `Pay ${selectedMoney}`;
   }
-
-  const showFooterCta = !isLeader && !isAssistant && (!signup || isPending || isWithdrawn);
 
   // Credibility nudge: a serious grade (Sea B+, river G3+) is the moment to
   // invite an experienced joiner to establish their credentials. It's aimed at
@@ -431,6 +453,7 @@ export default function EventDetailScreen() {
     !isLeader &&
     !isAssistant &&
     !isConfirmed &&
+    !belowLevel &&
     !profile.experience_reviewed_at &&
     isCredibilityGrade(event.grade_advertised);
 
@@ -519,27 +542,68 @@ export default function EventDetailScreen() {
         </View>
 
         {/* ---------- Pills row under hero ---------- */}
-        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
-          <Row style={{ flexWrap: 'wrap', gap: 6 }}>
+        <View style={styles.pillsWrap}>
+          <Row style={{ flexWrap: 'wrap', gap: 8 }}>
             {event.grade_advertised ? (
-              <Pill label={event.grade_advertised} color={OtterPalette.slateNavy} />
+              <Pill
+                label={event.grade_advertised}
+                color={OtterPalette.slateNavy}
+                style={styles.infoPill}
+                textStyle={styles.infoPillText}
+              />
             ) : null}
             <Pill
               label={`${levelEmoji} ${event.min_level} min`}
               color="#e3e1dc"
-              textStyle={{ color: '#2a2f33' }}
+              style={styles.infoPill}
+              textStyle={[styles.infoPillText, { color: '#2a2f33' }]}
             />
             <Pill
               label={isPaid ? costPillLabel : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
+              style={styles.infoPill}
+              textStyle={styles.infoPillText}
             />
-            <Pill
-              label={event.approval_mode === 'manual_all' ? 'Manual review' : 'Auto-approve'}
-              color={palette.surface}
-              textStyle={{ color: palette.text }}
-            />
+            {/* Approval mode is a leader setting — members don't need to see it. */}
+            {canEdit ? (
+              <Pill
+                label={event.approval_mode === 'manual_all' ? 'Manual review' : 'Auto-approve'}
+                color={palette.surface}
+                style={styles.infoPill}
+                textStyle={[styles.infoPillText, { color: palette.text }]}
+              />
+            ) : null}
           </Row>
         </View>
+
+        {/* ---------- Below the minimum level → ask the leader ---------- */}
+        {belowLevel && profile ? (
+          <Card
+            testID="event-below-level"
+            style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}
+          >
+            <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>
+              {`This trip is for ${LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? ''} ${
+                LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level
+              } and above`}
+            </Text>
+            <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
+              {hasExperience
+                ? `You're ${LEVEL_LABEL[profile.level]}, but you can still ask. The leader will see your paddling experience and decide.`
+                : `You're ${LEVEL_LABEL[profile.level]}. To ask the leader, first tell us your paddling experience. They'll read it and decide.`}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              testID="event-below-level-experience"
+              onPress={() => router.push(experienceHref as never)}
+              style={{ marginTop: 10, alignSelf: 'flex-start' }}
+            >
+              <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                {hasExperience ? 'Check or update your experience' : 'Tell us your experience'}
+              </Text>
+            </Pressable>
+          </Card>
+        ) : null}
 
         {/* ---------- Serious grade → invite an experienced joiner to vouch ---------- */}
         {needsCredibility ? (
@@ -641,63 +705,85 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
-        {/* ---------- Leader(s) ---------- */}
+        {/* ---------- Description ---------- */}
+        {event.description ? (
+          <>
+            <SectionTitle>Description</SectionTitle>
+            <Card>
+              <Text style={[styles.description, { color: palette.text }]}>{event.description}</Text>
+            </Card>
+          </>
+        ) : null}
+
+        {/* ---------- Leader(s) — leader and assistant share one row ---------- */}
         <SectionTitle>{event.assistant_id ? 'Leaders' : 'Leader'}</SectionTitle>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push(`/profile/${event.leader_id}`)}
-        >
-          <Card>
-            <Row style={{ gap: 12 }}>
-              <Avatar
-                path={event.leader?.avatar_path ?? null}
-                size={44}
-                fallback={
-                  event.leader?.level
-                    ? LEVEL_EMOJI[event.leader.level as ProgressionLevel]
-                    : undefined
-                }
-              />
-              <View>
-                <Text style={[styles.value, { color: palette.text }]}>{leaderName}</Text>
-                {event.leader?.level ? (
-                  <Text style={[styles.muted, { color: palette.muted }]}>
-                    {LEVEL_EMOJI[event.leader.level as ProgressionLevel] ?? ''} {event.leader.level}
-                  </Text>
-                ) : null}
-              </View>
-            </Row>
-          </Card>
-        </Pressable>
-        {event.assistant_id ? (
+        <View style={styles.leaderRow}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push(`/profile/${event.assistant_id}`)}
+            onPress={() => router.push(`/profile/${event.leader_id}`)}
+            style={styles.leaderCell}
           >
-            <Card>
-              <Row style={{ gap: 12 }}>
+            <Card style={styles.leaderCard}>
+              <Row style={{ gap: 10 }}>
                 <Avatar
-                  path={event.assistant?.avatar_path ?? null}
-                  size={44}
+                  path={event.leader?.avatar_path ?? null}
+                  size={40}
                   fallback={
-                    event.assistant?.level
-                      ? LEVEL_EMOJI[event.assistant.level as ProgressionLevel]
+                    event.leader?.level
+                      ? LEVEL_EMOJI[event.leader.level as ProgressionLevel]
                       : undefined
                   }
                 />
-                <View>
-                  <Text style={[styles.value, { color: palette.text }]}>{assistantName}</Text>
-                  <Text style={[styles.muted, { color: palette.muted }]}>
-                    Assistant leader
-                    {event.assistant?.level
-                      ? ` · ${LEVEL_EMOJI[event.assistant.level as ProgressionLevel] ?? ''} ${event.assistant.level}`
-                      : ''}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.value, { color: palette.text }]} numberOfLines={1}>
+                    {leaderName}
                   </Text>
+                  {event.leader?.level ? (
+                    <Text style={[styles.muted, { color: palette.muted }]} numberOfLines={1}>
+                      {LEVEL_EMOJI[event.leader.level as ProgressionLevel] ?? ''}{' '}
+                      {event.leader.level}
+                    </Text>
+                  ) : null}
                 </View>
               </Row>
             </Card>
           </Pressable>
-        ) : null}
+          {event.assistant_id ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/profile/${event.assistant_id}`)}
+              style={styles.leaderCell}
+            >
+              <Card style={styles.leaderCard}>
+                <Row style={{ gap: 10 }}>
+                  <Avatar
+                    path={event.assistant?.avatar_path ?? null}
+                    size={40}
+                    fallback={
+                      event.assistant?.level
+                        ? LEVEL_EMOJI[event.assistant.level as ProgressionLevel]
+                        : undefined
+                    }
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.value, { color: palette.text }]} numberOfLines={1}>
+                      {assistantName}
+                    </Text>
+                    <Text style={[styles.muted, { color: palette.muted }]} numberOfLines={1}>
+                      Assistant
+                      {event.assistant?.level
+                        ? ` · ${LEVEL_EMOJI[event.assistant.level as ProgressionLevel] ?? ''} ${event.assistant.level}`
+                        : ''}
+                    </Text>
+                  </View>
+                </Row>
+              </Card>
+            </Pressable>
+          ) : (
+            // Keeps a lone leader at half width, so the card doesn't stretch.
+            <View style={styles.leaderCell} />
+          )}
+        </View>
 
         {/* ---------- Going ---------- */}
         <SectionTitle>
@@ -741,43 +827,55 @@ export default function EventDetailScreen() {
           })
         )}
 
-        {/* ---------- Description ---------- */}
-        {event.description ? (
-          <>
-            <SectionTitle>Description</SectionTitle>
-            <Card>
-              <Text style={[styles.body, { color: palette.text }]}>{event.description}</Text>
-            </Card>
-          </>
-        ) : null}
-
         {/* ---------- What to bring ---------- */}
         {event.what_to_bring ? (
           <>
             <SectionTitle>What to bring</SectionTitle>
             <Card>
-              {event.what_to_bring
-                .split('\n')
-                .map((line) => line.trim())
-                .filter((line) => line.length > 0)
-                .map((line, i) => {
-                  const isHeading = line.endsWith(':');
-                  return (
+              {parseKitList(event.what_to_bring).map((sec, si) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: sections of static text
+                <View key={si} style={{ marginTop: si === 0 ? 0 : 16 }}>
+                  {sec.heading ? (
                     <Text
-                      // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs of static text
-                      key={i}
-                      style={[
-                        isHeading ? styles.value : styles.body,
-                        {
-                          color: isHeading ? OtterPalette.slateNavy : palette.text,
-                          marginTop: i === 0 ? 0 : isHeading ? 12 : 4,
-                        },
-                      ]}
+                      style={[styles.value, { color: OtterPalette.slateNavy, marginBottom: 4 }]}
                     >
-                      {isHeading ? line : `•  ${line}`}
+                      {sec.heading}
                     </Text>
-                  );
-                })}
+                  ) : null}
+                  {sec.items.map((item, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: lines of static text
+                    <Row key={i} style={styles.kitItem}>
+                      <View style={[styles.kitBox, { borderColor: palette.muted }]} />
+                      <Text style={[styles.body, { color: palette.text, flex: 1 }]}>{item}</Text>
+                    </Row>
+                  ))}
+                  {sec.notes.map((note, i) => (
+                    <Text
+                      // biome-ignore lint/suspicious/noArrayIndexKey: lines of static text
+                      key={i}
+                      style={[styles.muted, styles.kitNote, { color: palette.muted }]}
+                    >
+                      {note}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+              <Pressable
+                accessibilityRole="button"
+                testID="event-kit-checklist"
+                onPress={() =>
+                  openKitChecklist(
+                    event.title,
+                    formatFullRange(event.starts_at, event.ends_at),
+                    event.what_to_bring ?? '',
+                  ).catch((e) => console.warn('[kit] checklist failed:', e))
+                }
+                style={{ marginTop: 16, alignSelf: 'flex-start' }}
+              >
+                <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  ⬇ Download checklist (print or save as PDF)
+                </Text>
+              </Pressable>
             </Card>
           </>
         ) : null}
@@ -905,7 +1003,13 @@ export default function EventDetailScreen() {
           <Pressable
             accessibilityRole="button"
             testID="event-primary-cta"
-            onPress={canSignUp ? handleSignUp : undefined}
+            onPress={
+              !canSignUp
+                ? undefined
+                : belowLevel && !hasExperience
+                  ? () => router.push(experienceHref as never)
+                  : handleSignUp
+            }
             disabled={!canSignUp}
             style={[
               styles.primaryBtn,
@@ -923,7 +1027,7 @@ export default function EventDetailScreen() {
           </Pressable>
           {isPaid && !isPending ? (
             <Text style={[styles.payNote, { color: palette.muted }]}>
-              {event.approval_mode === 'manual_all'
+              {event.approval_mode === 'manual_all' || belowLevel
                 ? `${selectedMoney} taken after the leader confirms your spot.`
                 : `Card payment of ${selectedMoney} taken on sign-up.`}
             </Text>
@@ -998,6 +1102,20 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, fontWeight: '600' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
+  description: { fontSize: 17, lineHeight: 25 },
+  pillsWrap: { paddingHorizontal: 16, marginTop: 18, marginBottom: 8 },
+  infoPill: { paddingHorizontal: 14, paddingVertical: 8 },
+  infoPillText: { fontSize: 14 },
+  kitItem: { alignItems: 'flex-start', gap: 10, paddingVertical: 3 },
+  kitBox: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, marginTop: 3 },
+  kitNote: { fontStyle: 'italic', marginTop: 6 },
+  leaderRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+  },
+  leaderCell: { flex: 1 },
+  leaderCard: { marginHorizontal: 0, flex: 1 },
   linkText: {
     textDecorationLine: 'underline',
   },

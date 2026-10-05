@@ -7,12 +7,22 @@
 // payment data, make that assumption explicit and fail loudly instead.
 //
 // Dev is the Ireland project; production is cunkkdbfylimkktwgfle (London).
+// A local `supabase start` stack is also fine, it's throwaway.
 const DEV_PROJECT_REF = 'fguutbhbzradrdyrxixg';
+const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
+
+function isLocal(url) {
+  try {
+    return LOCAL_HOSTS.includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
 
 export function assertDevProject(url) {
-  if (typeof url !== 'string' || !url.includes(DEV_PROJECT_REF)) {
+  if (typeof url !== 'string' || !(url.includes(DEV_PROJECT_REF) || isLocal(url))) {
     throw new Error(
-      `Refusing to run: expected the dev project (${DEV_PROJECT_REF}) but config.secret.js ` +
+      `Refusing to run: expected the dev project (${DEV_PROJECT_REF}) or a local stack but config.secret.js ` +
         `points at "${url}".\n` +
         'These scripts create test users and delete fixture events with the service role key. ' +
         'Never point them at production.',

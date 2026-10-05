@@ -203,7 +203,8 @@ export default function ResetPasswordScreen() {
     >
       <PageTitle title="Reset password" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        // Cap the column so the card isn't stretched across a desktop browser.
+        style={{ flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>

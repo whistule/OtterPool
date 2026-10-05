@@ -17,6 +17,14 @@ async function signIn(page: Page, email: string) {
   await page.waitForURL((url) => !url.pathname.includes('sign-in'), { timeout: 20_000 });
 }
 
+// Create is a four-step wizard (What / When / Who / Logistics), edit shows
+// every section at once.
+async function step(page: Page, dir: 'next' | 'back', times = 1) {
+  for (let i = 0; i < times; i++) {
+    await page.locator(`[data-testid="event-step-${dir}"]:visible`).click();
+  }
+}
+
 async function startNewEvent(page: Page, title: string) {
   await page.locator('[data-testid="calendar-create-event"]:visible').click();
   await page.waitForURL(/\/event\/new/, { timeout: 15_000 });
@@ -35,10 +43,12 @@ test.describe('event extras — leader', () => {
     await startNewEvent(page, title);
 
     // Switch to multi-day and set an explicit start + end on different days.
+    await step(page, 'next');
     await page.locator('[data-testid="event-multiday-on"]:visible').click();
     const dts = page.locator('input[type="datetime-local"]:visible');
     await dts.nth(0).fill('2027-03-15T10:00');
     await dts.nth(1).fill('2027-03-16T14:00');
+    await step(page, 'next', 2);
 
     await page.locator('[data-testid="event-create-submit"]:visible').click();
     await page.waitForURL(/\/event\/[0-9a-f-]{36}/, { timeout: 15_000 });
@@ -52,6 +62,7 @@ test.describe('event extras — leader', () => {
     const title = `[E2E] MeetPoints ${Date.now()}`;
     await startNewEvent(page, title);
 
+    await step(page, 'next', 3);
     await page
       .locator('input[placeholder^="e.g. Club container"]:visible')
       .fill('Balloch container');
@@ -73,8 +84,10 @@ test.describe('event extras — leader', () => {
   test('fuzzily suggests a reusable photo despite a typo in the put-in', async ({ page }) => {
     await startNewEvent(page, `[E2E] PhotoSuggest ${Date.now()}`);
     // Typo of the seeded "E2E Put In Spot" — trigram similarity should still
-    // surface its photo.
+    // surface its photo. The put-in is on Logistics, the suggestions on What.
+    await step(page, 'next', 3);
     await page.locator('input[placeholder^="e.g. Loch Ard"]:visible').fill('E2E Put In Spt');
+    await step(page, 'back', 3);
     await expect(page.locator('[data-testid^="photo-suggestion-"]').first()).toBeAttached({
       timeout: 15_000,
     });

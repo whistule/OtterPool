@@ -7,6 +7,24 @@
 -- trigger has fired for each test account.
 -- ============================================================
 
+-- Local stack only (`supabase start` / `db reset`, `db push` never runs this).
+-- The hosted projects predate Supabase's newer Postgres images, whose default
+-- privileges no longer grant table access to authenticated / service_role, so
+-- on a fresh local stack every query failed with "permission denied". Restore
+-- the old defaults on base tables, sequences and functions. Views are left
+-- alone, the migrations grant those explicitly and narrow two on purpose.
+do $$
+declare t regclass;
+begin
+  for t in select c.oid::regclass from pg_class c
+           where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')
+  loop
+    execute format('grant all on %s to authenticated, service_role', t);
+  end loop;
+end $$;
+grant all on all sequences in schema public to authenticated, service_role;
+grant execute on all functions in schema public to authenticated, service_role;
+
 -- Step 1: Update the auto-created profiles with dummy data.
 -- Create these users first via Supabase Auth (dashboard or API):
 --   leader@test.com, member1@test.com, member2@test.com, member3@test.com

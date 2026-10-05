@@ -23,6 +23,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Supabase can't tell "wrong password" from "no account", so point at sign-up either way.
+  const [badCredentials, setBadCredentials] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
@@ -30,6 +32,7 @@ export default function SignInScreen() {
     // trimmed address — without this a stray space makes a real account look
     // like bad credentials here and nowhere else.
     const trimmedEmail = email.trim();
+    setBadCredentials(false);
     if (!trimmedEmail || !password) {
       setError('Email and password are required');
       return;
@@ -41,7 +44,10 @@ export default function SignInScreen() {
       password,
     });
     setBusy(false);
-    if (error) {
+    if (error?.code === 'invalid_credentials') {
+      setBadCredentials(true);
+      setError('Wrong email or password.');
+    } else if (error) {
       setError(error.message);
     }
   };
@@ -53,7 +59,8 @@ export default function SignInScreen() {
     >
       <PageTitle title="Sign in" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        // Cap the column so the card isn't stretched across a desktop browser.
+        style={{ flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
@@ -63,7 +70,9 @@ export default function SignInScreen() {
           >
             OtterPool
           </Text>
-          <Text style={[styles.tag, { color: palette.muted }]}>DCKC</Text>
+          <Text style={[styles.tag, { color: palette.muted }]}>
+            Sign up for DCKC trips and events! 🙂
+          </Text>
         </View>
 
         <View
@@ -111,9 +120,27 @@ export default function SignInScreen() {
             style={[styles.input, { color: palette.text, borderColor: palette.border }]}
           />
 
+          <Link href="/forgot-password" asChild>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
+              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </Link>
+
           {error ? (
             <Text accessibilityRole="alert" style={[styles.error, { color: OtterPalette.ice }]}>
               {error}
+              {badCredentials ? (
+                <>
+                  {' '}
+                  New to OtterPool?{' '}
+                  <Link href="/sign-up" style={styles.errorLink}>
+                    Create an account
+                  </Link>{' '}
+                  first.
+                </>
+              ) : null}
             </Text>
           ) : null}
 
@@ -133,25 +160,24 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
-          <Link href="/sign-up" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.secondaryBtn}>
-              <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
-                Create account
-              </Text>
-            </Pressable>
-          </Link>
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Text style={[styles.newHead, { color: palette.text }]}>New to OtterPool?</Text>
 
-          <Link href="/forgot-password" asChild>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.tertiaryBtn}>
-              <Text style={[styles.tertiaryBtnText, { color: palette.muted }]}>
-                Forgot password?
-              </Text>
+          <Link href="/sign-up" asChild>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              // Link asChild throws on a style array, so hand it one object.
+              // tint rather than slateNavy: navy on the dark card is unreadable.
+              style={StyleSheet.flatten([styles.secondaryBtn, { borderColor: palette.tint }])}
+            >
+              <Text style={[styles.secondaryBtnText, { color: palette.tint }]}>Create account</Text>
             </Pressable>
           </Link>
         </View>
 
         <Text style={[styles.footer, { color: palette.muted }]}>
-          DCKC members only · Aspirants get 3 trial sessions
+          New paddlers welcome · aspirants get 3 trial sessions before joining DCKC
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -166,7 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   wordmark: { fontSize: 38, fontWeight: '700', letterSpacing: -0.5, fontStyle: 'italic' },
-  tag: { fontSize: 13, marginTop: 4, letterSpacing: 1.5 },
+  tag: { fontSize: 14, marginTop: 6, letterSpacing: 0.2, textAlign: 'center' },
   card: {
     marginHorizontal: 20,
     padding: 20,
@@ -188,20 +214,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   error: { fontSize: 13, marginTop: 12, fontWeight: '500' },
+  errorLink: { fontWeight: '700', textDecorationLine: 'underline' },
   primaryBtn: {
-    marginTop: 20,
+    marginTop: 14,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   secondaryBtn: {
-    marginTop: 10,
-    paddingVertical: 12,
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: 'center',
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '600' },
-  tertiaryBtn: { marginTop: 4, paddingVertical: 8, alignItems: 'center' },
+  secondaryBtnText: { fontSize: 15, fontWeight: '700' },
+  tertiaryBtn: { alignSelf: 'flex-end', marginTop: 4, paddingVertical: 6 },
+  divider: { height: 1, marginVertical: 20 },
+  newHead: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
   tertiaryBtnText: { fontSize: 13, fontWeight: '500' },
   footer: {
     textAlign: 'center',
