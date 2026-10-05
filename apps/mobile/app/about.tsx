@@ -58,7 +58,7 @@ const PRIVACY: { heading: string; body: string }[] = [
   },
   {
     heading: 'How long we keep it',
-    body: 'While you’re a member. If your membership lapses, your account is deleted two years after it ends. If you made an account but never joined, it’s deleted a year after you last used the app. Payment records are kept for six years for the club’s accounts.',
+    body: 'While you’re a member. If your membership lapses, your account is deleted two years after it ends. If you made an account but never joined, it’s deleted a year after you last signed in or signed up to a trip. Payment records are kept for six years for the club’s accounts.',
   },
   {
     heading: 'Your rights',
@@ -79,7 +79,12 @@ export default function AboutScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <PageTitle title="About" />
-      <Header onBack={() => router.back()} title="About" />
+      <Header
+        // Signed out and opened directly (a shared link, a web refresh) there's
+        // no history; '/' bounces to sign-in.
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        title="About"
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <Card>
           <Text style={[styles.appName, { color: palette.text }]}>OtterPool 🦦</Text>

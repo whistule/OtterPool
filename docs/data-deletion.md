@@ -39,18 +39,26 @@ What's left afterwards, on purpose:
 ## Yearly sweep
 
 The notice says lapsed members are deleted two years after their membership
-ends, and people who never joined a year after they last used the app. Once a
-year, list the candidates and delete each one as above:
+ends, and people who never joined a year after they last signed in or signed
+up to a trip. `last_sign_in_at` alone isn't enough, since staying signed in on
+a phone never updates it. Once a year, list the candidates and delete each one
+as above:
 
 ```sql
-select u.id, u.email, vm.expires_on, u.last_sign_in_at
+select u.id, u.email, vm.expires_on, last_active
 from auth.users u
 join public.profiles p on p.id = u.id
 left join public.verified_members vm on vm.email_norm = lower(trim(u.email))
+cross join lateral (
+  select greatest(
+    coalesce(u.last_sign_in_at, u.created_at),
+    (select max(s.signed_up_at) from public.event_signups s where s.member_id = u.id)
+  ) as last_active
+) a
 where p.status_override is null
   and (
     vm.expires_on < now() - interval '2 years'
-    or (vm.email_norm is null and coalesce(u.last_sign_in_at, u.created_at) < now() - interval '1 year')
+    or (vm.email_norm is null and last_active < now() - interval '1 year')
   );
 ```
 
