@@ -149,7 +149,7 @@ export function JourneyLadder({ level }: { level: ProgressionLevel }) {
               </Text>
               <Text style={[styles.journeySub, { color: palette.muted }]}>{sub}</Text>
             </View>
-            {done ? <Text style={[styles.tick, { color: OtterPalette.forest }]}>✓</Text> : null}
+            {done ? <Text style={[styles.tick, { color: palette.success }]}>✓</Text> : null}
             {current ? <Pill label="Now" color={OtterPalette.slateNavy} /> : null}
           </Row>
         );

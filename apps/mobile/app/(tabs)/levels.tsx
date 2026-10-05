@@ -250,16 +250,14 @@ export default function LevelsScreen() {
           testID="levels-experience-cta"
         >
           <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
-            <Text style={[styles.ctaTitle, { color: OtterPalette.forest }]}>
+            <Text style={[styles.ctaTitle, { color: palette.success }]}>
               Paddled a while already?
             </Text>
             <Text style={[styles.ctaBody, { color: palette.text }]}>
               If you've been paddling a while and would like to tell us about it to help us
               establish your level, you can do that on your profile.
             </Text>
-            <Text style={[styles.ctaLink, { color: OtterPalette.slateNavy }]}>
-              Tell us your experience ›
-            </Text>
+            <Text style={[styles.ctaLink, { color: palette.link }]}>Tell us your experience ›</Text>
           </Card>
         </Pressable>
 
@@ -352,7 +350,7 @@ export default function LevelsScreen() {
                     ))}
 
                     <View style={[styles.advance, { backgroundColor: palette.surface }]}>
-                      <Text style={[styles.advanceLabel, { color: OtterPalette.forest }]}>
+                      <Text style={[styles.advanceLabel, { color: palette.success }]}>
                         {lv.advanceLabel}
                       </Text>
                       <Text style={[styles.body, { color: palette.text, marginTop: 4 }]}>

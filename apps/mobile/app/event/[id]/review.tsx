@@ -252,8 +252,8 @@ export default function ReviewSignupsScreen() {
           {s.member?.level ? (
             <Pill
               label={`${levelEmoji} ${s.member.level}`}
-              color="#e3e1dc"
-              textStyle={{ color: '#2a2f33' }}
+              color={palette.placeholder}
+              textStyle={{ color: palette.text }}
             />
           ) : null}
           {statusInfo ? <Pill label={statusInfo.shortLabel} color={statusInfo.color} /> : null}

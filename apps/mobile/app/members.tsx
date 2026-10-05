@@ -92,7 +92,12 @@ export default function MembersScreen() {
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <PageTitle title="Members" />
       <Header onBack={() => router.back()} title="Members" />
-      <View style={[styles.searchWrap, { borderColor: palette.border }]}>
+      <View
+        style={[
+          styles.searchWrap,
+          { borderColor: palette.border, backgroundColor: palette.surface },
+        ]}
+      >
         <TextInput
           accessibilityLabel="Search members"
           value={query}
@@ -109,9 +114,9 @@ export default function MembersScreen() {
           accessibilityRole="button"
           testID="members-import-link"
           onPress={() => router.push('/membership-import')}
-          style={[styles.importBtn, { borderColor: OtterPalette.slateNavy }]}
+          style={[styles.importBtn, { borderColor: palette.link }]}
         >
-          <Text style={[styles.importBtnText, { color: OtterPalette.slateNavy }]}>
+          <Text style={[styles.importBtnText, { color: palette.link }]}>
             ⬆ Import members from MemberMojo
           </Text>
         </Pressable>
@@ -167,7 +172,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    backgroundColor: '#ffffff',
   },
   importBtn: {
     marginHorizontal: 12,

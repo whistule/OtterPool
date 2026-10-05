@@ -20,6 +20,7 @@ export function DateStrip({
   onSelect,
   mutedColor,
   textColor,
+  todayColor,
   borderColor,
   background,
 }: {
@@ -28,6 +29,7 @@ export function DateStrip({
   onSelect: (key: string | null) => void;
   mutedColor: string;
   textColor: string;
+  todayColor: string;
   borderColor: string;
   background: string;
 }) {
@@ -51,7 +53,7 @@ export function DateStrip({
               styles.cell,
               {
                 backgroundColor: on ? OtterPalette.forest : 'transparent',
-                borderColor: d.isToday && !on ? OtterPalette.forest : 'transparent',
+                borderColor: d.isToday && !on ? todayColor : 'transparent',
               },
             ]}
           >
@@ -62,7 +64,7 @@ export function DateStrip({
               style={[
                 styles.num,
                 {
-                  color: on ? '#fff' : d.isToday ? OtterPalette.forest : textColor,
+                  color: on ? '#fff' : d.isToday ? todayColor : textColor,
                   fontWeight: d.isToday || on ? '800' : '600',
                 },
               ]}

@@ -166,9 +166,9 @@ export default function MembershipImportScreen() {
               accessibilityRole="button"
               testID="membership-import-choose-file"
               onPress={pickFile}
-              style={[styles.chooseBtn, { borderColor: OtterPalette.slateNavy }]}
+              style={[styles.chooseBtn, { borderColor: palette.link }]}
             >
-              <Text style={[styles.chooseBtnText, { color: OtterPalette.slateNavy }]}>
+              <Text style={[styles.chooseBtnText, { color: palette.link }]}>
                 ⬆ Choose CSV file…
               </Text>
             </Pressable>
@@ -232,9 +232,7 @@ export default function MembershipImportScreen() {
 
         {summary ? (
           <Card style={{ borderWidth: 1.5, borderColor: OtterPalette.forest }}>
-            <Text style={[styles.summaryTitle, { color: OtterPalette.forest }]}>
-              Import complete
-            </Text>
+            <Text style={[styles.summaryTitle, { color: palette.success }]}>Import complete</Text>
             <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
               {summary.added} new · {summary.updated} updated
               {summary.already_expired > 0

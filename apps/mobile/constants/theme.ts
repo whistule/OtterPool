@@ -20,6 +20,9 @@ export const Colors = {
     border: '#e3e1dc',
     muted: '#6b7178',
     accent: burntOrange,
+    link: slateNavy,
+    success: '#2c4a2e',
+    placeholder: '#e3e1dc',
   },
   dark: {
     text: '#ECEDEE',
@@ -32,6 +35,9 @@ export const Colors = {
     border: '#2a2f33',
     muted: '#9BA1A6',
     accent: burntOrange,
+    link: '#8fb8de',
+    success: '#7cc483',
+    placeholder: '#2a2f33',
   },
 };
 
