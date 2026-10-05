@@ -193,6 +193,7 @@ export default function LevelsScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
   const [activeNav, setActiveNav] = useState<string>(myLevel ?? 'frog');
+  const scrolledToMine = useRef(false);
 
   const jumpTo = (id: string) => {
     setActiveNav(id);
@@ -273,7 +274,13 @@ export default function LevelsScreen() {
             <View
               key={lv.id}
               onLayout={(e) => {
-                offsets.current[lv.id] = e.nativeEvent.layout.y;
+                const y = e.nativeEvent.layout.y;
+                offsets.current[lv.id] = y;
+                // Open on the member's own level, once, so later re-layouts don't yank the scroll.
+                if (isMine && !scrolledToMine.current) {
+                  scrolledToMine.current = true;
+                  scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
+                }
               }}
             >
               {lv.zoneHeader ? (
