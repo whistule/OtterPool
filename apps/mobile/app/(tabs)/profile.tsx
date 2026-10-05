@@ -336,10 +336,14 @@ export default function ProfileScreen() {
                     accessibilityLabel={`${LEVEL_LABEL[profile.level]} — about paddling levels`}
                     onPress={() => router.push('/levels')}
                     testID="profile-level-pill"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                   >
+                    {/* Outlined, unlike the status pills beside it, so it reads as tappable. */}
                     <Pill
                       label={`${levelEmoji} ${LEVEL_LABEL[profile.level]} ›`}
-                      color={OtterPalette.slateNavy}
+                      color="transparent"
+                      style={[styles.levelPill, { borderColor: palette.tint }]}
+                      textStyle={{ color: palette.tint }}
                     />
                   </Pressable>
                   <Pill
@@ -682,6 +686,7 @@ function DetailRow({
 const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700' },
   email: { fontSize: 12, marginTop: 2 },
+  levelPill: { borderWidth: 1.5, paddingVertical: 3 },
   fieldRow: { paddingVertical: 12 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
   fieldValue: { fontSize: 14, marginTop: 2 },

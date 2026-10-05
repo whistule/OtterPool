@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -189,11 +189,14 @@ export default function LevelsScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { profile } = useAuth();
   const myLevel = profile?.level ?? null;
+  // About links here with ?level=<id> to open at that animal; otherwise open at your own.
+  const { level } = useLocalSearchParams<{ level?: string }>();
+  const target = LEVELS.some((lv) => lv.id === level) ? level : myLevel;
 
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
-  const [activeNav, setActiveNav] = useState<string>(myLevel ?? 'frog');
-  const scrolledToMine = useRef(false);
+  const [activeNav, setActiveNav] = useState<string>(target ?? 'frog');
+  const scrolledToTarget = useRef(false);
 
   const jumpTo = (id: string) => {
     setActiveNav(id);
@@ -226,12 +229,13 @@ export default function LevelsScreen() {
               accessibilityRole="button"
               key={lv.id}
               onPress={() => jumpTo(lv.id)}
-              style={[
+              style={({ pressed }) => [
                 styles.navPill,
                 {
                   backgroundColor: on ? OtterPalette.forest : palette.surface,
                   borderColor: on ? OtterPalette.forest : palette.border,
                 },
+                pressed && { opacity: 0.6 },
               ]}
             >
               <Text style={[styles.navText, { color: on ? '#fff' : palette.text }]}>
@@ -277,8 +281,8 @@ export default function LevelsScreen() {
                 const y = e.nativeEvent.layout.y;
                 offsets.current[lv.id] = y;
                 // Open on the member's own level, once, so later re-layouts don't yank the scroll.
-                if (isMine && !scrolledToMine.current) {
-                  scrolledToMine.current = true;
+                if (lv.id === target && !scrolledToTarget.current) {
+                  scrolledToTarget.current = true;
                   scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
                 }
               }}
