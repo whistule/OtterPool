@@ -37,4 +37,34 @@ test.describe('about', () => {
     }
     await expect(page.getByText(/never reach OtterPool or the club/).first()).toBeAttached();
   });
+
+  // The privacy notice is linked from sign-up, so it has to work signed out —
+  // including opened cold (a shared link), where Back has no history.
+  test('privacy notice is reachable signed out, from sign-up and directly', async ({
+    page,
+    context,
+  }) => {
+    await context.clearCookies();
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
+    await page.goto('/sign-up');
+    await page.getByText('How we use your information', { exact: true }).click();
+    await page.waitForURL(/\/about/, { timeout: 15_000 });
+    for (const heading of ['What we hold', 'Who sees it', 'How long we keep it', 'Your rights']) {
+      await expect(page.getByText(heading, { exact: true }).first()).toBeAttached({
+        timeout: 15_000,
+      });
+    }
+
+    await page.goto('/about');
+    await expect(page.getByText('What we hold', { exact: true }).first()).toBeAttached({
+      timeout: 15_000,
+    });
+    await page.getByRole('button', { name: 'Back' }).locator('visible=true').click();
+    await page.waitForURL(/\/sign-in/, { timeout: 15_000 });
+  });
 });
