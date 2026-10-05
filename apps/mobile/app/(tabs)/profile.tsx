@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -38,23 +37,12 @@ import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, type MemberStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
-type EmergencyContact = {
-  id: string;
-  name: string;
-  relationship: string | null;
-  phone: string;
-  email: string | null;
-  address: string | null;
-  is_primary: boolean;
-};
-
 type ProfileFields = {
   full_name: string;
   display_name: string;
   phone: string;
   dob: string;
   bc_membership_no: string;
-  medical_notes: string;
 };
 
 function formatDob(iso: string | null): string {
@@ -92,24 +80,11 @@ export default function ProfileScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { session, profile, refreshProfile } = useAuth();
 
-  const [contacts, setContacts] = useState<EmergencyContact[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ProfileFields | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // contactMode: 'closed' = no form; 'new' = adding; { id } = editing existing.
-  const [contactMode, setContactMode] = useState<'closed' | 'new' | { id: string }>('closed');
-  const [contactDraft, setContactDraft] = useState<{
-    name: string;
-    relationship: string;
-    phone: string;
-    email: string;
-    address: string;
-    is_primary: boolean;
-  }>({ name: '', relationship: '', phone: '', email: '', address: '', is_primary: false });
-  const [savingContact, setSavingContact] = useState(false);
 
   // Paddling-experience summary (own section, saved separately from the
   // personal-details form so the review flow stays self-contained).
@@ -138,63 +113,7 @@ export default function ProfileScreen() {
     }
   }, [editExperience, profile]);
 
-  const emptyContactDraft = {
-    name: '',
-    relationship: '',
-    phone: '',
-    email: '',
-    address: '',
-    is_primary: false,
-  };
-
-  const beginAddContact = () => {
-    setContactDraft(emptyContactDraft);
-    setContactMode('new');
-    setError(null);
-  };
-
-  const beginEditContact = (c: EmergencyContact) => {
-    setContactDraft({
-      name: c.name,
-      relationship: c.relationship ?? '',
-      phone: c.phone,
-      email: c.email ?? '',
-      address: c.address ?? '',
-      is_primary: c.is_primary,
-    });
-    setContactMode({ id: c.id });
-    setError(null);
-  };
-
-  const closeContactForm = () => {
-    setContactMode('closed');
-    setError(null);
-  };
-
-  const loadContacts = useCallback(async () => {
-    if (!session) {
-      setContacts([]);
-      return;
-    }
-    const { data, error: err } = await supabase
-      .from('emergency_contacts')
-      .select('id, name, relationship, phone, email, address, is_primary')
-      .eq('member_id', session.user.id)
-      .order('is_primary', { ascending: false })
-      .order('created_at', { ascending: true });
-    if (err) {
-      setError(err.message);
-      setContacts([]);
-    } else {
-      setContacts((data ?? []) as EmergencyContact[]);
-    }
-  }, [session]);
-
-  const { refreshing, onRefresh } = useLoadOnFocus(
-    useCallback(async () => {
-      await Promise.all([refreshProfile(), loadContacts()]);
-    }, [refreshProfile, loadContacts]),
-  );
+  const { refreshing, onRefresh } = useLoadOnFocus(refreshProfile);
 
   const onChangeAvatar = async () => {
     if (!session) {
@@ -243,7 +162,6 @@ export default function ProfileScreen() {
       phone: profile.phone ?? '',
       dob: profile.dob ?? '',
       bc_membership_no: profile.bc_membership_no ?? '',
-      medical_notes: profile.medical_notes ?? '',
     });
     setEditing(true);
   };
@@ -274,7 +192,6 @@ export default function ProfileScreen() {
         phone: form.phone.trim() || null,
         dob: form.dob.trim() || null,
         bc_membership_no: form.bc_membership_no.trim() || null,
-        medical_notes: form.medical_notes.trim() || null,
       })
       .select('member_id');
     setSavingProfile(false);
@@ -343,7 +260,7 @@ export default function ProfileScreen() {
     setError(null);
     setRequestingReview(true);
     // Upsert only the request flag + timestamp; PostgREST's ON CONFLICT
-    // updates just these columns, so phone/medical etc. are left intact.
+    // updates just these columns, so phone etc. are left intact.
     const { data, error: err } = await supabase
       .from('member_private')
       .upsert({
@@ -361,107 +278,7 @@ export default function ProfileScreen() {
     await refreshProfile();
   };
 
-  const saveContact = async () => {
-    if (!session) {
-      return;
-    }
-    if (!contactDraft.name.trim() || !contactDraft.phone.trim()) {
-      setError('Name and phone are required for an emergency contact.');
-      return;
-    }
-    setError(null);
-    setSavingContact(true);
-    const editingId = typeof contactMode === 'object' ? contactMode.id : null;
-    if (contactDraft.is_primary) {
-      // Demote any existing primary so the unique partial index doesn't fire.
-      // Matching nothing is the normal case when there isn't one yet, so this
-      // one genuinely can't be checked for rows affected.
-      let demote = supabase
-        .from('emergency_contacts')
-        .update({ is_primary: false })
-        .eq('member_id', session.user.id)
-        .eq('is_primary', true);
-      if (editingId) {
-        demote = demote.neq('id', editingId);
-      }
-      await demote;
-    }
-    const payload = {
-      name: contactDraft.name.trim(),
-      relationship: contactDraft.relationship.trim() || null,
-      phone: contactDraft.phone.trim(),
-      email: contactDraft.email.trim() || null,
-      address: contactDraft.address.trim() || null,
-      is_primary: contactDraft.is_primary,
-    };
-    const res = editingId
-      ? await supabase.from('emergency_contacts').update(payload).eq('id', editingId).select('id')
-      : await supabase
-          .from('emergency_contacts')
-          .insert({ ...payload, member_id: session.user.id })
-          .select('id');
-    setSavingContact(false);
-    const failure = writeFailure(res.error, res.data);
-    if (failure) {
-      setError(failure);
-      return;
-    }
-    setContactDraft(emptyContactDraft);
-    setContactMode('closed');
-    await loadContacts();
-  };
-
-  const deleteContact = (c: EmergencyContact) => {
-    const doDelete = async () => {
-      const { data, error: err } = await supabase
-        .from('emergency_contacts')
-        .delete()
-        .eq('id', c.id)
-        .select('id');
-      const failure = writeFailure(err, data);
-      if (failure) {
-        setError(failure);
-      } else {
-        await loadContacts();
-      }
-    };
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Remove ${c.name}?`)) {
-        doDelete();
-      }
-    } else {
-      Alert.alert('Remove contact', `Remove ${c.name}?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: doDelete },
-      ]);
-    }
-  };
-
-  const makePrimary = async (c: EmergencyContact) => {
-    if (!session || c.is_primary) {
-      return;
-    }
-    // Demoting matches nothing when there's no primary yet — expected, so it
-    // stays unchecked. Promoting `c` must affect its row.
-    await supabase
-      .from('emergency_contacts')
-      .update({ is_primary: false })
-      .eq('member_id', session.user.id)
-      .eq('is_primary', true);
-    const { data, error: err } = await supabase
-      .from('emergency_contacts')
-      .update({ is_primary: true })
-      .eq('id', c.id)
-      .select('id');
-    const failure = writeFailure(err, data);
-    if (failure) {
-      setError(failure);
-    } else {
-      await loadContacts();
-    }
-  };
-
-  if (!profile || contacts == null) {
+  if (!profile) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
         <TopBar title="Profile" subtitle="Your details and settings" />
@@ -572,13 +389,6 @@ export default function ProfileScreen() {
                 autoCapitalize="none"
                 placeholder="Optional"
               />
-              <FormField
-                label="Medical conditions / allergies"
-                value={form.medical_notes}
-                onChangeText={(v) => setForm({ ...form, medical_notes: v })}
-                placeholder="Visible to your trip leader during the event window"
-                multiline
-              />
               <Row style={{ gap: 8, marginTop: 8 }}>
                 <Pressable
                   accessibilityRole="button"
@@ -616,11 +426,6 @@ export default function ProfileScreen() {
                 palette={palette}
                 label="BC membership"
                 value={profile.bc_membership_no ?? '—'}
-              />
-              <DetailRow
-                palette={palette}
-                label="Medical / allergies"
-                value={profile.medical_notes ?? 'None recorded'}
                 last
               />
               <Pressable
@@ -758,112 +563,6 @@ export default function ProfileScreen() {
             )}
           </Card>
 
-          <SectionTitle>Emergency contacts</SectionTitle>
-          {contacts.length === 0 && contactMode !== 'new' ? (
-            <Card>
-              <Text style={[styles.empty, { color: palette.muted }]}>
-                No emergency contacts yet. Add at least one before your first event.
-              </Text>
-            </Card>
-          ) : null}
-          {contacts.map((c) => {
-            const editingThis = typeof contactMode === 'object' && contactMode.id === c.id;
-            if (editingThis) {
-              return (
-                <ContactForm
-                  key={c.id}
-                  testIdSuffix={c.id}
-                  draft={contactDraft}
-                  setDraft={setContactDraft}
-                  onSave={saveContact}
-                  onCancel={closeContactForm}
-                  saving={savingContact}
-                  saveLabel="Save contact"
-                />
-              );
-            }
-            return (
-              <Card key={c.id}>
-                <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Row style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Text style={[styles.iceName, { color: palette.text }]}>{c.name}</Text>
-                      {c.is_primary ? <Pill label="Primary" color={OtterPalette.ice} /> : null}
-                    </Row>
-                    <Text style={[styles.iceMeta, { color: palette.muted }]}>
-                      {c.relationship ? `${c.relationship} · ` : ''}
-                      {c.phone}
-                    </Text>
-                    {c.email ? (
-                      <Text style={[styles.iceMeta, { color: palette.muted }]}>{c.email}</Text>
-                    ) : null}
-                    {c.address ? (
-                      <Text style={[styles.iceMeta, { color: palette.muted }]}>{c.address}</Text>
-                    ) : null}
-                  </View>
-                </Row>
-                <Row style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    testID={`contact-edit-${c.id}`}
-                    onPress={() => beginEditContact(c)}
-                    style={[styles.ghostBtn, { borderColor: palette.border }]}
-                  >
-                    <Text style={[styles.ghostBtnText, { color: palette.text }]}>Edit</Text>
-                  </Pressable>
-                  {!c.is_primary ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      testID={`contact-make-primary-${c.id}`}
-                      onPress={() => makePrimary(c)}
-                      style={[styles.ghostBtn, { borderColor: palette.border }]}
-                    >
-                      <Text style={[styles.ghostBtnText, { color: palette.text }]}>
-                        Make primary
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                  <Pressable
-                    accessibilityRole="button"
-                    testID={`contact-remove-${c.id}`}
-                    onPress={() => deleteContact(c)}
-                    style={[styles.ghostBtn, { borderColor: palette.border }]}
-                  >
-                    <Text style={[styles.ghostBtnText, { color: OtterPalette.ice }]}>Remove</Text>
-                  </Pressable>
-                </Row>
-              </Card>
-            );
-          })}
-
-          {contactMode === 'new' ? (
-            <ContactForm
-              testIdSuffix="new"
-              draft={contactDraft}
-              setDraft={setContactDraft}
-              onSave={saveContact}
-              onCancel={closeContactForm}
-              saving={savingContact}
-              saveLabel="Add contact"
-            />
-          ) : contactMode === 'closed' ? (
-            <Pressable accessibilityRole="button" testID="contact-add" onPress={beginAddContact}>
-              <Card style={{ alignItems: 'center' }}>
-                <Text style={[styles.addLink, { color: OtterPalette.slateNavy }]}>
-                  + Add contact
-                </Text>
-              </Card>
-            </Pressable>
-          ) : null}
-
-          <SectionTitle>Visibility</SectionTitle>
-          <Card>
-            <Text style={[styles.body, { color: palette.text }]}>
-              Medical and emergency contact info is shared with your trip leader from event start
-              until midnight the following day.
-            </Text>
-          </Card>
-
           <SectionTitle>About</SectionTitle>
           <Pressable
             accessibilityRole="button"
@@ -895,110 +594,6 @@ export default function ProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-}
-
-function ContactForm({
-  testIdSuffix,
-  draft,
-  setDraft,
-  onSave,
-  onCancel,
-  saving,
-  saveLabel,
-}: {
-  testIdSuffix: string;
-  draft: {
-    name: string;
-    relationship: string;
-    phone: string;
-    email: string;
-    address: string;
-    is_primary: boolean;
-  };
-  setDraft: (d: {
-    name: string;
-    relationship: string;
-    phone: string;
-    email: string;
-    address: string;
-    is_primary: boolean;
-  }) => void;
-  onSave: () => void;
-  onCancel: () => void;
-  saving: boolean;
-  saveLabel: string;
-}) {
-  const palette = Colors[useColorScheme() ?? 'light'];
-  return (
-    <Card>
-      <FormField
-        label="Name"
-        value={draft.name}
-        onChangeText={(v) => setDraft({ ...draft, name: v })}
-        placeholder="Full name"
-        testID={`contact-field-name-${testIdSuffix}`}
-      />
-      <FormField
-        label="Relationship"
-        value={draft.relationship}
-        onChangeText={(v) => setDraft({ ...draft, relationship: v })}
-        placeholder="e.g. Partner"
-      />
-      <FormField
-        label="Phone"
-        value={draft.phone}
-        onChangeText={(v) => setDraft({ ...draft, phone: v })}
-        keyboardType="phone-pad"
-        placeholder="07700 900456"
-        testID={`contact-field-phone-${testIdSuffix}`}
-      />
-      <FormField
-        label="Email"
-        value={draft.email}
-        onChangeText={(v) => setDraft({ ...draft, email: v })}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        placeholder="Optional"
-      />
-      <FormField
-        label="Address"
-        value={draft.address}
-        onChangeText={(v) => setDraft({ ...draft, address: v })}
-        placeholder="Optional"
-        multiline
-      />
-      <Pressable
-        accessibilityRole="button"
-        testID={`contact-primary-toggle-${testIdSuffix}`}
-        onPress={() => setDraft({ ...draft, is_primary: !draft.is_primary })}
-        style={[styles.checkbox, { borderColor: palette.border }]}
-      >
-        <Text style={{ color: palette.text, fontSize: 14 }}>
-          {draft.is_primary ? '☑' : '☐'} Primary contact
-        </Text>
-      </Pressable>
-      <Row style={{ gap: 8, marginTop: 8 }}>
-        <Pressable
-          accessibilityRole="button"
-          testID={`contact-save-${testIdSuffix}`}
-          onPress={onSave}
-          disabled={saving}
-          style={[styles.primaryBtn, saving && { opacity: 0.6 }]}
-        >
-          <Text style={styles.primaryBtnText}>{saving ? 'Saving…' : saveLabel}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          testID={`contact-cancel-${testIdSuffix}`}
-          onPress={onCancel}
-          disabled={saving}
-          style={[styles.ghostBtn, { borderColor: palette.border }]}
-        >
-          <Text style={[styles.ghostBtnText, { color: palette.text }]}>Cancel</Text>
-        </Pressable>
-      </Row>
-    </Card>
   );
 }
 
@@ -1074,9 +669,6 @@ const styles = StyleSheet.create({
   fieldRow: { paddingVertical: 12 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
   fieldValue: { fontSize: 14, marginTop: 2 },
-  iceName: { fontSize: 15, fontWeight: '700' },
-  iceMeta: { fontSize: 12, marginTop: 2 },
-  addLink: { fontSize: 14, fontWeight: '700' },
   body: { fontSize: 13 },
   signOut: { fontSize: 14, fontWeight: '600' },
   version: { fontSize: 12, textAlign: 'center', marginTop: 16 },
@@ -1126,11 +718,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   editBtnText: { fontSize: 14, fontWeight: '600' },
-  checkbox: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
 });

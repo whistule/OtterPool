@@ -47,7 +47,6 @@ export type Profile = {
   phone: string | null;
   dob: string | null;
   bc_membership_no: string | null;
-  medical_notes: string | null;
   experience_answers: ExperienceAnswers | null;
   experience_review_requested: boolean;
   experience_submitted_at: string | null;
@@ -126,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase
         .from('member_private')
         .select(
-          'phone, dob, bc_membership_no, medical_notes, experience_answers, experience_review_requested, experience_submitted_at, experience_reviewed_at',
+          'phone, dob, bc_membership_no, experience_answers, experience_review_requested, experience_submitted_at, experience_reviewed_at',
         )
         .eq('member_id', userId)
         .maybeSingle(),
@@ -141,7 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           | 'phone'
           | 'dob'
           | 'bc_membership_no'
-          | 'medical_notes'
           | 'experience_answers'
           | 'experience_review_requested'
           | 'experience_submitted_at'
@@ -151,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone: (priv as { phone?: string | null }).phone ?? null,
         dob: (priv as { dob?: string | null }).dob ?? null,
         bc_membership_no: (priv as { bc_membership_no?: string | null }).bc_membership_no ?? null,
-        medical_notes: (priv as { medical_notes?: string | null }).medical_notes ?? null,
         experience_answers:
           (priv as { experience_answers?: ExperienceAnswers | null }).experience_answers ?? null,
         experience_review_requested:

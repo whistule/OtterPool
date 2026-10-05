@@ -23,7 +23,7 @@ test.describe('profile — member view', () => {
     await context.clearCookies();
     await signIn(page, MEMBER_EMAIL);
     await page.goto('/profile');
-    // Profile screen renders details once contacts/profile load.
+    // Profile screen renders details once the profile loads.
     await expect(page.getByText('Personal details').first()).toBeAttached({
       timeout: 15_000,
     });
@@ -34,7 +34,7 @@ test.describe('profile — member view', () => {
 
     // The edit form shows the same labels — fill the inputs that appear.
     const inputs = page.locator('input:visible, textarea:visible');
-    // Inputs in field order: full name, display name, phone, dob, bc, medical
+    // Inputs in field order: full name, display name, phone, dob, bc
     await inputs.nth(0).fill('E2E Member Full');
     await inputs.nth(2).fill('07700 900111');
     await inputs.nth(3).fill('1990-04-12');
@@ -63,51 +63,5 @@ test.describe('profile — member view', () => {
     await expect(page.getByText(/YYYY-MM-DD/i).first()).toBeAttached({
       timeout: 5_000,
     });
-  });
-
-  test('adds, edits, makes primary, and removes an emergency contact', async ({ page }) => {
-    // --- add ---
-    await page.locator('[data-testid="contact-add"]:visible').click();
-    await page.locator('[data-testid="contact-field-name-new"]:visible').fill('Anna Plant');
-    await page.locator('[data-testid="contact-field-phone-new"]:visible').fill('07700 900456');
-    await page.locator('[data-testid="contact-save-new"]:visible').click();
-
-    // The new contact row appears with name + phone. Edit button has the
-    // contact id baked into its testID, so we don't need to know the id —
-    // we wait for the visible name to anchor.
-    await expect(page.getByText('Anna Plant').first()).toBeAttached({
-      timeout: 15_000,
-    });
-    await expect(page.getByText('07700 900456').first()).toBeAttached();
-
-    // --- edit ---
-    // There is a single non-primary contact, so its Edit button is the only
-    // one matching `[data-testid^="contact-edit-"]`.
-    await page.locator('[data-testid^="contact-edit-"]:visible').first().click();
-    // Form opens prefilled — replace the name and phone.
-    const nameField = page.locator('input[data-testid^="contact-field-name-"]:visible').first();
-    await nameField.fill('');
-    await nameField.fill('Anna P. Plant');
-    const phoneField = page.locator('input[data-testid^="contact-field-phone-"]:visible').first();
-    await phoneField.fill('');
-    await phoneField.fill('07700 900222');
-    await page.locator('[data-testid^="contact-save-"]:visible').first().click();
-
-    await expect(page.getByText('Anna P. Plant').first()).toBeAttached({
-      timeout: 15_000,
-    });
-    await expect(page.getByText('07700 900222').first()).toBeAttached();
-    await expect(page.getByText('Anna Plant', { exact: true })).toHaveCount(0);
-
-    // --- make primary ---
-    await page.locator('[data-testid^="contact-make-primary-"]:visible').first().click();
-    await expect(page.getByText('Primary').first()).toBeAttached({ timeout: 15_000 });
-    // The Make-primary button is gone now that this contact is primary.
-    await expect(page.locator('[data-testid^="contact-make-primary-"]:visible')).toHaveCount(0);
-
-    // --- remove (web confirm()) ---
-    page.once('dialog', (d) => d.accept());
-    await page.locator('[data-testid^="contact-remove-"]:visible').first().click();
-    await expect(page.getByText('Anna P. Plant')).toHaveCount(0, { timeout: 15_000 });
   });
 });

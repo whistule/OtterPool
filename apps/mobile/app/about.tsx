@@ -42,6 +42,30 @@ const CREDITS: Credit[] = [
   },
 ];
 
+// The privacy notice. Keep it in step with docs/data-deletion.md.
+const PRIVACY: { heading: string; body: string }[] = [
+  {
+    heading: 'What we hold',
+    body: 'Your name, email address, photo, paddling level and approvals, your answers about your paddling experience, the trips you sign up for and what you paid. If you add them, your phone number, date of birth and British Canoeing membership number. Membership is checked by matching your email against the club’s MemberMojo list. We don’t hold medical details or emergency contacts — trip leaders collect those on paper at the waterside.',
+  },
+  {
+    heading: 'Why',
+    body: 'To run the club’s trips: sign-ups, checking membership, matching paddlers to trips they’re ready for, and taking payment.',
+  },
+  {
+    heading: 'Who sees it',
+    body: 'Other members see your name, level and photo, and who’s on a trip. A trip leader sees your paddling experience when you sign up to their trip. Membership admins see your email and personal details; paddling admins see your experience to set your level. The app’s data is stored with Supabase in London; card payments go through Stripe, and card details never reach the club.',
+  },
+  {
+    heading: 'How long we keep it',
+    body: 'While you’re a member. If your membership lapses, your account is deleted two years after it ends. If you made an account but never joined, it’s deleted a year after you last used the app. Payment records are kept for six years for the club’s accounts.',
+  },
+  {
+    heading: 'Your rights',
+    body: 'Ask a membership admin and they’ll show you what’s held, correct it, or delete your account and everything linked to it.',
+  },
+];
+
 export default function AboutScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const version = Constants.expoConfig?.version ?? '';
@@ -97,13 +121,14 @@ export default function AboutScreen() {
           ))}
         </Card>
 
-        <SectionTitle>Your information</SectionTitle>
+        <SectionTitle>Privacy</SectionTitle>
         <Card>
-          <Text style={[styles.body, { color: palette.text }]}>
-            Medical notes and emergency contacts are shared with your trip leader from the event
-            start until midnight the following day. Membership admins can see them to keep your
-            record straight. Other members only ever see your name, level and photo.
-          </Text>
+          {PRIVACY.map((p, i) => (
+            <View key={p.heading} style={{ marginTop: i === 0 ? 0 : 14 }}>
+              <Text style={[styles.value, { color: palette.text }]}>{p.heading}</Text>
+              <Text style={[styles.body, { color: palette.text, marginTop: 4 }]}>{p.body}</Text>
+            </View>
+          ))}
         </Card>
 
         <SectionTitle>On the water</SectionTitle>

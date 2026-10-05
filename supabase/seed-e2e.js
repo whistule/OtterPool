@@ -128,12 +128,6 @@ async function ensureUser(spec) {
     throw mpErr;
   }
 
-  // Clear any emergency contacts left over from previous runs.
-  const { error: ecErr } = await admin.from('emergency_contacts').delete().eq('member_id', user.id);
-  if (ecErr) {
-    throw ecErr;
-  }
-
   return { ...spec, id: user.id };
 }
 
