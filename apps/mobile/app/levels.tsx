@@ -3,8 +3,9 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
-import { Card, Row, TopBar } from '@/components/wireframe';
+import { Card, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -192,6 +193,7 @@ export default function LevelsScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
   const [activeNav, setActiveNav] = useState<string>(myLevel ?? 'frog');
+  const scrolledToMine = useRef(false);
 
   const jumpTo = (id: string) => {
     setActiveNav(id);
@@ -204,7 +206,10 @@ export default function LevelsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <PageTitle title="Levels" />
-      <TopBar title="Levels" subtitle="The DCKC paddling progression" />
+      <Header
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        title="Paddling levels"
+      />
 
       {/* Jump nav */}
       <ScrollView
@@ -246,7 +251,7 @@ export default function LevelsScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/profile')}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))}
           testID="levels-experience-cta"
         >
           <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
@@ -269,7 +274,13 @@ export default function LevelsScreen() {
             <View
               key={lv.id}
               onLayout={(e) => {
-                offsets.current[lv.id] = e.nativeEvent.layout.y;
+                const y = e.nativeEvent.layout.y;
+                offsets.current[lv.id] = y;
+                // Open on the member's own level, once, so later re-layouts don't yank the scroll.
+                if (isMine && !scrolledToMine.current) {
+                  scrolledToMine.current = true;
+                  scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
+                }
               }}
             >
               {lv.zoneHeader ? (
@@ -290,7 +301,10 @@ export default function LevelsScreen() {
                     <Row style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Text style={[styles.name, { color: palette.text }]}>{lv.name}</Text>
                       {isMine ? (
-                        <Text style={[styles.badge, { backgroundColor: OtterPalette.forest }]}>
+                        <Text
+                          testID="levels-your-level"
+                          style={[styles.badge, { backgroundColor: OtterPalette.forest }]}
+                        >
                           Your level
                         </Text>
                       ) : null}

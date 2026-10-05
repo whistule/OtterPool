@@ -331,10 +331,17 @@ export default function ProfileScreen() {
                 <Text style={[styles.name, { color: palette.text }]}>{headlineName}</Text>
                 <Text style={[styles.email, { color: palette.muted }]}>{email}</Text>
                 <Row style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                  <Pill
-                    label={`${levelEmoji} ${LEVEL_LABEL[profile.level]}`}
-                    color={OtterPalette.slateNavy}
-                  />
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityLabel={`${LEVEL_LABEL[profile.level]} — about paddling levels`}
+                    onPress={() => router.push('/levels')}
+                    testID="profile-level-pill"
+                  >
+                    <Pill
+                      label={`${levelEmoji} ${LEVEL_LABEL[profile.level]} ›`}
+                      color={OtterPalette.slateNavy}
+                    />
+                  </Pressable>
                   <Pill
                     label={profile.status}
                     color={
@@ -563,21 +570,30 @@ export default function ProfileScreen() {
             )}
           </Card>
 
-          <SectionTitle>About</SectionTitle>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/about')}
-            testID="profile-about"
-          >
-            <Card>
-              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={[styles.body, { color: palette.text }]}>About OtterPool</Text>
-                <Text aria-hidden style={[styles.body, { color: palette.muted }]}>
-                  ›
-                </Text>
-              </Row>
-            </Card>
-          </Pressable>
+          <SectionTitle>Settings & info</SectionTitle>
+          {(
+            [
+              ['/notifications', 'Notifications', 'profile-notifications'],
+              ['/levels', 'Paddling levels', 'profile-levels'],
+              ['/about', 'About OtterPool', 'profile-about'],
+            ] as const
+          ).map(([href, label, testID]) => (
+            <Pressable
+              key={href}
+              accessibilityRole="button"
+              onPress={() => router.push(href)}
+              testID={testID}
+            >
+              <Card>
+                <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={[styles.body, { color: palette.text }]}>{label}</Text>
+                  <Text aria-hidden style={[styles.body, { color: palette.muted }]}>
+                    ›
+                  </Text>
+                </Row>
+              </Card>
+            </Pressable>
+          ))}
 
           <SectionTitle>Session</SectionTitle>
           <Pressable
