@@ -44,7 +44,7 @@ async function openFixtureFromCalendar(page: Page) {
 }
 
 test.describe('below-level request reaches the leader with experience', () => {
-  test('member fills in experience and asks, leader sees the answers and confirms', async ({
+  test('member saves experience, which asks the leader; leader sees the answers and confirms', async ({
     page,
     context,
   }) => {
@@ -61,24 +61,23 @@ test.describe('below-level request reaches the leader with experience', () => {
     await shot(page, '1-member-below-level');
     await cta.click();
 
-    // --- the profile opens the form; saving goes back to the trip ---
+    // --- the profile opens the form; saving also asks, then goes back to the trip ---
     await page.waitForURL(/\/profile/, { timeout: 15_000 });
     await page
       .locator('[data-testid="experience-field-years"]:visible')
       .fill('6 years, ~40 days a year');
     await page.locator('[data-testid="experience-field-boat"]:visible').fill(BOAT_ANSWER);
+    const save = page.locator('[data-testid="experience-save"]:visible');
+    await expect(save).toHaveText('Save and ask the leader');
     await shot(page, '2-member-experience-form');
-    await page.locator('[data-testid="experience-save"]:visible').click();
+    await save.click();
     await page.waitForURL(/\/event\/[0-9a-f-]{36}/, { timeout: 15_000 });
 
-    // --- now they can ask the leader ---
-    await expect(cta).toHaveText('Ask the leader', { timeout: 15_000 });
-    await shot(page, '3-member-ask-the-leader');
-    await cta.click();
+    // --- no second tap: the request is already with the leader ---
     await expect(page.getByText('⚠️ Pending leader review').first()).toBeAttached({
       timeout: 15_000,
     });
-    await shot(page, '4-member-request-sent');
+    await shot(page, '3-member-request-sent');
 
     // --- leader: request is flagged, with the answers alongside ---
     await context.clearCookies();
@@ -90,7 +89,7 @@ test.describe('below-level request reaches the leader with experience', () => {
     await expect(page.locator('[data-testid^="review-below-level-"]:visible')).toHaveCount(1);
     const experience = page.locator('[data-testid^="review-experience-"]:visible');
     await expect(experience).toContainText(BOAT_ANSWER, { timeout: 15_000 });
-    await shot(page, '5-leader-review-panel');
+    await shot(page, '4-leader-review-panel');
 
     await page.locator('[data-testid^="review-confirm-"]:visible').first().click();
     await expect(page.getByText('No one is waiting for review.').first()).toBeAttached({
@@ -106,7 +105,7 @@ test.describe('below-level request reaches the leader with experience', () => {
     await participant.click();
     await page.waitForURL(/\/profile\/[0-9a-f-]{36}/, { timeout: 15_000 });
     await expect(page.getByText(BOAT_ANSWER).first()).toBeAttached({ timeout: 15_000 });
-    await shot(page, '6-leader-member-profile');
+    await shot(page, '5-leader-member-profile');
     // Marking a level review done stays with coaches.
     await expect(page.locator('[data-testid="mark-reviewed-cta"]:visible')).toHaveCount(0);
   });
