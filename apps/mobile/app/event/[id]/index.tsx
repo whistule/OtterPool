@@ -165,6 +165,8 @@ export default function EventDetailScreen() {
   const [signup, setSignup] = useState<Signup | null>(null);
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  // RLS only returns it to leaders, paddling admins and confirmed attendees.
+  const [chatUrl, setChatUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
@@ -175,7 +177,7 @@ export default function EventDetailScreen() {
     if (!id) {
       return;
     }
-    const [eventRes, signupRes, pendingRes, participantsRes] = await Promise.all([
+    const [eventRes, signupRes, pendingRes, participantsRes, chatRes] = await Promise.all([
       supabase
         .from('events')
         .select(
@@ -203,6 +205,7 @@ export default function EventDetailScreen() {
         .select('member_id, display_name, full_name, level, signed_up_at, avatar_path')
         .eq('event_id', id)
         .order('signed_up_at', { ascending: true }),
+      supabase.from('event_chat_links').select('url').eq('event_id', id).maybeSingle(),
     ]);
 
     const ev = (eventRes.data as unknown as EventRow) ?? null;
@@ -217,6 +220,9 @@ export default function EventDetailScreen() {
     }
     if (!participantsRes.error) {
       setParticipants((participantsRes.data as Participant[]) ?? []);
+    }
+    if (!chatRes.error) {
+      setChatUrl(chatRes.data?.url ?? null);
     }
 
     setLoading(false);
@@ -709,6 +715,24 @@ export default function EventDetailScreen() {
                   </Text>
                 </Pressable>
               ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        {/* ---------- Trip WhatsApp ---------- */}
+        {chatUrl ? (
+          <>
+            <SectionTitle>Trip WhatsApp</SectionTitle>
+            <Card>
+              <Pressable
+                accessibilityRole="link"
+                testID="event-whatsapp"
+                onPress={() => Linking.openURL(chatUrl).catch(() => {})}
+              >
+                <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  Join the trip WhatsApp ↗
+                </Text>
+              </Pressable>
             </Card>
           </>
         ) : null}

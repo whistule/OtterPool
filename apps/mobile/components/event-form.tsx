@@ -49,6 +49,7 @@ import {
   type Status,
   STATUS_OPTIONS,
   toLocalIsoMinutes,
+  WHATSAPP_INVITE_RE,
 } from '@/lib/event-form-utils';
 import { copyPhoto, pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
 import { LEVEL_EMOJI } from '@/lib/progress';
@@ -56,6 +57,30 @@ import { supabase } from '@/lib/supabase';
 import { formatMoney, parsePriceOptions } from '@/lib/money';
 
 export type EventFormMode = 'create' | 'edit';
+
+// "How do I get the link?" walkthrough, cropped from WhatsApp on Android.
+const WHATSAPP_HELP = [
+  {
+    image: require('@/assets/images/whatsapp-help/1-new-group.png'),
+    aspectRatio: 450 / 400,
+    text: 'In WhatsApp, start a New group named after the trip, then tap Group permissions.',
+  },
+  {
+    image: require('@/assets/images/whatsapp-help/2-permissions.png'),
+    aspectRatio: 450 / 492,
+    text: 'With Approve new members off, paddlers join straight away. Go back and create the group; you can skip adding members.',
+  },
+  {
+    image: require('@/assets/images/whatsapp-help/3-invite.png'),
+    aspectRatio: 1,
+    text: 'In the new group, tap Invite via link or QR code.',
+  },
+  {
+    image: require('@/assets/images/whatsapp-help/4-copy-link.png'),
+    aspectRatio: 450 / 233,
+    text: 'Tap Copy link, then paste it below.',
+  },
+];
 
 export type EventFormProps = { mode: 'create' } | { mode: 'edit'; eventId: string };
 
@@ -98,6 +123,11 @@ export default function EventForm(props: EventFormProps) {
   const [description, setDescription] = useState('');
   const [whatToBring, setWhatToBring] = useState('');
   const [whatToBringTouched, setWhatToBringTouched] = useState(false);
+  // Per-trip WhatsApp invite link, edit only (the group is made once the trip
+  // exists). Lives in event_chat_links so only confirmed attendees can read it.
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [originalWhatsappUrl, setOriginalWhatsappUrl] = useState('');
+  const [showWhatsappHelp, setShowWhatsappHelp] = useState(false);
   const [leaderId, setLeaderId] = useState<string | null>(session?.user.id ?? null);
   const [leaderQuery, setLeaderQuery] = useState('');
   const [assistantId, setAssistantId] = useState<string | null>(null);
@@ -151,6 +181,7 @@ export default function EventForm(props: EventFormProps) {
         status,
         description,
         whatToBring,
+        whatsappUrl,
         leaderId,
         assistantId,
         photo: photoAsset?.uri ?? null,
@@ -181,6 +212,7 @@ export default function EventForm(props: EventFormProps) {
       status,
       description,
       whatToBring,
+      whatsappUrl,
       leaderId,
       assistantId,
       photoAsset,
@@ -342,7 +374,12 @@ export default function EventForm(props: EventFormProps) {
               .maybeSingle()
           : Promise.resolve({ data: null, error: null });
 
-      const [c, e, m] = await Promise.all([catRes, evRes, memRes]);
+      const chatRes =
+        isEdit && eventId
+          ? supabase.from('event_chat_links').select('url').eq('event_id', eventId).maybeSingle()
+          : Promise.resolve({ data: null, error: null });
+
+      const [c, e, m, chat] = await Promise.all([catRes, evRes, memRes, chatRes]);
       if (cancelled) {
         return;
       }
@@ -426,6 +463,8 @@ export default function EventForm(props: EventFormProps) {
         setDescription(ev.description ?? '');
         setWhatToBring(ev.what_to_bring ?? '');
         setWhatToBringTouched(true);
+        setWhatsappUrl(chat.data?.url ?? '');
+        setOriginalWhatsappUrl(chat.data?.url ?? '');
         setAssistantId(ev.assistant_id ?? null);
         setLeaderId(ev.leader_id);
         setOriginalPhotoPath(ev.photo_path);
@@ -658,6 +697,11 @@ export default function EventForm(props: EventFormProps) {
       errs.priceTiers = 'Each rate needs a name and an amount of 0 or more.';
     }
 
+    // Mirrors the check constraint on event_chat_links.url.
+    if (whatsappUrl.trim() && !WHATSAPP_INVITE_RE.test(whatsappUrl.trim())) {
+      errs.whatsapp = 'Paste the invite link, e.g. https://chat.whatsapp.com/AbC123';
+    }
+
     let occurrences = 1;
     let newSeriesId: string | null = null;
     if (!isEdit && repeatEnabled) {
@@ -791,6 +835,17 @@ export default function EventForm(props: EventFormProps) {
       if (updateError) {
         setError(updateError);
         return false;
+      }
+      // Per-trip, so it never goes to the rest of the series.
+      const chatUrl = whatsappUrl.trim();
+      if (chatUrl !== originalWhatsappUrl) {
+        const { error: chatErr } = chatUrl
+          ? await supabase.from('event_chat_links').upsert({ event_id: eventId, url: chatUrl })
+          : await supabase.from('event_chat_links').delete().eq('event_id', eventId);
+        if (chatErr) {
+          setError(`Event saved, but the WhatsApp link didn't: ${chatErr.message}`);
+          return false;
+        }
       }
       if (newPath !== undefined) {
         const stale = new Set([...replacedPhotos, originalPhotoPath]);
@@ -1900,6 +1955,66 @@ export default function EventForm(props: EventFormProps) {
               </Card>
             </>
           )}
+
+          {/* ---------- Trip WhatsApp (edit only) ---------- */}
+          {isEdit ? (
+            <>
+              <SectionTitle>Trip WhatsApp</SectionTitle>
+              <Card>
+                <FieldLabel palette={palette}>Group invite link (optional)</FieldLabel>
+                <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
+                  Only you, other leaders and confirmed paddlers see it.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showWhatsappHelp }}
+                  testID="event-whatsapp-help"
+                  onPress={() => setShowWhatsappHelp((v) => !v)}
+                  style={{ marginBottom: 8, alignSelf: 'flex-start' }}
+                >
+                  <Text style={[styles.hint, { color: OtterPalette.slateNavy }]}>
+                    {showWhatsappHelp ? 'Hide help' : 'How do I get the link?'}
+                  </Text>
+                </Pressable>
+                {showWhatsappHelp
+                  ? WHATSAPP_HELP.map((stepHelp, i) => (
+                      <View key={stepHelp.text} style={{ marginBottom: 14 }}>
+                        <Text style={[styles.hint, { color: palette.text, marginBottom: 6 }]}>
+                          {i + 1}. {stepHelp.text}
+                        </Text>
+                        <Image
+                          source={stepHelp.image}
+                          accessibilityLabel={`WhatsApp screenshot for step ${i + 1}`}
+                          style={{
+                            width: '100%',
+                            maxWidth: 320,
+                            aspectRatio: stepHelp.aspectRatio,
+                            borderRadius: 8,
+                          }}
+                        />
+                      </View>
+                    ))
+                  : null}
+                <TextInput
+                  testID="event-whatsapp-url"
+                  value={whatsappUrl}
+                  onChangeText={(t) => {
+                    setWhatsappUrl(t);
+                    if (fieldErrors.whatsapp) {
+                      setFieldErrors((e) => ({ ...e, whatsapp: undefined }));
+                    }
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  placeholder="https://chat.whatsapp.com/…"
+                  placeholderTextColor={palette.muted}
+                  style={fieldStyle('whatsapp')}
+                />
+                <FieldError text={fieldErrors.whatsapp} />
+              </Card>
+            </>
+          ) : null}
 
           {/* ---------- Status (edit only) ---------- */}
           {isEdit ? (
