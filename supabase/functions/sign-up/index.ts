@@ -174,8 +174,9 @@ Deno.serve(async (req) => {
     // signed_up_at and send them to the back of the queue.
     // ponytail: any waitlisted member can claim an open seat, not just the one
     // offered it; a claim window (post-MVP) is the fix if that matters.
+    const seatGone = () => err("Sorry, that seat's gone — you're still on the waitlist", 409);
     if (claiming && routing.status === 'waitlisted') {
-      return err("Sorry, that seat's gone — you're still on the waitlist", 409);
+      return seatGone();
     }
 
     // Paid + approved → Stripe Checkout. The webhook flips pending_payment →
@@ -192,6 +193,9 @@ Deno.serve(async (req) => {
         // The last seat went between our count and our write.
         if (!isEventFullError(String(e))) {
           throw e;
+        }
+        if (claiming) {
+          return seatGone();
         }
         routing = WAITLISTED;
       }
@@ -220,14 +224,15 @@ Deno.serve(async (req) => {
     // happens on a follow-up sign-up call after that).
     // Rejoining after withdrawing reuses the row and resets signed_up_at, so
     // the member goes to the back of the waitlist queue rather than keeping
-    // their original place.
+    // their original place. A claim keeps it, so a manual_all claim that the
+    // leader sends back to the waitlist returns to the same place.
     const writeSignup = (status: string) =>
       existing
         ? admin
             .from('event_signups')
             .update({
               status,
-              signed_up_at: new Date().toISOString(),
+              ...(claiming ? {} : { signed_up_at: new Date().toISOString() }),
               reviewed_by: null,
               reviewed_at: null,
             })
@@ -242,6 +247,9 @@ Deno.serve(async (req) => {
 
     let { data: signup, error: signupError } = await writeSignup(routing.status);
     if (routing.status === 'confirmed' && isEventFullError(signupError)) {
+      if (claiming) {
+        return seatGone();
+      }
       routing = WAITLISTED;
       ({ data: signup, error: signupError } = await writeSignup(routing.status));
     }
