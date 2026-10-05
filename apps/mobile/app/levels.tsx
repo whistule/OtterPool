@@ -3,8 +3,9 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
-import { Card, Row, TopBar } from '@/components/wireframe';
+import { Card, Row } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -204,7 +205,10 @@ export default function LevelsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <PageTitle title="Levels" />
-      <TopBar title="Levels" subtitle="The DCKC paddling progression" />
+      <Header
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        title="Paddling levels"
+      />
 
       {/* Jump nav */}
       <ScrollView
@@ -246,7 +250,7 @@ export default function LevelsScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/profile')}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))}
           testID="levels-experience-cta"
         >
           <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>

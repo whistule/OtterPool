@@ -1,8 +1,10 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
-import { Card, Screen, SectionTitle, TopBar } from '@/components/wireframe';
+import { Card, Screen, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
@@ -90,7 +92,10 @@ export default function NotifyScreen() {
   return (
     <Screen>
       <PageTitle title="Notifications" />
-      <TopBar title="Notifications" subtitle="What you'd like to hear about" />
+      <Header
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        title="Notifications"
+      />
 
       <SectionTitle>Trip alerts</SectionTitle>
       <Card>
