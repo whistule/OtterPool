@@ -1,6 +1,8 @@
 # OtterPool — ICE (Emergency Contact) Design (Proposal)
 
-**Status:** Proposal · review-only · nothing implemented
+**Status:** Not planned. Emergency contacts and medical details are collected
+on paper, not in the app, and the app stops holding them (see `MVP.md`). Kept
+for reference only.
 **Scope:** Two linked pieces of the Phase-1 safety work —
 (1a) make ICE mandatory so the data reliably exists, and
 (1b) let a trip leader see it safely on the water, including offline.
