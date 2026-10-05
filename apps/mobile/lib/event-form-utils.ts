@@ -19,7 +19,11 @@ export type FieldKey =
   | 'maxParticipants'
   | 'cost'
   | 'priceTiers'
-  | 'repeatCount';
+  | 'repeatCount'
+  | 'whatsapp';
+
+// A WhatsApp group invite link; same pattern as the event_chat_links check.
+export const WHATSAPP_INVITE_RE = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+(\?\S*)?$/;
 
 export type Status = 'open' | 'full' | 'closed' | 'cancelled';
 
