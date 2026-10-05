@@ -30,6 +30,8 @@ function AuthGate() {
     }
     const inAuthGroup = segments[0] === '(auth)';
     const onResetPassword = segments[0] === 'reset-password';
+    // The privacy notice lives on About, which has to be readable before sign-up.
+    const onAbout = segments[0] === 'about';
     if (session && !onResetPassword && isRecoveryPending()) {
       // Recovery link followed but no new password set — that session can't do
       // anything useful, so end it and let the redirect below take over.
@@ -37,7 +39,7 @@ function AuthGate() {
       supabase.auth.signOut();
       return;
     }
-    if (!session && !inAuthGroup && !onResetPassword) {
+    if (!session && !inAuthGroup && !onResetPassword && !onAbout) {
       router.replace('/sign-in');
     } else if (session && inAuthGroup) {
       router.replace('/');

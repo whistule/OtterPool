@@ -56,23 +56,12 @@ type PrivateFields = {
   phone: string;
   dob: string;
   bc_membership_no: string;
-  medical_notes: string;
-};
-
-type EmergencyContact = {
-  id: string;
-  name: string;
-  relationship: string | null;
-  phone: string;
-  email: string | null;
-  is_primary: boolean;
 };
 
 const EMPTY_PRIVATE: PrivateFields = {
   phone: '',
   dob: '',
   bc_membership_no: '',
-  medical_notes: '',
 };
 
 type Experience = {
@@ -111,7 +100,6 @@ export default function MemberProfileScreen() {
   const [priv, setPriv] = useState<PrivateFields>(EMPTY_PRIVATE);
   const [privForm, setPrivForm] = useState<PrivateFields | null>(null);
   const [savingPriv, setSavingPriv] = useState(false);
-  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [experience, setExperience] = useState<Experience | null>(null);
   const [markingReviewed, setMarkingReviewed] = useState(false);
   const [ceilings, setCeilings] = useState<Ceiling[]>([]);
@@ -148,21 +136,16 @@ export default function MemberProfileScreen() {
     setProfile((profRes.data as ProfileRow) ?? null);
     setCeilings(((ceilRes.data ?? []) as ApprovalRow[]).map((r) => ({ ...r })));
 
-    // Membership admins see the member's email, private fields and emergency
-    // contacts (all gated server-side by RLS / the email RPC).
+    // Membership admins see the member's email and private fields (both
+    // gated server-side by RLS / the email RPC).
     if (roleFlags(viewerProfile).membershipAdmin) {
-      const [emailRes, privRes, contactRes] = await Promise.all([
+      const [emailRes, privRes] = await Promise.all([
         supabase.rpc('admin_member_emails', { p_member_id: id }),
         supabase
           .from('member_private')
-          .select('phone, dob, bc_membership_no, medical_notes')
+          .select('phone, dob, bc_membership_no')
           .eq('member_id', id)
           .maybeSingle(),
-        supabase
-          .from('emergency_contacts')
-          .select('id, name, relationship, phone, email, is_primary')
-          .eq('member_id', id)
-          .order('is_primary', { ascending: false }),
       ]);
       const memberEmail = (emailRes.data as { email: string | null }[] | null)?.[0]?.email ?? null;
       setEmail(memberEmail);
@@ -179,9 +162,7 @@ export default function MemberProfileScreen() {
         phone: p?.phone ?? '',
         dob: p?.dob ?? '',
         bc_membership_no: p?.bc_membership_no ?? '',
-        medical_notes: p?.medical_notes ?? '',
       });
-      setContacts((contactRes.data ?? []) as EmergencyContact[]);
     }
 
     // The member's self-declared paddling experience, via an RPC that exposes
@@ -241,7 +222,6 @@ export default function MemberProfileScreen() {
         phone: privForm.phone.trim() || null,
         dob: privForm.dob.trim() || null,
         bc_membership_no: privForm.bc_membership_no.trim() || null,
-        medical_notes: privForm.medical_notes.trim() || null,
       })
       .select('member_id');
     setSavingPriv(false);
@@ -436,7 +416,7 @@ export default function MemberProfileScreen() {
   const isSelf = profile.id === viewerProfile?.id;
   const roles = roleFlags(viewerProfile);
   // Paddling admins manage progression (level + ceilings); membership admins
-  // manage member data (status, email, private fields, contacts); super admins
+  // manage member data (status, email, private fields); super admins
   // manage role grants. Never on your own record.
   const canPaddling = roles.paddlingAdmin && !isSelf;
   const canMembership = roles.membershipAdmin && !isSelf;
@@ -597,7 +577,7 @@ export default function MemberProfileScreen() {
 
         {canMembership ? (
           <>
-            <SectionTitle>Personal & medical</SectionTitle>
+            <SectionTitle>Personal</SectionTitle>
             <Card>
               {privForm ? (
                 <>
@@ -625,18 +605,6 @@ export default function MemberProfileScreen() {
                       onChangeText={(v) => setPrivForm({ ...privForm, bc_membership_no: v })}
                       placeholderTextColor={palette.muted}
                       style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                    />
-                  </FieldRow>
-                  <FieldRow palette={palette} label="Medical notes">
-                    <TextInput
-                      value={privForm.medical_notes}
-                      onChangeText={(v) => setPrivForm({ ...privForm, medical_notes: v })}
-                      multiline
-                      placeholderTextColor={palette.muted}
-                      style={[
-                        styles.input,
-                        { color: palette.text, borderColor: palette.border, minHeight: 72 },
-                      ]}
                     />
                   </FieldRow>
                   <Row style={{ gap: 8, marginTop: 12 }}>
@@ -667,47 +635,15 @@ export default function MemberProfileScreen() {
                     label="BC membership no."
                     value={priv.bc_membership_no || '—'}
                   />
-                  <ReadRow
-                    palette={palette}
-                    label="Medical notes"
-                    value={priv.medical_notes || 'None recorded'}
-                  />
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => setPrivForm(priv)}
                     testID="edit-private-cta"
                     style={[styles.editCta, styles.btnPad, { marginTop: 12 }]}
                   >
-                    <Text style={styles.editCtaText}>Edit personal & medical</Text>
+                    <Text style={styles.editCtaText}>Edit personal details</Text>
                   </Pressable>
                 </>
-              )}
-            </Card>
-
-            <SectionTitle>Emergency contacts</SectionTitle>
-            <Card>
-              {contacts.length === 0 ? (
-                <Text style={[styles.muted, { color: palette.muted }]}>None recorded</Text>
-              ) : (
-                contacts.map((c) => (
-                  <View key={c.id} style={{ marginBottom: 10 }}>
-                    <Row style={{ gap: 6, alignItems: 'center' }}>
-                      <Text style={[styles.name, { color: palette.text, fontSize: 15 }]}>
-                        {c.name}
-                      </Text>
-                      {c.is_primary ? (
-                        <Pill label="Primary" color={OtterPalette.slateNavy} />
-                      ) : null}
-                    </Row>
-                    {c.relationship ? (
-                      <Text style={[styles.muted, { color: palette.muted }]}>{c.relationship}</Text>
-                    ) : null}
-                    <Text style={[styles.muted, { color: palette.text }]}>{c.phone}</Text>
-                    {c.email ? (
-                      <Text style={[styles.muted, { color: palette.muted }]}>{c.email}</Text>
-                    ) : null}
-                  </View>
-                ))
               )}
             </Card>
           </>

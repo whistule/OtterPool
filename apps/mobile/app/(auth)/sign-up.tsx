@@ -254,6 +254,11 @@ export default function SignUpScreen() {
             New paddlers start as aspirants with 3 trial sessions. A club admin will confirm your
             membership.
           </Text>
+          <Pressable accessibilityRole="link" onPress={() => router.push('/about')}>
+            <Text style={[styles.footer, { color: OtterPalette.slateNavy }]}>
+              How we use your information
+            </Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -32,15 +32,15 @@ to them are post-MVP.
       today.
 - [ ] **Leader notified of paid auto-confirmed sign-ups.** These go through
       Stripe checkout and the leader currently gets no push at any point.
-- [ ] **GDPR basics,** before real member data goes in:
-  - [ ] Stop collecting medical details and emergency contacts, and delete
+- [x] **GDPR basics,** before real member data goes in:
+  - [x] Stop collecting medical details and emergency contacts, and delete
         what is already held. Medical data is special category data under
         GDPR and needs explicit consent and stronger protection, and the
         club collects it on paper anyway.
-  - [ ] A privacy notice: what is held, why, who sees it, and how long it
+  - [x] A privacy notice: what is held, why, who sees it, and how long it
         is kept for lapsed members and non-members who never joined.
-  - [ ] Deleting a member's data on request. An admin doing it by hand is
-        fine.
+  - [x] Deleting a member's data on request. An admin doing it by hand is
+        fine. See `data-deletion.md`.
 
 ## Built extras
 
