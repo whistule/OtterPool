@@ -1,6 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode, useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
@@ -15,6 +24,7 @@ import { formatShortDateTime } from '@/lib/datetime';
 import { readErrorMessage } from '@/lib/errors';
 import { EXPERIENCE_QUESTIONS, type ExperienceAnswers, hasAnyAnswer } from '@/lib/experience';
 import { LEVEL_EMOJI, LEVEL_LABEL, LEVEL_RANK, type ProgressionLevel } from '@/lib/progress';
+import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 
@@ -72,7 +82,7 @@ export default function ReviewSignupsScreen() {
           'id, status, signed_up_at, notes, member_id, member:profiles!event_signups_member_id_fkey(id, display_name, full_name, level)',
         )
         .eq('event_id', id)
-        .eq('status', 'pending_review')
+        .in('status', ['pending_review', 'confirmed', 'pending_payment', 'waitlisted'])
         .order('signed_up_at', { ascending: true }),
       supabase.rpc('event_signup_experience', { p_event_id: id }),
     ]);
@@ -133,6 +143,44 @@ export default function ReviewSignupsScreen() {
     setBusyId(null);
   };
 
+  // Taking someone off a paid, confirmed place needs a manual refund, so
+  // confirm first.
+  const confirmRemove = (name: string) => {
+    const title = `Remove ${name}?`;
+    const body = 'They lose their place but can sign up again. Any payment is refunded manually.';
+    return new Promise<boolean>((resolve) => {
+      if (Platform.OS === 'web') {
+        resolve(typeof window !== 'undefined' ? window.confirm(`${title}\n\n${body}`) : false);
+        return;
+      }
+      Alert.alert(title, body, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Remove', style: 'destructive', onPress: () => resolve(true) },
+      ]);
+    });
+  };
+
+  const remove = async (s: PendingSignup) => {
+    const name = s.member?.display_name ?? s.member?.full_name ?? 'this member';
+    if (!(await confirmRemove(name))) {
+      return;
+    }
+    setBusyId(s.id);
+    setFeedback(null);
+    const { error } = await supabase.functions.invoke('cancel-signup', {
+      body: { signup_id: s.id },
+    });
+    if (error) {
+      const msg = await readErrorMessage(error);
+      setFeedback({ type: 'err', msg });
+      setBusyId(null);
+      return;
+    }
+    setFeedback({ type: 'ok', msg: `Removed ${name}` });
+    await load();
+    setBusyId(null);
+  };
+
   if (loading) {
     return (
       <SafeAreaView
@@ -171,6 +219,110 @@ export default function ReviewSignupsScreen() {
 
   const isPaid = Number(event.cost) > 0;
 
+  const all = signups ?? [];
+  const pending = all.filter((s) => s.status === 'pending_review');
+  const attending = all.filter((s) => s.status === 'confirmed' || s.status === 'pending_payment');
+  const waitlist = all.filter((s) => s.status === 'waitlisted');
+
+  const memberRow = (s: PendingSignup, actions: ReactNode) => {
+    const name = s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
+    const levelEmoji = s.member?.level
+      ? (LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? '')
+      : '';
+    const statusInfo = SIGNUP_STATUS[s.status as SignupStatus];
+    const belowLevel =
+      !!s.member?.level &&
+      (LEVEL_RANK[s.member.level as ProgressionLevel] ?? 0) <
+        (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
+    const exp = experience[s.member_id];
+    return (
+      <Card key={s.id}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(`/profile/${s.member_id}`)}
+          style={{ marginBottom: 10 }}
+        >
+          <Text style={[styles.memberName, { color: palette.text }]}>{name}</Text>
+          <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
+            Signed up {formatShortDateTime(s.signed_up_at)} · tap to view profile
+          </Text>
+        </Pressable>
+
+        <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          {s.member?.level ? (
+            <Pill
+              label={`${levelEmoji} ${s.member.level}`}
+              color="#e3e1dc"
+              textStyle={{ color: '#2a2f33' }}
+            />
+          ) : null}
+          {statusInfo ? <Pill label={statusInfo.shortLabel} color={statusInfo.color} /> : null}
+          {belowLevel ? (
+            <Pill
+              testID={`review-below-level-${s.id}`}
+              label={`Below minimum · trip is ${LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level}+`}
+              color={OtterPalette.burntOrange}
+            />
+          ) : null}
+        </Row>
+
+        {hasAnyAnswer(exp?.answers) ? (
+          <View
+            testID={`review-experience-${s.id}`}
+            style={[styles.experience, { borderColor: palette.border }]}
+          >
+            <Text style={[styles.expHeading, { color: palette.text }]}>
+              Their paddling experience
+            </Text>
+            <Text style={[styles.muted, { color: palette.muted, marginBottom: 8 }]}>
+              {exp?.reviewedAt
+                ? `A coach reviewed this on ${formatShortDateTime(exp.reviewedAt)}.`
+                : 'Not yet reviewed by a coach — this is in their own words.'}
+            </Text>
+            {EXPERIENCE_QUESTIONS.filter(
+              (q) => (exp?.answers?.[q.key] ?? '').trim().length > 0,
+            ).map((q) => (
+              <View key={q.key} style={{ marginBottom: 8 }}>
+                <Text style={[styles.muted, { color: palette.muted }]}>{q.label}</Text>
+                <Text style={[styles.body, { color: palette.text }]}>{exp?.answers?.[q.key]}</Text>
+              </View>
+            ))}
+          </View>
+        ) : belowLevel ? (
+          <Text style={[styles.body, { color: palette.muted, marginBottom: 10 }]}>
+            They haven't filled in their paddling experience.
+          </Text>
+        ) : null}
+
+        {s.notes ? (
+          <Text style={[styles.body, { color: palette.text, marginBottom: 10 }]}>"{s.notes}"</Text>
+        ) : null}
+
+        <Row style={{ gap: 10 }}>{actions}</Row>
+      </Card>
+    );
+  };
+
+  const removeButton = (s: PendingSignup, busy: boolean) => (
+    <Pressable
+      accessibilityRole="button"
+      testID={`review-remove-${s.id}`}
+      onPress={busy ? undefined : () => remove(s)}
+      disabled={busy}
+      style={[
+        styles.btn,
+        styles.btnSecondary,
+        { borderColor: OtterPalette.ice, opacity: busy ? 0.6 : 1 },
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator color={OtterPalette.ice} size="small" />
+      ) : (
+        <Text style={[styles.btnText, { color: OtterPalette.ice }]}>Remove</Text>
+      )}
+    </Pressable>
+  );
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]} edges={['top']}>
       <PageTitle title="Review sign-ups" />
@@ -207,89 +359,16 @@ export default function ReviewSignupsScreen() {
           </Card>
         ) : null}
 
-        <SectionTitle>Pending</SectionTitle>
+        {pending.length === 0 ? <EmptyCard message="No one is waiting for review." /> : null}
 
-        {(signups ?? []).length === 0 ? (
-          <EmptyCard message="No one is waiting for review." />
-        ) : (
-          (signups ?? []).map((s) => {
-            const name = s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
-            const levelEmoji = s.member?.level
-              ? (LEVEL_EMOJI[s.member.level as ProgressionLevel] ?? '')
-              : '';
-            const busy = busyId === s.id;
-            const belowLevel =
-              !!s.member?.level &&
-              (LEVEL_RANK[s.member.level as ProgressionLevel] ?? 0) <
-                (LEVEL_RANK[event.min_level as ProgressionLevel] ?? 0);
-            const exp = experience[s.member_id];
-            return (
-              <Card key={s.id}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push(`/profile/${s.member_id}`)}
-                  style={{ marginBottom: 10 }}
-                >
-                  <Text style={[styles.memberName, { color: palette.text }]}>{name}</Text>
-                  <Text style={[styles.muted, { color: palette.muted, marginTop: 2 }]}>
-                    Signed up {formatShortDateTime(s.signed_up_at)} · tap to view profile
-                  </Text>
-                </Pressable>
-
-                <Row style={{ flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                  {s.member?.level ? (
-                    <Pill
-                      label={`${levelEmoji} ${s.member.level}`}
-                      color="#e3e1dc"
-                      textStyle={{ color: '#2a2f33' }}
-                    />
-                  ) : null}
-                  {belowLevel ? (
-                    <Pill
-                      testID={`review-below-level-${s.id}`}
-                      label={`Below minimum · trip is ${LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level}+`}
-                      color={OtterPalette.burntOrange}
-                    />
-                  ) : null}
-                </Row>
-
-                {hasAnyAnswer(exp?.answers) ? (
-                  <View
-                    testID={`review-experience-${s.id}`}
-                    style={[styles.experience, { borderColor: palette.border }]}
-                  >
-                    <Text style={[styles.expHeading, { color: palette.text }]}>
-                      Their paddling experience
-                    </Text>
-                    <Text style={[styles.muted, { color: palette.muted, marginBottom: 8 }]}>
-                      {exp?.reviewedAt
-                        ? `A coach reviewed this on ${formatShortDateTime(exp.reviewedAt)}.`
-                        : 'Not yet reviewed by a coach — this is in their own words.'}
-                    </Text>
-                    {EXPERIENCE_QUESTIONS.filter(
-                      (q) => (exp?.answers?.[q.key] ?? '').trim().length > 0,
-                    ).map((q) => (
-                      <View key={q.key} style={{ marginBottom: 8 }}>
-                        <Text style={[styles.muted, { color: palette.muted }]}>{q.label}</Text>
-                        <Text style={[styles.body, { color: palette.text }]}>
-                          {exp?.answers?.[q.key]}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : belowLevel ? (
-                  <Text style={[styles.body, { color: palette.muted, marginBottom: 10 }]}>
-                    They haven't filled in their paddling experience.
-                  </Text>
-                ) : null}
-
-                {s.notes ? (
-                  <Text style={[styles.body, { color: palette.text, marginBottom: 10 }]}>
-                    "{s.notes}"
-                  </Text>
-                ) : null}
-
-                <Row style={{ gap: 10 }}>
+        {pending.length > 0 ? (
+          <>
+            <SectionTitle>Pending review</SectionTitle>
+            {pending.map((s) => {
+              const busy = busyId === s.id;
+              return memberRow(
+                s,
+                <>
                   <Pressable
                     accessibilityRole="button"
                     testID={`review-confirm-${s.id}`}
@@ -319,11 +398,25 @@ export default function ReviewSignupsScreen() {
                   >
                     <Text style={[styles.btnText, { color: OtterPalette.ice }]}>Deny</Text>
                   </Pressable>
-                </Row>
-              </Card>
-            );
-          })
-        )}
+                </>,
+              );
+            })}
+          </>
+        ) : null}
+
+        {attending.length > 0 ? (
+          <>
+            <SectionTitle>Attending</SectionTitle>
+            {attending.map((s) => memberRow(s, removeButton(s, busyId === s.id)))}
+          </>
+        ) : null}
+
+        {waitlist.length > 0 ? (
+          <>
+            <SectionTitle>Waitlist</SectionTitle>
+            {waitlist.map((s) => memberRow(s, removeButton(s, busyId === s.id)))}
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
