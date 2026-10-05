@@ -82,7 +82,7 @@ export default function ReviewSignupsScreen() {
           'id, status, signed_up_at, notes, member_id, member:profiles!event_signups_member_id_fkey(id, display_name, full_name, level)',
         )
         .eq('event_id', id)
-        .in('status', ['pending_review', 'confirmed', 'pending_payment', 'waitlisted', 'declined'])
+        .in('status', ['pending_review', 'confirmed', 'pending_payment', 'waitlisted'])
         .order('signed_up_at', { ascending: true }),
       supabase.rpc('event_signup_experience', { p_event_id: id }),
     ]);
@@ -143,37 +143,11 @@ export default function ReviewSignupsScreen() {
     setBusyId(null);
   };
 
-  const doCancel = async (signupId: string, mode: 'reallow' | 'block') => {
-    setBusyId(signupId);
-    setFeedback(null);
-    const { error } = await supabase.functions.invoke('cancel-signup', {
-      body: { signup_id: signupId, mode },
-    });
-    if (error) {
-      const msg = await readErrorMessage(error);
-      setFeedback({ type: 'err', msg });
-      setBusyId(null);
-      return;
-    }
-    setFeedback({
-      type: 'ok',
-      msg:
-        mode === 'block'
-          ? 'Removed — they can’t sign up again'
-          : 'Removed — they can sign up again',
-    });
-    await load();
-    setBusyId(null);
-  };
-
-  // Removing someone off a paid, confirmed place needs a manual refund, and
-  // blocking is not obvious to undo — so confirm both first.
-  const confirmCancel = (name: string, mode: 'reallow' | 'block') => {
-    const title = mode === 'block' ? `Remove & block ${name}?` : `Remove ${name}?`;
-    const body =
-      mode === 'block'
-        ? 'They lose their place and cannot sign up to this event again (you can allow them again later). Any payment is refunded manually.'
-        : 'They lose their place but can sign up again. Any payment is refunded manually.';
+  // Taking someone off a paid, confirmed place needs a manual refund, so
+  // confirm first.
+  const confirmRemove = (name: string) => {
+    const title = `Remove ${name}?`;
+    const body = 'They lose their place but can sign up again. Any payment is refunded manually.';
     return new Promise<boolean>((resolve) => {
       if (Platform.OS === 'web') {
         resolve(typeof window !== 'undefined' ? window.confirm(`${title}\n\n${body}`) : false);
@@ -186,11 +160,25 @@ export default function ReviewSignupsScreen() {
     });
   };
 
-  const cancel = async (s: PendingSignup, mode: 'reallow' | 'block') => {
+  const remove = async (s: PendingSignup) => {
     const name = s.member?.display_name ?? s.member?.full_name ?? 'this member';
-    if (await confirmCancel(name, mode)) {
-      await doCancel(s.id, mode);
+    if (!(await confirmRemove(name))) {
+      return;
     }
+    setBusyId(s.id);
+    setFeedback(null);
+    const { error } = await supabase.functions.invoke('cancel-signup', {
+      body: { signup_id: s.id },
+    });
+    if (error) {
+      const msg = await readErrorMessage(error);
+      setFeedback({ type: 'err', msg });
+      setBusyId(null);
+      return;
+    }
+    setFeedback({ type: 'ok', msg: `Removed ${name}` });
+    await load();
+    setBusyId(null);
   };
 
   if (loading) {
@@ -235,7 +223,6 @@ export default function ReviewSignupsScreen() {
   const pending = all.filter((s) => s.status === 'pending_review');
   const attending = all.filter((s) => s.status === 'confirmed' || s.status === 'pending_payment');
   const waitlist = all.filter((s) => s.status === 'waitlisted');
-  const blocked = all.filter((s) => s.status === 'declined');
 
   const memberRow = (s: PendingSignup, actions: ReactNode) => {
     const name = s.member?.display_name ?? s.member?.full_name ?? 'Unknown member';
@@ -316,41 +303,24 @@ export default function ReviewSignupsScreen() {
     );
   };
 
-  // "Remove" (withdrawn → can re-sign up) and "Remove & block" (declined →
-  // can't) for a member holding or waiting on a place.
-  const removeActions = (s: PendingSignup, busy: boolean) => (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        testID={`cancel-reallow-${s.id}`}
-        onPress={busy ? undefined : () => cancel(s, 'reallow')}
-        disabled={busy}
-        style={[
-          styles.btn,
-          styles.btnSecondary,
-          { borderColor: palette.border, opacity: busy ? 0.6 : 1 },
-        ]}
-      >
-        {busy ? (
-          <ActivityIndicator color={palette.text} size="small" />
-        ) : (
-          <Text style={[styles.btnText, { color: palette.text }]}>Remove</Text>
-        )}
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        testID={`cancel-block-${s.id}`}
-        onPress={busy ? undefined : () => cancel(s, 'block')}
-        disabled={busy}
-        style={[
-          styles.btn,
-          styles.btnSecondary,
-          { borderColor: OtterPalette.ice, opacity: busy ? 0.6 : 1 },
-        ]}
-      >
-        <Text style={[styles.btnText, { color: OtterPalette.ice }]}>Remove & block</Text>
-      </Pressable>
-    </>
+  const removeButton = (s: PendingSignup, busy: boolean) => (
+    <Pressable
+      accessibilityRole="button"
+      testID={`review-remove-${s.id}`}
+      onPress={busy ? undefined : () => remove(s)}
+      disabled={busy}
+      style={[
+        styles.btn,
+        styles.btnSecondary,
+        { borderColor: OtterPalette.ice, opacity: busy ? 0.6 : 1 },
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator color={OtterPalette.ice} size="small" />
+      ) : (
+        <Text style={[styles.btnText, { color: OtterPalette.ice }]}>Remove</Text>
+      )}
+    </Pressable>
   );
 
   return (
@@ -437,42 +407,14 @@ export default function ReviewSignupsScreen() {
         {attending.length > 0 ? (
           <>
             <SectionTitle>Attending</SectionTitle>
-            {attending.map((s) => memberRow(s, removeActions(s, busyId === s.id)))}
+            {attending.map((s) => memberRow(s, removeButton(s, busyId === s.id)))}
           </>
         ) : null}
 
         {waitlist.length > 0 ? (
           <>
             <SectionTitle>Waitlist</SectionTitle>
-            {waitlist.map((s) => memberRow(s, removeActions(s, busyId === s.id)))}
-          </>
-        ) : null}
-
-        {blocked.length > 0 ? (
-          <>
-            <SectionTitle>Blocked from re-signing up</SectionTitle>
-            {blocked.map((s) => {
-              const busy = busyId === s.id;
-              return memberRow(
-                s,
-                <Pressable
-                  accessibilityRole="button"
-                  testID={`cancel-allow-${s.id}`}
-                  onPress={busy ? undefined : () => doCancel(s.id, 'reallow')}
-                  disabled={busy}
-                  style={[
-                    styles.btn,
-                    { backgroundColor: OtterPalette.forest, opacity: busy ? 0.6 : 1 },
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.btnText}>Allow again</Text>
-                  )}
-                </Pressable>,
-              );
-            })}
+            {waitlist.map((s) => memberRow(s, removeButton(s, busyId === s.id)))}
           </>
         ) : null}
       </ScrollView>
