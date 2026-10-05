@@ -24,7 +24,12 @@ type EventRow = {
   category: { name: string } | null;
 };
 
-type ExistingSignup = { id: string; status: string; checkout_session_id: string | null } | null;
+type ExistingSignup = {
+  id: string;
+  status: string;
+  checkout_session_id: string | null;
+  reviewed_by: string | null;
+} | null;
 
 type Routing = { status: string; message: string };
 
@@ -43,7 +48,7 @@ const BELOW_LEVEL: Routing = {
 };
 
 /** Statuses a fresh sign-up call may overwrite on an existing row. */
-const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn']);
+const REJOINABLE_STATUSES = new Set(['pending_payment', 'withdrawn', 'waitlisted']);
 
 /** How long a Checkout session (and the seat it holds) lives. Stripe allows 30 min – 24 h. */
 const CHECKOUT_TTL_SECONDS = 2 * 60 * 60;
@@ -102,6 +107,13 @@ Deno.serve(async (req) => {
     // A pending_payment row is a seat already granted — auto-confirmed or
     // leader-approved — that the member is coming back to pay for.
     const resuming = existing?.status === 'pending_payment';
+    // A waitlisted member signing up again is claiming a seat that opened —
+    // on a paid event that's the only way off the waitlist (promoteFromWaitlist
+    // only sends an offer). Their place passed the level check when they
+    // joined, and their row already counts towards the trial.
+    const claiming = existing?.status === 'waitlisted';
+    // Approved by the leader before the event filled, so no second review.
+    const approved = resuming || (claiming && !!existing?.reviewed_by);
 
     // Resuming opens a fresh checkout, so close the previous one first —
     // otherwise both stay payable and only the newer one is tracked.
@@ -117,7 +129,7 @@ Deno.serve(async (req) => {
     // leader, who decides with their paddling experience in front of them.
     // The questionnaire is required so the leader has something to go on.
     // A leader-approved seat (resuming) has already been through this.
-    const belowLevel = !resuming && !meetsLevel(profile.level, event.min_level);
+    const belowLevel = !resuming && !claiming && !meetsLevel(profile.level, event.min_level);
     if (belowLevel && !(await hasExperienceAnswers(admin, user.id))) {
       return err(
         `This trip needs ${event.min_level} level or above — you're ${profile.level}. Tell us your paddling experience and you can ask the leader.`,
@@ -131,7 +143,7 @@ Deno.serve(async (req) => {
     // cancelled (withdrawn) or a leader-declined request does NOT use one.
     // Resuming a checkout is the one place already counted; rejoining a
     // withdrawn row is a new place and is checked like any other.
-    if (profile.status === 'aspirant' && !resuming) {
+    if (profile.status === 'aspirant' && !resuming && !claiming) {
       const used = await countTrialSignups(admin, user.id);
       if (used >= TRIAL_LIMIT) {
         return err(
@@ -155,8 +167,15 @@ Deno.serve(async (req) => {
     // Resuming an approved seat skips review again. If the member picked a £0
     // tier this confirms them outright instead of bouncing back to review.
     // Capacity still wins: a seat that filled meanwhile gets the waitlist.
-    if (resuming && routing.status !== 'waitlisted') {
+    if (approved && routing.status !== 'waitlisted') {
       routing = { status: 'confirmed', message: "You're in! Sign-up confirmed" };
+    }
+    // No seat to claim after all. Leave the row alone: rewriting it would reset
+    // signed_up_at and send them to the back of the queue.
+    // ponytail: any waitlisted member can claim an open seat, not just the one
+    // offered it; a claim window (post-MVP) is the fix if that matters.
+    if (claiming && routing.status === 'waitlisted') {
+      return err("Sorry, that seat's gone — you're still on the waitlist", 409);
     }
 
     // Paid + approved → Stripe Checkout. The webhook flips pending_payment →
@@ -298,7 +317,7 @@ async function loadExistingSignup(
 ): Promise<ExistingSignup> {
   const { data } = await admin
     .from('event_signups')
-    .select('id, status, checkout_session_id')
+    .select('id, status, checkout_session_id, reviewed_by')
     .eq('event_id', eventId)
     .eq('member_id', userId)
     .maybeSingle();
