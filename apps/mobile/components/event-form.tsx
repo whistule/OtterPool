@@ -123,8 +123,9 @@ export default function EventForm(props: EventFormProps) {
   const [description, setDescription] = useState('');
   const [whatToBring, setWhatToBring] = useState('');
   const [whatToBringTouched, setWhatToBringTouched] = useState(false);
-  // Per-trip WhatsApp invite link, edit only (the group is made once the trip
-  // exists). Lives in event_chat_links so only confirmed attendees can read it.
+  // Per-trip WhatsApp invite link. Lives in event_chat_links so only confirmed
+  // attendees can read it. Hidden when creating a repeat series: one group per
+  // trip, so each occurrence gets its own link from its edit page.
   const [whatsappUrl, setWhatsappUrl] = useState('');
   const [originalWhatsappUrl, setOriginalWhatsappUrl] = useState('');
   const [showWhatsappHelp, setShowWhatsappHelp] = useState(false);
@@ -698,7 +699,8 @@ export default function EventForm(props: EventFormProps) {
     }
 
     // Mirrors the check constraint on event_chat_links.url.
-    if (whatsappUrl.trim() && !WHATSAPP_INVITE_RE.test(whatsappUrl.trim())) {
+    const chatUrl = isEdit || !repeatEnabled ? whatsappUrl.trim() : '';
+    if (chatUrl && !WHATSAPP_INVITE_RE.test(chatUrl)) {
       errs.whatsapp = 'Paste the invite link, e.g. https://chat.whatsapp.com/AbC123';
     }
 
@@ -837,7 +839,6 @@ export default function EventForm(props: EventFormProps) {
         return false;
       }
       // Per-trip, so it never goes to the rest of the series.
-      const chatUrl = whatsappUrl.trim();
       if (chatUrl !== originalWhatsappUrl) {
         const { error: chatErr } = chatUrl
           ? await supabase.from('event_chat_links').upsert({ event_id: eventId, url: chatUrl })
@@ -907,6 +908,14 @@ export default function EventForm(props: EventFormProps) {
         const result = await copyPhoto('event-photos', selectedSuggestion, firstId);
         if (!('error' in result)) {
           basePath = result.path;
+        }
+      }
+      if (chatUrl) {
+        const { error: chatErr } = await supabase
+          .from('event_chat_links')
+          .insert({ event_id: firstId, url: chatUrl });
+        if (chatErr) {
+          setError(`Event created, but the WhatsApp link didn't save: ${chatErr.message}`);
         }
       }
       if (basePath) {
@@ -1956,8 +1965,8 @@ export default function EventForm(props: EventFormProps) {
             </>
           )}
 
-          {/* ---------- Trip WhatsApp (edit only) ---------- */}
-          {isEdit ? (
+          {/* ---------- Trip WhatsApp (not for a new repeat series) ---------- */}
+          {isEdit || (step === 4 && !repeatEnabled) ? (
             <>
               <SectionTitle>Trip WhatsApp</SectionTitle>
               <Card>
