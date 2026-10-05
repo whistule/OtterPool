@@ -65,3 +65,31 @@ test.describe('profile — member view', () => {
     });
   });
 });
+
+test.describe('profile — settings & info links', () => {
+  test.beforeEach(async ({ page, context }) => {
+    await context.clearCookies();
+    await signIn(page, MEMBER_EMAIL);
+    await page.goto('/profile');
+    await expect(page.getByText('Settings & info').first()).toBeAttached({ timeout: 15_000 });
+  });
+
+  test('tab bar has no Levels or Notify tab', async ({ page }) => {
+    await expect(page.getByRole('tab', { name: /Levels|Notify/ })).toHaveCount(0);
+  });
+
+  test('opens notifications and comes back', async ({ page }) => {
+    await page.locator('[data-testid="profile-notifications"]:visible').click();
+    await expect(page).toHaveURL(/\/notifications$/);
+    await expect(page.getByText('Trip alerts').first()).toBeAttached();
+    await page.locator('[aria-label="Back"]:visible').click();
+    await expect(page).toHaveURL(/\/profile$/);
+  });
+
+  test('level pill opens the levels guide', async ({ page }) => {
+    await page.locator('[data-testid="profile-level-pill"]:visible').click();
+    await expect(page).toHaveURL(/\/levels$/);
+    // Opens scrolled to the member's own level, not the intro.
+    await expect(page.locator('[data-testid="levels-your-level"]')).toBeInViewport();
+  });
+});
