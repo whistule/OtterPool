@@ -387,9 +387,13 @@ async function ensurePendingPaymentRow(
     // pending_payment — the webhook only confirms rows in that status. The
     // error must be checked: sending someone to Stripe for a row that stayed
     // withdrawn takes a payment the webhook can't match.
+    // A rejoin also drops any old review, so the webhook tells the leader
+    // about it; resuming a leader-approved checkout keeps it.
+    const review =
+      existing.status === 'pending_payment' ? {} : { reviewed_by: null, reviewed_at: null };
     const { error } = await admin
       .from('event_signups')
-      .update({ status: 'pending_payment', payment_status: 'pending' })
+      .update({ status: 'pending_payment', payment_status: 'pending', ...review })
       .eq('id', existing.id);
     if (error) {
       throw new Error(`Failed to update sign-up: ${error.message}`);

@@ -98,7 +98,7 @@ async function handlePaymentSucceeded(
     })
     .eq('id', signupId)
     .eq('status', 'pending_payment')
-    .select('event_id, member_id')
+    .select('event_id, member_id, reviewed_by')
     .maybeSingle();
 
   if (updateErr) {
@@ -110,6 +110,12 @@ async function handlePaymentSucceeded(
 
   await markFullIfAtCapacity(admin, updated.event_id);
   await notifyPaymentConfirmed(admin, updated.event_id, updated.member_id, signupId);
+  // A leader-approved seat (reviewed_by set) was already pushed to the leader
+  // at review time; an auto-confirmed one returned to Stripe before sign-up's
+  // notifyLeader, so this is the leader's first word of it.
+  if (!updated.reviewed_by) {
+    await notifyLeaderOfSignup(admin, updated.event_id, updated.member_id, signupId);
+  }
   return jsonOk();
 }
 
@@ -240,5 +246,25 @@ async function notifyPaymentConfirmed(
     title: 'Payment received',
     body: `You're confirmed for ${ev?.title ?? 'your event'}`,
     data: { type: 'payment_confirmed', event_id: eventId, signup_id: signupId },
+  });
+}
+
+async function notifyLeaderOfSignup(
+  admin: SupabaseClient,
+  eventId: string,
+  memberId: string,
+  signupId: string,
+): Promise<void> {
+  const [{ data: ev }, { data: member }] = await Promise.all([
+    admin.from('events').select('title, leader_id').eq('id', eventId).single(),
+    admin.from('profiles').select('full_name').eq('id', memberId).single(),
+  ]);
+  if (!ev?.leader_id) {
+    return;
+  }
+  await sendPush(admin, [ev.leader_id], {
+    title: 'New sign-up',
+    body: `${member?.full_name ?? 'A member'} signed up to ${ev.title}`,
+    data: { type: 'signup', event_id: eventId, signup_id: signupId, status: 'confirmed' },
   });
 }
