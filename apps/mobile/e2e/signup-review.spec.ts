@@ -38,7 +38,7 @@ async function openFixtureFromCalendar(page: Page) {
 }
 
 test.describe('manual_all sign-up + leader review + my-trips', () => {
-  test('member signs up, sees the trip in My Trips, leader confirms, member sees confirmed', async ({
+  test('member signs up, sees the trip in My Trips, leader confirms, then removes them', async ({
     page,
     context,
   }) => {
@@ -82,5 +82,29 @@ test.describe('manual_all sign-up + leader review + my-trips', () => {
     await signIn(page, MEMBER_EMAIL);
     await openFixtureFromCalendar(page);
     await expect(page.getByText('✅ Confirmed').first()).toBeAttached({ timeout: 15_000 });
+
+    // --- leader removes them from Attending ---
+    await context.clearCookies();
+    await signIn(page, LEADER_EMAIL);
+    await openFixtureFromCalendar(page);
+    await page.locator('[data-testid="event-review-cta"]:visible').click();
+    const remove = page.locator('[data-testid^="review-remove-"]:visible');
+    await expect(remove).toHaveCount(1, { timeout: 15_000 });
+    // Web confirms with window.confirm.
+    page.once('dialog', (dialog) => dialog.accept());
+    await remove.click();
+    await expect(page.getByText(`Removed ${MEMBER_DISPLAY}`).first()).toBeAttached({
+      timeout: 15_000,
+    });
+    await expect(remove).toHaveCount(0);
+
+    // --- member is no longer signed up, and can sign up again ---
+    await context.clearCookies();
+    await signIn(page, MEMBER_EMAIL);
+    await openFixtureFromCalendar(page);
+    await expect(page.locator('[data-testid="event-primary-cta"]:visible')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.locator('[data-testid="event-cancel-signup"]:visible')).toHaveCount(0);
   });
 });

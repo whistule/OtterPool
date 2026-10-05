@@ -4,7 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { gradeWithinCeiling, meetsLevel, trackForCategory } from '../_shared/progression.ts';
-import { type Stripe, getStripe } from '../_shared/stripe.ts';
+import { type Stripe, expireCheckout, getStripe } from '../_shared/stripe.ts';
 import { sendPush } from '../_shared/push.ts';
 import { isAtCapacity, isEventFullError, markFullIfAtCapacity } from '../_shared/capacity.ts';
 import { type ListRow, type MemberStatus, memberStatus } from '../_shared/membership.ts';
@@ -24,7 +24,7 @@ type EventRow = {
   category: { name: string } | null;
 };
 
-type ExistingSignup = { id: string; status: string } | null;
+type ExistingSignup = { id: string; status: string; checkout_session_id: string | null } | null;
 
 type Routing = { status: string; message: string };
 
@@ -102,6 +102,16 @@ Deno.serve(async (req) => {
     // A pending_payment row is a seat already granted — auto-confirmed or
     // leader-approved — that the member is coming back to pay for.
     const resuming = existing?.status === 'pending_payment';
+
+    // Resuming opens a fresh checkout, so close the previous one first —
+    // otherwise both stay payable and only the newer one is tracked.
+    if (
+      resuming &&
+      existing?.checkout_session_id &&
+      !(await expireCheckout(existing.checkout_session_id))
+    ) {
+      return err("You've already paid — your place will show as confirmed shortly", 409);
+    }
 
     // Below the minimum level isn't a hard stop: the member can ask the
     // leader, who decides with their paddling experience in front of them.
@@ -288,7 +298,7 @@ async function loadExistingSignup(
 ): Promise<ExistingSignup> {
   const { data } = await admin
     .from('event_signups')
-    .select('id, status')
+    .select('id, status, checkout_session_id')
     .eq('event_id', eventId)
     .eq('member_id', userId)
     .maybeSingle();

@@ -17,4 +17,27 @@ export function getStripe(): Stripe {
   return cached;
 }
 
+/**
+ * Expires a Checkout Session so it can no longer be paid. Returns false only
+ * if it has already been paid — the webhook will confirm that seat. Stripe
+ * refuses to expire anything that isn't open, so an already-expired session
+ * counts as closed.
+ */
+export async function expireCheckout(sessionId: string): Promise<boolean> {
+  const stripe = getStripe();
+  try {
+    await stripe.checkout.sessions.expire(sessionId);
+    return true;
+  } catch (e) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.status === 'expired') {
+      return true;
+    }
+    if (session.status === 'complete') {
+      return false;
+    }
+    throw e;
+  }
+}
+
 export { Stripe };

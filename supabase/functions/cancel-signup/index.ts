@@ -14,7 +14,7 @@ import { ok, err } from '../_shared/response.ts';
 import { promoteFromWaitlist } from '../_shared/waitlist.ts';
 import { isPaddlingAdmin } from '../_shared/authz.ts';
 import { sendPush } from '../_shared/push.ts';
-import { getStripe } from '../_shared/stripe.ts';
+import { expireCheckout } from '../_shared/stripe.ts';
 
 type LoadedSignup = {
   id: string;
@@ -62,14 +62,13 @@ Deno.serve(async (req) => {
     const wasSeat = SEAT_STATUSES.has(signup.status);
 
     // Close the checkout first so they can't pay for a place they no longer
-    // hold. Stripe refuses to expire a session that's already been paid, so
-    // in that race we stop here and let the webhook confirm them.
-    if (signup.status === 'pending_payment' && signup.checkout_session_id) {
-      try {
-        await getStripe().checkout.sessions.expire(signup.checkout_session_id);
-      } catch (e) {
-        return err(`Couldn't close their checkout, they may have just paid: ${String(e)}`, 409);
-      }
+    // hold. If it's already been paid, stop and let the webhook confirm them.
+    if (
+      signup.status === 'pending_payment' &&
+      signup.checkout_session_id &&
+      !(await expireCheckout(signup.checkout_session_id))
+    ) {
+      return err('They have just paid, so their place is confirmed. Refresh to see it.', 409);
     }
 
     const { error: updateErr } = await admin
@@ -87,7 +86,7 @@ Deno.serve(async (req) => {
     if (signup.member_id !== user.id) {
       await sendPush(admin, [signup.member_id], {
         title: 'Removed from trip',
-        body: `The leader removed you from ${signup.event_title}`,
+        body: `You've been removed from ${signup.event_title}`,
         data: {
           type: 'signup_cancelled',
           event_id: signup.event_id,
