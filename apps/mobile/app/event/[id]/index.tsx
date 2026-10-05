@@ -733,7 +733,7 @@ export default function EventDetailScreen() {
                 testID="event-whatsapp"
                 onPress={() => Linking.openURL(chatUrl).catch(() => {})}
               >
-                <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                <Text style={[styles.value, styles.linkText, { color: palette.link }]}>
                   Join the trip WhatsApp ↗
                 </Text>
               </Pressable>

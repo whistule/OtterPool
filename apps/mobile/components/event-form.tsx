@@ -1972,7 +1972,7 @@ export default function EventForm(props: EventFormProps) {
                   onPress={() => setShowWhatsappHelp((v) => !v)}
                   style={{ marginBottom: 8, alignSelf: 'flex-start' }}
                 >
-                  <Text style={[styles.hint, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.hint, { color: palette.link }]}>
                     {showWhatsappHelp ? 'Hide help' : 'How do I get the link?'}
                   </Text>
                 </Pressable>
