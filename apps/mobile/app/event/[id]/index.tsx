@@ -470,9 +470,11 @@ export default function EventDetailScreen() {
   // Credibility nudge: a serious grade (Sea B+, river G3+) is the moment to
   // invite an experienced joiner to establish their credentials. It's aimed at
   // people proving themselves, not beginners — so it only shows on those grades
-  // and stops once a coach has reviewed them.
+  // and stops once a coach has reviewed them. Dolphins and Selkies were placed
+  // there by an admin, so the club already vouches for them.
   const needsCredibility =
     !!profile &&
+    LEVEL_RANK[profile.level] < LEVEL_RANK.dolphin &&
     !isLeader &&
     !isAssistant &&
     !isConfirmed &&
