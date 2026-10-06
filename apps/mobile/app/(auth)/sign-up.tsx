@@ -98,7 +98,7 @@ export default function SignUpScreen() {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
-            <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
+            <Text style={[styles.wordmark, { color: palette.link }]}>OtterPool</Text>
             <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
               Create your account
             </Text>
@@ -244,7 +244,7 @@ export default function SignUpScreen() {
               disabled={busy}
               style={styles.secondaryBtn}
             >
-              <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
+              <Text style={[styles.secondaryBtnText, { color: palette.link }]}>
                 Back to sign in
               </Text>
             </Pressable>
@@ -255,7 +255,7 @@ export default function SignUpScreen() {
             membership.
           </Text>
           <Pressable accessibilityRole="link" onPress={() => router.push('/about')}>
-            <Text style={[styles.footer, { color: OtterPalette.slateNavy }]}>
+            <Text style={[styles.footer, { color: palette.link }]}>
               How we use your information
             </Text>
           </Pressable>

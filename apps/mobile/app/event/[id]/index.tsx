@@ -21,6 +21,7 @@ import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { roleFlags, useAuth } from '@/lib/auth';
 import { readErrorMessage } from '@/lib/errors';
+import { categoryChip } from '@/lib/event-form-utils';
 import { formatDateTime, formatFullRange } from '@/lib/datetime';
 import { openKitChecklist, parseKitList } from '@/lib/kit-list';
 import { formatMoney, formatPence, parsePriceOptions } from '@/lib/money';
@@ -410,7 +411,7 @@ export default function EventDetailScreen() {
     ? isLeaderApproved
       ? {
           label: `✅ Approved — pay ${selectedMoney} to confirm`,
-          color: OtterPalette.forest,
+          color: palette.success,
         }
       : SIGNUP_STATUS[signup.status as SignupStatus]
     : null;
@@ -520,7 +521,7 @@ export default function EventDetailScreen() {
         {/* ---------- Just-published confirmation ---------- */}
         {created === '1' && canEdit ? (
           <Card style={{ borderColor: OtterPalette.forest, borderWidth: 1.5 }}>
-            <Text style={[styles.value, { color: OtterPalette.forest }]}>✓ Published</Text>
+            <Text style={[styles.value, { color: palette.success }]}>✓ Published</Text>
             <Text style={[styles.muted, { color: palette.muted, marginTop: 4 }]}>
               This is exactly what members see. You can change anything.
             </Text>
@@ -543,7 +544,12 @@ export default function EventDetailScreen() {
 
         {/* ---------- Hero with title overlay ---------- */}
         <View style={styles.hero}>
-          <EventPhoto path={event.photo_path} height={220} style={styles.heroPhoto} />
+          <EventPhoto
+            path={event.photo_path}
+            height={220}
+            color={categoryChip(event.category?.name ?? '').color}
+            style={styles.heroPhoto}
+          />
           <View style={styles.heroOverlay} pointerEvents="none" />
           <View style={styles.heroContent} pointerEvents="none">
             {event.category?.name ? (
@@ -568,9 +574,9 @@ export default function EventDetailScreen() {
             ) : null}
             <Pill
               label={`${levelEmoji} ${event.min_level} min`}
-              color="#e3e1dc"
+              color={palette.placeholder}
               style={styles.infoPill}
-              textStyle={[styles.infoPillText, { color: '#2a2f33' }]}
+              textStyle={[styles.infoPillText, { color: palette.text }]}
             />
             <Pill
               label={isPaid ? costPillLabel : 'Free'}
@@ -578,16 +584,16 @@ export default function EventDetailScreen() {
               style={styles.infoPill}
               textStyle={styles.infoPillText}
             />
-            {/* Approval mode is a leader setting — members don't need to see it. */}
-            {canEdit ? (
-              <Pill
-                label={event.approval_mode === 'manual_all' ? 'Manual review' : 'Auto-approve'}
-                color={palette.surface}
-                style={styles.infoPill}
-                textStyle={[styles.infoPillText, { color: palette.text }]}
-              />
-            ) : null}
           </Row>
+          {/* Approval mode is a leader setting — members don't need to see it.
+              A caption rather than a pill, so it doesn't read as a button. */}
+          {canEdit ? (
+            <Text style={[styles.approvalNote, { color: palette.muted }]}>
+              {event.approval_mode === 'manual_all'
+                ? 'Sign-ups need your review'
+                : 'Sign-ups are approved automatically'}
+            </Text>
+          ) : null}
         </View>
 
         {/* ---------- Below the minimum level → ask the leader ---------- */}
@@ -612,7 +618,7 @@ export default function EventDetailScreen() {
               onPress={() => router.push(experienceHref as never)}
               style={{ marginTop: 10, alignSelf: 'flex-start' }}
             >
-              <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+              <Text style={[styles.linkText, { color: palette.link }]}>
                 {hasExperience ? 'Check or update your experience' : 'Tell us your experience'}
               </Text>
             </Pressable>
@@ -662,9 +668,7 @@ export default function EventDetailScreen() {
               onPress={() => downloadIcs(event)}
               style={{ marginTop: 8, alignSelf: 'flex-start' }}
             >
-              <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
-                + Add to your calendar
-              </Text>
+              <Text style={[styles.linkText, { color: palette.link }]}>+ Add to your calendar</Text>
             </Pressable>
           ) : null}
         </Card>
@@ -680,7 +684,7 @@ export default function EventDetailScreen() {
                   onPress={() => openMaps(event.location ?? '')}
                   testID="event-location"
                 >
-                  <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.value, styles.linkText, { color: palette.link }]}>
                     {event.location}
                   </Text>
                 </Pressable>
@@ -694,7 +698,7 @@ export default function EventDetailScreen() {
                   testID="event-meeting-point"
                   style={{ marginTop: event.location ? 6 : 0 }}
                 >
-                  <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.muted, styles.linkText, { color: palette.link }]}>
                     Collect gear at {event.meeting_point}
                     {event.meeting_time ? ` · ${event.meeting_time.slice(0, 5)}` : ''} ↗
                   </Text>
@@ -709,7 +713,7 @@ export default function EventDetailScreen() {
                   testID="event-put-in-point"
                   style={{ marginTop: event.location || event.meeting_point ? 6 : 0 }}
                 >
-                  <Text style={[styles.muted, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.muted, styles.linkText, { color: palette.link }]}>
                     Put in at {event.put_in_point}
                     {event.put_in_time ? ` · ${event.put_in_time.slice(0, 5)}` : ''} ↗
                   </Text>
@@ -729,7 +733,7 @@ export default function EventDetailScreen() {
                 testID="event-whatsapp"
                 onPress={() => Linking.openURL(chatUrl).catch(() => {})}
               >
-                <Text style={[styles.value, styles.linkText, { color: OtterPalette.slateNavy }]}>
+                <Text style={[styles.value, styles.linkText, { color: palette.link }]}>
                   Join the trip WhatsApp ↗
                 </Text>
               </Pressable>
@@ -868,9 +872,7 @@ export default function EventDetailScreen() {
                 // biome-ignore lint/suspicious/noArrayIndexKey: sections of static text
                 <View key={si} style={{ marginTop: si === 0 ? 0 : 16 }}>
                   {sec.heading ? (
-                    <Text
-                      style={[styles.value, { color: OtterPalette.slateNavy, marginBottom: 4 }]}
-                    >
+                    <Text style={[styles.value, { color: palette.link, marginBottom: 4 }]}>
                       {sec.heading}
                     </Text>
                   ) : null}
@@ -904,7 +906,7 @@ export default function EventDetailScreen() {
                 }
                 style={{ marginTop: 16, alignSelf: 'flex-start' }}
               >
-                <Text style={[styles.linkText, { color: OtterPalette.slateNavy }]}>
+                <Text style={[styles.linkText, { color: palette.link }]}>
                   ⬇ Download checklist (print or save as PDF)
                 </Text>
               </Pressable>
@@ -947,7 +949,7 @@ export default function EventDetailScreen() {
                       {active ? <View style={styles.tierRadioDot} /> : null}
                     </View>
                     <Text style={[styles.tierLabel, { color: palette.text }]}>{opt.label}</Text>
-                    <Text style={[styles.tierPrice, { color: OtterPalette.slateNavy }]}>
+                    <Text style={[styles.tierPrice, { color: palette.link }]}>
                       {formatPence(opt.pence)}
                     </Text>
                   </Pressable>
@@ -1138,6 +1140,7 @@ const styles = StyleSheet.create({
   pillsWrap: { paddingHorizontal: 16, marginTop: 18, marginBottom: 8 },
   infoPill: { paddingHorizontal: 14, paddingVertical: 8 },
   infoPillText: { fontSize: 14 },
+  approvalNote: { fontSize: 13, marginTop: 10 },
   kitItem: { alignItems: 'flex-start', gap: 10, paddingVertical: 3 },
   kitBox: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, marginTop: 3 },
   kitNote: { fontStyle: 'italic', marginTop: 6 },

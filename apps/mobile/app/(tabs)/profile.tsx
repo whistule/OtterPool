@@ -522,7 +522,7 @@ export default function ProfileScreen() {
                   </Text>
                 )}
                 {profile.experience_review_requested ? (
-                  <Text style={[styles.reviewState, { color: OtterPalette.forest }]}>
+                  <Text style={[styles.reviewState, { color: palette.success }]}>
                     {`✓ Sent for review${
                       profile.experience_submitted_at
                         ? ` · ${formatSubmitted(profile.experience_submitted_at)}`

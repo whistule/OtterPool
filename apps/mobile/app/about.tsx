@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
 import { Card, Row, SectionTitle } from '@/components/wireframe';
-import { Colors, OtterPalette } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { LEVEL_DESC, LEVEL_EMOJI, LEVEL_LABEL, LEVEL_ORDER } from '@/lib/progress';
 
@@ -167,7 +167,7 @@ export default function AboutScreen() {
               <Text style={[styles.value, { color: palette.text }]}>{c.what}</Text>
               <Text style={[styles.muted, { color: palette.muted, marginTop: 3 }]}>{c.detail}</Text>
               {c.url ? (
-                <Text style={[styles.muted, { color: OtterPalette.slateNavy, marginTop: 3 }]}>
+                <Text style={[styles.muted, { color: palette.link, marginTop: 3 }]}>
                   {c.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
                 </Text>
               ) : null}
@@ -183,9 +183,7 @@ export default function AboutScreen() {
           testID="about-source-link"
         >
           <Card>
-            <Text style={[styles.value, { color: OtterPalette.slateNavy }]}>
-              View the source on GitHub ↗
-            </Text>
+            <Text style={[styles.value, { color: palette.link }]}>View the source on GitHub ↗</Text>
             <Text style={[styles.muted, { color: palette.muted, marginTop: 3 }]}>
               {REPO.replace(/^https?:\/\//, '')}
             </Text>

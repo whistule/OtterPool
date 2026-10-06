@@ -208,7 +208,7 @@ export default function ResetPasswordScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
-          <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
+          <Text style={[styles.wordmark, { color: palette.link }]}>OtterPool</Text>
           <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
             Choose a new password
           </Text>

@@ -78,8 +78,9 @@ export function GreyBox({
   label?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const palette = Colors[useColorScheme() ?? 'light'];
   return (
-    <View style={[styles.greyBox, { height }, style]}>
+    <View style={[styles.greyBox, { height, backgroundColor: palette.placeholder }, style]}>
       {label ? <Text style={styles.greyBoxLabel}>{label}</Text> : null}
     </View>
   );
@@ -175,14 +176,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   greyBox: {
-    backgroundColor: '#e3e1dc',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   greyBoxLabel: {
     fontSize: 12,
-    color: '#6b7178',
+    color: Colors.light.muted,
   },
   pill: {
     paddingHorizontal: 10,

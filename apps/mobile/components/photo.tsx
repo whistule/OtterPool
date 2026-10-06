@@ -8,6 +8,8 @@ import {
   type StyleProp,
 } from 'react-native';
 
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { publicUrl } from '@/lib/photos';
 
 // Both components are decorative: every avatar sits beside the member's name
@@ -26,6 +28,7 @@ export function Avatar({
   fallback?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const palette = Colors[useColorScheme() ?? 'light'];
   const url = publicUrl('avatars', path);
   const dim: ImageStyle = { width: size, height: size, borderRadius: size / 2 };
   if (url) {
@@ -40,24 +43,33 @@ export function Avatar({
     );
   }
   return (
-    <View aria-hidden style={[styles.fallback, dim, style]}>
+    <View
+      aria-hidden
+      style={[styles.fallback, { backgroundColor: palette.placeholder }, dim, style]}
+    >
       <Text style={{ fontSize: Math.round(size * 0.55) }}>{fallback ?? '🦦'}</Text>
     </View>
   );
 }
 
-/** Rectangular event/hero photo. Falls back to a tinted placeholder. */
+/**
+ * Rectangular event/hero photo. Without a photo it falls back to a block of
+ * `color` (the event's discipline colour) so cards still read at a glance.
+ */
 export function EventPhoto({
   path,
   height = 140,
   thumb = false,
+  color,
   style,
 }: {
   path: string | null | undefined;
   height?: number;
   thumb?: boolean;
+  color?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const palette = Colors[useColorScheme() ?? 'light'];
   const url = publicUrl('event-photos', path);
   const radius = thumb ? 10 : 14;
   const baseStyle: ImageStyle = { height, borderRadius: radius, width: thumb ? height : '100%' };
@@ -73,25 +85,27 @@ export function EventPhoto({
     );
   }
   return (
-    <View aria-hidden style={[styles.placeholder, baseStyle, style]}>
-      <Text style={styles.placeholderLabel}>{thumb ? '📷' : 'event photo'}</Text>
+    <View
+      aria-hidden
+      style={[
+        styles.placeholder,
+        { backgroundColor: color ?? palette.placeholder },
+        baseStyle,
+        style,
+      ]}
+    >
+      {thumb ? <Text style={{ fontSize: Math.round(height * 0.45) }}>🛶</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: '#e3e1dc',
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholder: {
-    backgroundColor: '#e3e1dc',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  placeholderLabel: {
-    fontSize: 12,
-    color: '#6b7178',
   },
 });

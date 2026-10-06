@@ -1702,7 +1702,7 @@ export default function EventForm(props: EventFormProps) {
                     }
                     style={[styles.tierAddBtn, { borderColor: palette.border }]}
                   >
-                    <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                    <Text style={[styles.tierAddText, { color: palette.link }]}>
                       + Add concession rates
                     </Text>
                   </Pressable>
@@ -1765,7 +1765,7 @@ export default function EventForm(props: EventFormProps) {
                       onPress={() => setPriceTiers((prev) => [...prev, { label: '', amount: '' }])}
                       style={[styles.tierAddBtn, { borderColor: palette.border, marginTop: 8 }]}
                     >
-                      <Text style={[styles.tierAddText, { color: OtterPalette.slateNavy }]}>
+                      <Text style={[styles.tierAddText, { color: palette.link }]}>
                         + Add another rate
                       </Text>
                     </Pressable>
@@ -1972,7 +1972,7 @@ export default function EventForm(props: EventFormProps) {
                   onPress={() => setShowWhatsappHelp((v) => !v)}
                   style={{ marginBottom: 8, alignSelf: 'flex-start' }}
                 >
-                  <Text style={[styles.hint, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.hint, { color: palette.link }]}>
                     {showWhatsappHelp ? 'Hide help' : 'How do I get the link?'}
                   </Text>
                 </Pressable>

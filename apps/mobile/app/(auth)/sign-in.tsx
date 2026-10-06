@@ -64,10 +64,7 @@ export default function SignInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
-          <Text
-            accessibilityRole="header"
-            style={[styles.wordmark, { color: OtterPalette.slateNavy }]}
-          >
+          <Text accessibilityRole="header" style={[styles.wordmark, { color: palette.link }]}>
             OtterPool
           </Text>
           <Text style={[styles.tag, { color: palette.muted }]}>

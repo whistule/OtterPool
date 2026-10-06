@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { OtterPalette } from '@/constants/theme';
+import { Colors, OtterPalette } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchMyMembership, type Membership, useAuth } from '@/lib/auth';
 
 // DCKC's MemberMojo pages. Renewals go to the renew page; new joiners go to
@@ -52,6 +53,8 @@ type BannerContent = {
  */
 export function MembershipBanner() {
   const { session, profile } = useAuth();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const [snapshot, setSnapshot] = useState<Membership | null>(null);
   const [verifiedDismissed, setVerifiedDismissed] = useState(false);
 
@@ -157,12 +160,16 @@ export function MembershipBanner() {
     return null;
   }
 
+  // The darker tones (navy, forest) vanish on a dark surface, so the title and
+  // dismiss fall back to plain text there; the stripe and border keep the tone.
+  const titleColor = scheme === 'dark' ? palette.text : content.tone;
+
   return (
-    <View style={[styles.banner, { borderColor: content.tone }]}>
+    <View style={[styles.banner, { borderColor: content.tone, backgroundColor: palette.surface }]}>
       <View style={[styles.stripe, { backgroundColor: content.tone }]} />
       <View style={styles.body}>
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: content.tone }]}>{content.title}</Text>
+          <Text style={[styles.title, { color: titleColor }]}>{content.title}</Text>
           {content.onDismiss ? (
             <Pressable
               accessibilityRole="button"
@@ -171,11 +178,13 @@ export function MembershipBanner() {
               hitSlop={8}
               testID="membership-banner-dismiss"
             >
-              <Text style={[styles.dismiss, { color: content.tone }]}>✕</Text>
+              <Text style={[styles.dismiss, { color: titleColor }]}>✕</Text>
             </Pressable>
           ) : null}
         </View>
-        {content.body ? <Text style={styles.text}>{content.body}</Text> : null}
+        {content.body ? (
+          <Text style={[styles.text, { color: palette.text }]}>{content.body}</Text>
+        ) : null}
         {content.action ? (
           <Pressable
             accessibilityRole="button"
@@ -195,18 +204,17 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
   },
   stripe: { width: 5 },
   body: { flex: 1, padding: 12, gap: 6 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 14, fontWeight: '700', flex: 1, paddingRight: 8 },
   dismiss: { fontSize: 14, fontWeight: '700' },
-  text: { fontSize: 13, color: '#3a3f43', lineHeight: 18 },
+  text: { fontSize: 13, lineHeight: 18 },
   action: {
     alignSelf: 'flex-start',
     paddingHorizontal: 14,

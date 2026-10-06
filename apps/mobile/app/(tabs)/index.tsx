@@ -294,7 +294,7 @@ export default function CalendarScreen() {
                   <Text
                     style={[
                       styles.disciplineText,
-                      { color: isActive ? OtterPalette.slateNavy : palette.muted },
+                      { color: isActive ? palette.link : palette.muted },
                       isActive && styles.disciplineTextActive,
                     ]}
                   >
@@ -302,12 +302,7 @@ export default function CalendarScreen() {
                   </Text>
                 </Row>
                 {isActive ? (
-                  <View
-                    style={[
-                      styles.disciplineUnderline,
-                      { backgroundColor: OtterPalette.slateNavy },
-                    ]}
-                  />
+                  <View style={[styles.disciplineUnderline, { backgroundColor: palette.link }]} />
                 ) : null}
               </Pressable>
             );
@@ -320,6 +315,7 @@ export default function CalendarScreen() {
           onSelect={setSelectedDay}
           mutedColor={palette.muted}
           textColor={palette.text}
+          todayColor={palette.success}
           borderColor={palette.border}
           background={palette.background}
         />
@@ -364,9 +360,7 @@ export default function CalendarScreen() {
             onPress={() => setSelectedDay(null)}
             style={styles.showAll}
           >
-            <Text style={[styles.showAllText, { color: OtterPalette.slateNavy }]}>
-              Show all days
-            </Text>
+            <Text style={[styles.showAllText, { color: palette.link }]}>Show all days</Text>
           </Pressable>
         ) : null}
 
@@ -397,7 +391,12 @@ export default function CalendarScreen() {
               >
                 <Card>
                   <Row style={{ marginBottom: 10 }}>
-                    <EventPhoto path={ev.photo_path} height={56} thumb />
+                    <EventPhoto
+                      path={ev.photo_path}
+                      height={56}
+                      thumb
+                      color={categoryChip(ev.category).color}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.evTitle, { color: palette.text }]} numberOfLines={2}>
                         {ev.title}
@@ -416,8 +415,8 @@ export default function CalendarScreen() {
                     <Pill label={pill.label} color={pill.color} />
                     <Pill
                       label={`${levelEmoji} ${ev.min_level}`}
-                      color="#e3e1dc"
-                      textStyle={{ color: '#2a2f33' }}
+                      color={palette.placeholder}
+                      textStyle={{ color: palette.text }}
                     />
                     <Pill
                       label={formatCost(ev.cost)}

@@ -61,7 +61,7 @@ export default function ForgotPasswordScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.brand}>
-          <Text style={[styles.wordmark, { color: OtterPalette.slateNavy }]}>OtterPool</Text>
+          <Text style={[styles.wordmark, { color: palette.link }]}>OtterPool</Text>
           <Text accessibilityRole="header" style={[styles.tag, { color: palette.muted }]}>
             Reset your password
           </Text>
@@ -126,7 +126,7 @@ export default function ForgotPasswordScreen() {
 
               <Link href="/sign-in" asChild>
                 <Pressable accessibilityRole="button" disabled={busy} style={styles.secondaryBtn}>
-                  <Text style={[styles.secondaryBtnText, { color: OtterPalette.slateNavy }]}>
+                  <Text style={[styles.secondaryBtnText, { color: palette.link }]}>
                     Back to sign in
                   </Text>
                 </Pressable>
