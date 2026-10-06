@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
 import { PageTitle } from '@/components/page-title';
-import { Card, SectionTitle } from '@/components/wireframe';
+import { Card, Row, SectionTitle } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { LEVEL_DESC, LEVEL_EMOJI, LEVEL_LABEL, LEVEL_ORDER } from '@/lib/progress';
@@ -105,19 +105,14 @@ export default function AboutScreen() {
             Your level sets which trips you can join. Only a Paddling Admin can move you up.
           </Text>
           {LEVEL_ORDER.map((l, i) => (
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={`${LEVEL_LABEL[l]} — about this level`}
+            <Row
               key={l}
-              onPress={() => router.push({ pathname: '/levels', params: { level: l } })}
-              testID={`about-level-${l}`}
-              style={({ pressed }) => [
+              style={[
                 styles.levelRow,
                 i < LEVEL_ORDER.length - 1 && {
                   borderBottomWidth: 1,
                   borderBottomColor: palette.border,
                 },
-                pressed && { opacity: 0.6 },
               ]}
             >
               <Text style={styles.levelEmoji}>{LEVEL_EMOJI[l]}</Text>
@@ -127,8 +122,7 @@ export default function AboutScreen() {
                   {LEVEL_DESC[l]}
                 </Text>
               </View>
-              <Text style={[styles.chevron, { color: palette.muted }]}>›</Text>
-            </Pressable>
+            </Row>
           ))}
         </Card>
 
@@ -208,8 +202,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, fontWeight: '600' },
   muted: { fontSize: 12 },
   body: { fontSize: 14, lineHeight: 20 },
-  levelRow: { flexDirection: 'row', paddingVertical: 10, gap: 12, alignItems: 'center' },
+  levelRow: { paddingVertical: 10, gap: 12, alignItems: 'center' },
   levelEmoji: { fontSize: 26 },
-  chevron: { fontSize: 22 },
   creditRow: { paddingVertical: 12 },
 });

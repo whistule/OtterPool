@@ -40,17 +40,6 @@ test.describe('about', () => {
 
   // The privacy notice is linked from sign-up, so it has to work signed out —
   // including opened cold (a shared link), where Back has no history.
-  test('a ladder row opens the levels guide at that animal', async ({ page, context }) => {
-    await context.clearCookies();
-    await signIn(page, MEMBER_EMAIL);
-
-    await page.goto('/about');
-    // The member is a Duck, so landing on Selkie proves the param wins over their own level.
-    await page.locator('[data-testid="about-level-selkie"]:visible').click();
-    await expect(page).toHaveURL(/\/levels\?level=selkie$/);
-    await expect(page.getByText('Qualified leader · nationally recognised')).toBeInViewport();
-  });
-
   test('privacy notice is reachable signed out, from sign-up and directly', async ({
     page,
     context,
