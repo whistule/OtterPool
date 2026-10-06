@@ -33,7 +33,7 @@ import {
   hasAnyAnswer,
 } from '@/lib/experience';
 import { pickImage, removePhoto, uploadPhoto } from '@/lib/photos';
-import { LEVEL_EMOJI, LEVEL_LABEL } from '@/lib/progress';
+import { LEVEL_EMOJI, LEVEL_LABEL, LEVEL_RANK } from '@/lib/progress';
 import { MEMBER_STATUS_COLOR, type MemberStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -331,17 +331,6 @@ export default function ProfileScreen() {
                 <Text style={[styles.name, { color: palette.text }]}>{headlineName}</Text>
                 <Text style={[styles.email, { color: palette.muted }]}>{email}</Text>
                 <Row style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                  <Pressable
-                    accessibilityRole="link"
-                    accessibilityLabel={`${LEVEL_LABEL[profile.level]} — about paddling levels`}
-                    onPress={() => router.push('/levels')}
-                    testID="profile-level-pill"
-                  >
-                    <Pill
-                      label={`${levelEmoji} ${LEVEL_LABEL[profile.level]} ›`}
-                      color={OtterPalette.slateNavy}
-                    />
-                  </Pressable>
                   <Pill
                     label={profile.status}
                     color={
@@ -354,6 +343,28 @@ export default function ProfileScreen() {
                 </Row>
               </View>
             </Row>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`${LEVEL_LABEL[profile.level]} — about paddling levels`}
+              onPress={() => router.push('/levels')}
+              testID="profile-level-pill"
+              style={({ pressed }) => [
+                styles.levelRow,
+                { borderTopColor: palette.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Text style={styles.levelEmoji}>{levelEmoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.levelName, { color: palette.text }]}>
+                  {LEVEL_LABEL[profile.level]}
+                </Text>
+                <Text style={[styles.email, { color: palette.muted }]}>
+                  Level {LEVEL_RANK[profile.level]} · what you can join and how to move up
+                </Text>
+              </View>
+              <Text style={[styles.levelChevron, { color: palette.muted }]}>›</Text>
+            </Pressable>
           </Card>
 
           {error ? <ErrorCard title={error} /> : null}
@@ -682,6 +693,17 @@ function DetailRow({
 const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700' },
   email: { fontSize: 12, marginTop: 2 },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  levelEmoji: { fontSize: 24 },
+  levelName: { fontSize: 15, fontWeight: '700' },
+  levelChevron: { fontSize: 22 },
   fieldRow: { paddingVertical: 12 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
   fieldValue: { fontSize: 14, marginTop: 2 },
