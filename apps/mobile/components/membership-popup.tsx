@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { OtterPalette } from '@/constants/theme';
+import { Colors, OtterPalette } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchMyMembership, type Membership, useAuth } from '@/lib/auth';
 import { MEMBERMOJO_JOIN_URL, MEMBERMOJO_RENEW_URL } from './membership-banner';
 
@@ -96,6 +97,7 @@ function buildPopup(m: Membership): Popup | null {
  */
 export function MembershipPopup() {
   const { session } = useAuth();
+  const palette = Colors[useColorScheme() ?? 'light'];
   const [popup, setPopup] = useState<Popup | null>(null);
 
   useEffect(() => {
@@ -129,7 +131,7 @@ export function MembershipPopup() {
 
   return (
     <View style={styles.overlay}>
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: palette.surface }]}>
         <View style={styles.top}>
           <Text style={styles.title}>{popup.title}</Text>
           <Text style={styles.sub}>{popup.sub}</Text>
@@ -145,15 +147,20 @@ export function MembershipPopup() {
                       key={i}
                       style={[
                         styles.pip,
-                        i < (popup.pips?.used ?? 0)
-                          ? { backgroundColor: OtterPalette.burntOrange }
-                          : null,
+                        {
+                          backgroundColor:
+                            i < (popup.pips?.used ?? 0)
+                              ? OtterPalette.burntOrange
+                              : palette.placeholder,
+                        },
                       ]}
                     />
                   ))}
                 </View>
               ) : null}
-              {popup.note ? <Text style={styles.note}>{popup.note}</Text> : null}
+              {popup.note ? (
+                <Text style={[styles.note, { color: palette.muted }]}>{popup.note}</Text>
+              ) : null}
             </View>
           ) : null}
           <View style={styles.btns}>
@@ -174,9 +181,11 @@ export function MembershipPopup() {
               accessibilityRole="button"
               testID="membership-popup-dismiss"
               onPress={close}
-              style={styles.secondaryBtn}
+              style={[styles.secondaryBtn, { borderColor: palette.border }]}
             >
-              <Text style={styles.secondaryText}>{popup.primary ? 'Maybe later' : 'Close'}</Text>
+              <Text style={[styles.secondaryText, { color: palette.muted }]}>
+                {popup.primary ? 'Maybe later' : 'Close'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -201,7 +210,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 430,
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -216,8 +224,8 @@ const styles = StyleSheet.create({
   body: { padding: 18, gap: 14 },
   sessions: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   pips: { flexDirection: 'row', gap: 6 },
-  pip: { width: 30, height: 8, borderRadius: 4, backgroundColor: '#d9d9d2' },
-  note: { fontSize: 13, color: '#5a6066', flex: 1 },
+  pip: { width: 30, height: 8, borderRadius: 4 },
+  note: { fontSize: 13, flex: 1 },
   btns: { flexDirection: 'row', gap: 10 },
   primaryBtn: {
     flex: 1,
@@ -235,12 +243,11 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     borderWidth: 1,
-    borderColor: '#d9d9d2',
     borderRadius: 8,
     paddingVertical: 13,
     paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: { color: '#5a6066', fontSize: 13, fontWeight: '600' },
+  secondaryText: { fontSize: 13, fontWeight: '600' },
 });
