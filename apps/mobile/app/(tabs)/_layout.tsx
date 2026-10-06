@@ -1,10 +1,13 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Platform, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { loadAttention } from '@/lib/attention';
+import { roleFlags, useAuth } from '@/lib/auth';
 
 // Emoji tab icons were small and faint (easy to miss, especially on web where
 // there's no touch target cue). Bigger, and only lightly dimmed when inactive.
@@ -23,6 +26,30 @@ export default function TabLayout() {
   const palette = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const barHeight = (Platform.OS === 'web' ? 72 : 60) + insets.bottom;
+  const { session, profile } = useAuth();
+  const userId = session?.user.id ?? null;
+  const paddlingAdmin = roleFlags(profile).paddlingAdmin;
+  const pathname = usePathname();
+  const [attentionCount, setAttentionCount] = useState(0);
+
+  // ponytail: recounts on every navigation (three small queries); move to a
+  // shared store if the inbox ever needs to update without the user moving.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the refresh trigger
+  useEffect(() => {
+    if (!userId) {
+      setAttentionCount(0);
+      return;
+    }
+    let active = true;
+    loadAttention(userId, paddlingAdmin).then((res) => {
+      if (active) {
+        setAttentionCount(res.items.length);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [userId, paddlingAdmin, pathname]);
 
   return (
     <Tabs
@@ -53,6 +80,14 @@ export default function TabLayout() {
         options={{
           title: 'My Trips',
           tabBarIcon: ({ focused }) => <EmojiIcon emoji="🛶" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="inbox"
+        options={{
+          title: 'Inbox',
+          tabBarBadge: attentionCount > 0 ? attentionCount : undefined,
+          tabBarIcon: ({ focused }) => <EmojiIcon emoji="🔔" focused={focused} />,
         }}
       />
       <Tabs.Screen
