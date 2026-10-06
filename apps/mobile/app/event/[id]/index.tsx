@@ -572,12 +572,19 @@ export default function EventDetailScreen() {
                 textStyle={styles.infoPillText}
               />
             ) : null}
-            <Pill
-              label={`${levelEmoji} ${event.min_level} min`}
-              color={palette.placeholder}
-              style={styles.infoPill}
-              textStyle={[styles.infoPillText, { color: palette.text }]}
-            />
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`Minimum level ${LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level} — about paddling levels`}
+              onPress={() => router.push('/levels')}
+              testID="event-level-pill"
+            >
+              <Pill
+                label={`${levelEmoji} ${event.min_level} min ›`}
+                color={palette.placeholder}
+                style={styles.infoPill}
+                textStyle={[styles.infoPillText, { color: palette.text }]}
+              />
+            </Pressable>
             <Pill
               label={isPaid ? costPillLabel : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
