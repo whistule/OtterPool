@@ -52,12 +52,16 @@ test.describe('event create — leader', () => {
     await step(page, 'next', 3);
     await page.locator('input[placeholder^="e.g. Loch Lomond"]:visible').fill('Pinkston');
     await page.locator('input[placeholder^="e.g. Club container"]:visible').fill('Reception');
+    await page
+      .locator('[data-testid="event-whatsapp-url"]:visible')
+      .fill('https://chat.whatsapp.com/E2eCreateInvite1');
 
     await page.locator('[data-testid="event-create-submit"]:visible').click();
 
     // Insert returns to /event/<id>; check the title renders on the detail.
     await page.waitForURL(/\/event\/[0-9a-f-]{36}/, { timeout: 15_000 });
     await expect(page.getByText(title).first()).toBeAttached({ timeout: 15_000 });
+    await expect(page.locator('[data-testid="event-whatsapp"]:visible')).toBeVisible();
 
     // And it's discoverable from the calendar.
     await page.goto('/');
