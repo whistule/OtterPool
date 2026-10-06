@@ -28,10 +28,8 @@ to them are post-MVP.
 - [x] **Push notifications:** sign-ups to the leader, review decisions and
       cancellations to the member.
 - [x] **Admin:** member roles.
-- [ ] **Leaders can remove someone from their trip.** Only an admin can
-      today.
-- [ ] **Leader notified of paid auto-confirmed sign-ups.** These go through
-      Stripe checkout and the leader currently gets no push at any point.
+- [x] **Leaders can remove someone from their trip.** (#51)
+- [x] **Leader notified of paid auto-confirmed sign-ups.** (#72)
 - [x] **GDPR basics,** before real member data goes in:
   - [x] Stop collecting medical details and emergency contacts, and delete
         what is already held. Medical data is special category data under
