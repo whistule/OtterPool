@@ -2,6 +2,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -40,6 +41,8 @@ import { supabase, supabaseUrl } from '@/lib/supabase';
 
 // WhatsApp's dark teal-green: white text on its brighter brand green fails contrast.
 const WHATSAPP_GREEN = '#075E54';
+// White glyph from Simple Icons (CC0), per WhatsApp's guidelines for links to a chat.
+const WHATSAPP_GLYPH = require('@/assets/images/whatsapp.png');
 
 type EventRow = {
   id: string;
@@ -694,10 +697,12 @@ export default function EventDetailScreen() {
               onPress={() => Linking.openURL(chatUrl).catch(() => {})}
               style={({ pressed }) => [
                 styles.primaryBtn,
-                { backgroundColor: WHATSAPP_GREEN, marginTop: 12, opacity: pressed ? 0.8 : 1 },
+                styles.whatsappBtn,
+                { opacity: pressed ? 0.8 : 1 },
               ]}
             >
-              <Text style={styles.primaryBtnText}>Join the trip WhatsApp ↗</Text>
+              <Image source={WHATSAPP_GLYPH} style={styles.whatsappGlyph} />
+              <Text style={styles.primaryBtnText}>Join the trip WhatsApp</Text>
             </Pressable>
             <Text
               style={[styles.muted, { color: palette.muted, marginTop: 8, textAlign: 'center' }]}
@@ -1218,6 +1223,14 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   whatsappTitle: { fontSize: 20, fontWeight: '800' },
+  whatsappBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: WHATSAPP_GREEN,
+    marginTop: 12,
+  },
+  whatsappGlyph: { width: 20, height: 20 },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
   tierRow: {
     flexDirection: 'row',
