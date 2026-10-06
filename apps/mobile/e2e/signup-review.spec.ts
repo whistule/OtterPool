@@ -64,11 +64,15 @@ test.describe('manual_all sign-up + leader review + my-trips', () => {
       page.locator('text=Pending review').locator('visible=true').first(),
     ).toBeAttached();
 
-    // --- leader confirms via the review screen ---
+    // --- leader finds it in the Inbox and confirms via the review screen ---
     await context.clearCookies();
     await signIn(page, LEADER_EMAIL);
-    await openFixtureFromCalendar(page);
-    await page.locator('[data-testid="event-review-cta"]:visible').click();
+    await page.locator('a[href="/inbox"]:visible').first().click();
+    const inboxItem = page
+      .locator('[data-testid^="inbox-review-"]:visible')
+      .filter({ hasText: FIXTURE_TITLE });
+    await expect(inboxItem).toContainText('1 sign-up to review', { timeout: 15_000 });
+    await inboxItem.click();
     await expect(page.getByText(MEMBER_DISPLAY).first()).toBeAttached({ timeout: 15_000 });
     await page.locator('[data-testid^="review-confirm-"]:visible').first().click();
     // Free event → goes straight to "confirmed" once approved, so the queue
