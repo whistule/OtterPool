@@ -1065,7 +1065,8 @@ export default function EventForm(props: EventFormProps) {
               <Card>
                 <Text style={[styles.hint, { color: palette.muted }]}>
                   This is one of {seriesCount || 'several'} events in a series. When you save, you
-                  can choose whether your changes also go to the other events.
+                  can choose whether your changes also go to the other events. The date, status and
+                  WhatsApp link only ever change this one.
                 </Text>
               </Card>
             </>
@@ -1964,6 +1965,9 @@ export default function EventForm(props: EventFormProps) {
                 <FieldLabel palette={palette}>Group invite link (optional)</FieldLabel>
                 <Text style={[styles.hint, { color: palette.muted, marginBottom: 6 }]}>
                   Only you, other leaders and confirmed paddlers see it.
+                  {seriesId
+                    ? ' It is for this trip only: each event in the series needs its own group.'
+                    : ''}
                 </Text>
                 <Pressable
                   accessibilityRole="button"
