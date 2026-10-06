@@ -846,6 +846,13 @@ export default function EventForm(props: EventFormProps) {
           setError(`Event saved, but the WhatsApp link didn't: ${chatErr.message}`);
           return false;
         }
+        // Tell whoever is already confirmed. A changed link counts too: the
+        // old invite may have been revoked.
+        if (chatUrl) {
+          supabase.functions
+            .invoke('notify-chat-link', { body: { event_id: eventId } })
+            .catch((e) => console.warn('[notify-chat-link] failed', e));
+        }
       }
       if (newPath !== undefined) {
         const stale = new Set([...replacedPhotos, originalPhotoPath]);

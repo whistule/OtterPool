@@ -3,7 +3,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
-import { sendPush } from '../_shared/push.ts';
+import { sendPush, withTripChat } from '../_shared/push.ts';
 import { isAtCapacity, isEventFullError, markFullIfAtCapacity } from '../_shared/capacity.ts';
 import { type PriceOption, mayCharge } from '../_shared/pricing.ts';
 import { isPaddlingAdmin } from '../_shared/authz.ts';
@@ -143,7 +143,7 @@ async function confirmSignup(
     title: nextStatus === 'confirmed' ? 'Sign-up confirmed' : 'Sign-up approved',
     body:
       nextStatus === 'confirmed'
-        ? `You're in for ${event.title}`
+        ? await withTripChat(admin, event.id, `You're in for ${event.title}`)
         : `Approved — pay to confirm your place on ${event.title}`,
     data: {
       type: 'signup_reviewed',

@@ -6,7 +6,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { confirmedCount } from './capacity.ts';
 import { mayCharge } from './pricing.ts';
-import { sendPush } from './push.ts';
+import { sendPush, withTripChat } from './push.ts';
 
 export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string): Promise<void> {
   const { data: ev } = await admin
@@ -64,7 +64,7 @@ export async function promoteFromWaitlist(admin: SupabaseClient, eventId: string
 
   await sendPush(admin, [next.member_id], {
     title: "You're off the waitlist",
-    body: `A seat opened on ${ev.title} — you're confirmed.`,
+    body: await withTripChat(admin, eventId, `A seat opened on ${ev.title} — you're confirmed.`),
     data: { type: 'waitlist_promoted', event_id: eventId, signup_id: next.id },
   });
 }

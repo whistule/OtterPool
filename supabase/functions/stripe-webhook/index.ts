@@ -4,7 +4,7 @@
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Stripe, getStripe } from '../_shared/stripe.ts';
-import { sendPush } from '../_shared/push.ts';
+import { sendPush, withTripChat } from '../_shared/push.ts';
 import { promoteFromWaitlist } from '../_shared/waitlist.ts';
 import { markFullIfAtCapacity } from '../_shared/capacity.ts';
 
@@ -244,7 +244,7 @@ async function notifyPaymentConfirmed(
   const { data: ev } = await admin.from('events').select('title').eq('id', eventId).single();
   await sendPush(admin, [memberId], {
     title: 'Payment received',
-    body: `You're confirmed for ${ev?.title ?? 'your event'}`,
+    body: await withTripChat(admin, eventId, `You're confirmed for ${ev?.title ?? 'your event'}`),
     data: { type: 'payment_confirmed', event_id: eventId, signup_id: signupId },
   });
 }

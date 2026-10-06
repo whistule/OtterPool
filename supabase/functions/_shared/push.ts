@@ -64,3 +64,23 @@ export async function sendPush(
     }
   }
 }
+
+/**
+ * Ends a "you're confirmed" body with a nudge to the trip WhatsApp when the
+ * leader has set one. The tap opens the event page, which holds the link.
+ */
+export async function withTripChat(
+  admin: SupabaseClient,
+  eventId: string,
+  body: string,
+): Promise<string> {
+  const { data } = await admin
+    .from('event_chat_links')
+    .select('event_id')
+    .eq('event_id', eventId)
+    .maybeSingle();
+  if (!data) {
+    return body;
+  }
+  return `${body.endsWith('.') ? body : `${body}.`} Tap to join the trip WhatsApp.`;
+}
