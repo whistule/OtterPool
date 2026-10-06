@@ -38,6 +38,9 @@ import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
 
+// WhatsApp's dark teal-green: white text on its brighter brand green fails contrast.
+const WHATSAPP_GREEN = '#075E54';
+
 type EventRow = {
   id: string;
   title: string;
@@ -158,7 +161,8 @@ export default function EventDetailScreen() {
     cancelled?: string;
     created?: string;
   }>();
-  const palette = Colors[useColorScheme() ?? 'light'];
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const insets = useSafeAreaInsets();
   const { session, profile } = useAuth();
 
@@ -670,6 +674,39 @@ export default function EventDetailScreen() {
           </Card>
         ) : null}
 
+        {/* ---------- You're in → join the trip WhatsApp ---------- */}
+        {isConfirmed && chatUrl ? (
+          <Card
+            testID="event-whatsapp-card"
+            style={{
+              backgroundColor: scheme === 'dark' ? '#16302a' : '#e3f4ea',
+              borderColor: 'transparent',
+            }}
+          >
+            <Text style={[styles.whatsappTitle, { color: palette.success }]}>You're in!</Text>
+            <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
+              Say hi to the crew. Lift-shares, kit swaps and any change of plan happen in the trip
+              WhatsApp.
+            </Text>
+            <Pressable
+              accessibilityRole="link"
+              testID="event-whatsapp"
+              onPress={() => Linking.openURL(chatUrl).catch(() => {})}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                { backgroundColor: WHATSAPP_GREEN, marginTop: 12, opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Text style={styles.primaryBtnText}>Join the trip WhatsApp ↗</Text>
+            </Pressable>
+            <Text
+              style={[styles.muted, { color: palette.muted, marginTop: 8, textAlign: 'center' }]}
+            >
+              {`${participants.length} ${participants.length === 1 ? 'paddler' : 'paddlers'} confirmed so far`}
+            </Text>
+          </Card>
+        ) : null}
+
         {/* ---------- When ---------- */}
         <SectionTitle>When</SectionTitle>
         <Card>
@@ -738,8 +775,8 @@ export default function EventDetailScreen() {
           </>
         ) : null}
 
-        {/* ---------- Trip WhatsApp ---------- */}
-        {chatUrl ? (
+        {/* ---------- Trip WhatsApp (editors who aren't going) ---------- */}
+        {chatUrl && !isConfirmed ? (
           <>
             <SectionTitle>Trip WhatsApp</SectionTitle>
             <Card>
@@ -1180,6 +1217,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  whatsappTitle: { fontSize: 20, fontWeight: '800' },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
   tierRow: {
     flexDirection: 'row',
