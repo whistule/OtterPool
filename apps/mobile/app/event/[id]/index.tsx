@@ -371,6 +371,7 @@ export default function EventDetailScreen() {
   const leaderName = event.leader?.display_name ?? event.leader?.full_name ?? '—';
   const assistantName = event.assistant?.display_name ?? event.assistant?.full_name ?? '—';
   const levelEmoji = LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? '🦆';
+  const minLevelLabel = LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level;
   // Concession pricing: when the event carries tiers, the member picks one and
   // the sign-up call sends the index (never an amount). Index 0 is the
   // standard rate; a member who never touches the picker pays that.
@@ -573,12 +574,6 @@ export default function EventDetailScreen() {
               />
             ) : null}
             <Pill
-              label={`${levelEmoji} ${event.min_level} min`}
-              color={palette.placeholder}
-              style={styles.infoPill}
-              textStyle={[styles.infoPillText, { color: palette.text }]}
-            />
-            <Pill
               label={isPaid ? costPillLabel : 'Free'}
               color={isPaid ? OtterPalette.burntOrange : OtterPalette.forest}
               style={styles.infoPill}
@@ -596,6 +591,28 @@ export default function EventDetailScreen() {
           ) : null}
         </View>
 
+        {/* ---------- Minimum level, opens the Levels guide ---------- */}
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${minLevelLabel} and above — about paddling levels`}
+          onPress={() => router.push('/levels')}
+          testID="event-level-pill"
+          style={({ pressed }) => pressed && { opacity: 0.6 }}
+        >
+          <Card style={styles.levelRow}>
+            <Text style={styles.levelEmoji}>{levelEmoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.levelName, { color: palette.text }]}>
+                {`${minLevelLabel} and above`}
+              </Text>
+              <Text style={[styles.levelSub, { color: palette.muted }]}>
+                {`Level ${LEVEL_RANK[event.min_level as ProgressionLevel] ?? '?'} minimum · what the levels mean`}
+              </Text>
+            </View>
+            <Text style={[styles.levelChevron, { color: palette.muted }]}>›</Text>
+          </Card>
+        </Pressable>
+
         {/* ---------- Below the minimum level → ask the leader ---------- */}
         {belowLevel && profile ? (
           <Card
@@ -603,9 +620,7 @@ export default function EventDetailScreen() {
             style={{ borderColor: OtterPalette.burntOrange, borderWidth: 1.5 }}
           >
             <Text style={[styles.value, { color: OtterPalette.burntOrange }]}>
-              {`This trip is for ${LEVEL_EMOJI[event.min_level as ProgressionLevel] ?? ''} ${
-                LEVEL_LABEL[event.min_level as ProgressionLevel] ?? event.min_level
-              } and above`}
+              You're below the level for this trip
             </Text>
             <Text style={[styles.body, { color: palette.text, marginTop: 6 }]}>
               {hasExperience
@@ -1141,6 +1156,11 @@ const styles = StyleSheet.create({
   infoPill: { paddingHorizontal: 14, paddingVertical: 8 },
   infoPillText: { fontSize: 14 },
   approvalNote: { fontSize: 13, marginTop: 10 },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  levelEmoji: { fontSize: 24 },
+  levelName: { fontSize: 15, fontWeight: '700' },
+  levelSub: { fontSize: 12, marginTop: 2 },
+  levelChevron: { fontSize: 22 },
   kitItem: { alignItems: 'flex-start', gap: 10, paddingVertical: 3 },
   kitBox: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, marginTop: 3 },
   kitNote: { fontStyle: 'italic', marginTop: 6 },
