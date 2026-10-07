@@ -1086,6 +1086,7 @@ export default function EventForm(props: EventFormProps) {
               <Card>
                 <FieldLabel palette={palette}>Title</FieldLabel>
                 <TextInput
+                  accessibilityLabel="Title"
                   value={title}
                   onChangeText={(t) => {
                     setTitle(t);
@@ -1206,6 +1207,7 @@ export default function EventForm(props: EventFormProps) {
                 {roleFlags(profile).paddlingAdmin ? (
                   <>
                     <TextInput
+                      accessibilityLabel="Search for a different leader"
                       value={leaderQuery}
                       onChangeText={setLeaderQuery}
                       placeholder="Search to assign a different leader"
@@ -1260,6 +1262,7 @@ export default function EventForm(props: EventFormProps) {
                 ) : (
                   <>
                     <TextInput
+                      accessibilityLabel="Search members to add an assistant leader"
                       value={assistantQuery}
                       onChangeText={setAssistantQuery}
                       placeholder="Search members to add an assistant leader"
@@ -1376,6 +1379,7 @@ export default function EventForm(props: EventFormProps) {
                     <View style={[wideLayout ? { flex: 1 } : { marginTop: 14 }]}>
                       <FieldLabel palette={palette}>Duration (hours)</FieldLabel>
                       <TextInput
+                        accessibilityLabel="Duration in hours"
                         value={durationHours}
                         onChangeText={(t) => {
                           setDurationHours(t);
@@ -1486,6 +1490,7 @@ export default function EventForm(props: EventFormProps) {
                           Total occurrences (incl. the first)
                         </FieldLabel>
                         <TextInput
+                          accessibilityLabel="Total occurrences, including the first"
                           value={repeatCount}
                           onChangeText={(t) => {
                             setRepeatCount(t);
@@ -1543,6 +1548,7 @@ export default function EventForm(props: EventFormProps) {
               <Card>
                 <FieldLabel palette={palette}>Location</FieldLabel>
                 <TextInput
+                  accessibilityLabel="Location"
                   value={location}
                   onChangeText={setLocation}
                   placeholder="e.g. Loch Lomond, Balmaha"
@@ -1558,6 +1564,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 2 }}>
                     <FieldLabel palette={palette}>Gear collection</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Gear collection"
                       value={meetingPoint}
                       onChangeText={setMeetingPoint}
                       placeholder="e.g. Club container, Balloch"
@@ -1568,6 +1575,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 1 }}>
                     <FieldLabel palette={palette}>Time</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Gear collection time"
                       value={meetingTime}
                       onChangeText={(t) => {
                         setMeetingTime(t);
@@ -1587,6 +1595,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 2 }}>
                     <FieldLabel palette={palette}>Put-in</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Put-in"
                       value={putInPoint}
                       onChangeText={setPutInPoint}
                       placeholder="e.g. Loch Ard village hall"
@@ -1597,6 +1606,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 1 }}>
                     <FieldLabel palette={palette}>Time</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Put-in time"
                       value={putInTime}
                       onChangeText={(t) => {
                         setPutInTime(t);
@@ -1655,6 +1665,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 1 }}>
                     <FieldLabel palette={palette}>Max participants</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Max participants"
                       value={maxParticipants}
                       onChangeText={(t) => {
                         setMaxParticipants(t);
@@ -1672,6 +1683,7 @@ export default function EventForm(props: EventFormProps) {
                   <View style={{ flex: 1 }}>
                     <FieldLabel palette={palette}>Cost (£)</FieldLabel>
                     <TextInput
+                      accessibilityLabel="Cost in pounds"
                       testID="event-cost"
                       value={cost}
                       onChangeText={(t) => {
@@ -1724,6 +1736,7 @@ export default function EventForm(props: EventFormProps) {
                       >
                         <View style={{ flex: 1.5 }}>
                           <TextInput
+                            accessibilityLabel={`Rate ${i + 1} name`}
                             value={tier.label}
                             onChangeText={(t) => {
                               setPriceTiers((prev) =>
@@ -1740,6 +1753,7 @@ export default function EventForm(props: EventFormProps) {
                         </View>
                         <View style={{ flex: 1 }}>
                           <TextInput
+                            accessibilityLabel={`Rate ${i + 1} amount in pounds`}
                             value={tier.amount}
                             onChangeText={(t) => {
                               setPriceTiers((prev) =>
@@ -1894,6 +1908,7 @@ export default function EventForm(props: EventFormProps) {
                   Description (optional)
                 </FieldLabel>
                 <TextInput
+                  accessibilityLabel="Description"
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -1941,6 +1956,7 @@ export default function EventForm(props: EventFormProps) {
                   ))}
                 </Row>
                 <TextInput
+                  accessibilityLabel="What to bring, one item per line"
                   value={whatToBring}
                   onChangeText={(t) => {
                     setWhatToBring(t);
@@ -2007,6 +2023,7 @@ export default function EventForm(props: EventFormProps) {
                     ))
                   : null}
                 <TextInput
+                  accessibilityLabel="WhatsApp group invite link"
                   testID="event-whatsapp-url"
                   value={whatsappUrl}
                   onChangeText={(t) => {

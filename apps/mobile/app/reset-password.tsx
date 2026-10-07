@@ -262,6 +262,7 @@ export default function ResetPasswordScreen() {
               <Text style={[styles.label, { color: palette.muted }]}>Account</Text>
               <TextInput
                 value={email}
+                accessibilityLabel="Account"
                 editable={false}
                 autoComplete="username"
                 textContentType="username"
