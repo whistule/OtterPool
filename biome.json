@@ -12,7 +12,6 @@
       "!**/*.min.js",
       "!supabase/migrations",
       "!supabase/functions/_shared/deno_runtime.d.ts",
-      "!supabase/test.html",
       "!supabase/config*.js",
       "!supabase/templates",
       "!supabase/seed.sql",

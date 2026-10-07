@@ -2,7 +2,7 @@
  * Creates test users and seeds their profiles.
  *
  * Usage:
- *   cp config.js config.local.js   # fill in your values
+ *   cp config.js config.secret.js   # fill in your values
  *   node setup-test-users.js
  *
  * Requires the SERVICE ROLE key (not the anon key).
