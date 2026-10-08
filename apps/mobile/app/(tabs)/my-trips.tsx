@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageTitle } from '@/components/page-title';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
 import { Colors, OtterPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -15,19 +16,52 @@ import { colorForGrade } from '@/lib/progress';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
+type TripEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  grade_advertised: string | null;
+  grade_actual: string | null;
+  category: { name: string } | null;
+};
+
 type SignupRow = {
   id: string;
   status: string;
-  event: {
-    id: string;
-    title: string;
-    starts_at: string;
-    ends_at: string | null;
-    grade_advertised: string | null;
-    grade_actual: string | null;
-    category: { name: string } | null;
-  } | null;
+  event: TripEvent | null;
 };
+
+type LedEventRow = TripEvent & {
+  leader_id: string;
+  assistant_id: string | null;
+};
+
+type TripRole = 'leader' | 'assistant';
+
+// One row per event — either a trip I've signed up to, or one I'm leading /
+// assistant-leading (leaders aren't sign-ups, they're on the event itself).
+type TripRow = {
+  event: TripEvent;
+  status: string | null;
+  role: TripRole | null;
+};
+
+const ROLE_PILL: Record<TripRole, { label: string; color: string }> = {
+  leader: { label: 'Leading', color: OtterPalette.burntOrange },
+  assistant: { label: 'Assisting', color: OtterPalette.slateNavy },
+};
+
+const EVENT_FIELDS =
+  'id, title, starts_at, ends_at, grade_advertised, grade_actual, category:event_categories(name)';
+
+function pillFor(row: TripRow): { label: string; color: string } | null {
+  if (row.role) {
+    return ROLE_PILL[row.role];
+  }
+  const info = row.status ? SIGNUP_STATUS[row.status as SignupStatus] : undefined;
+  return info ? { label: info.shortLabel, color: info.color } : null;
+}
 
 type TallyRow = { bucket: string; count: number };
 
@@ -69,6 +103,22 @@ function bucketFor(
   return name || '—';
 }
 
+// Past trips I led (or assistant-led), counted into the same buckets as the
+// experience tally.
+function leadingTally(rows: TripRow[], role: TripRole): TallyRow[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (r.role !== role) {
+      continue;
+    }
+    const bucket = bucketFor(r.event.category?.name, r.event.grade_advertised, r.event.grade_actual);
+    counts.set(bucket, (counts.get(bucket) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([bucket, count]) => ({ bucket, count }))
+    .sort((a, b) => b.count - a.count || a.bucket.localeCompare(b.bucket));
+}
+
 function colorForBucket(bucket: string): string {
   // Non-grade buckets have no ladder position; everything else is a grade.
   if (bucket === 'Skills' || bucket === 'Training') {
@@ -81,10 +131,11 @@ export default function MyTripsScreen() {
   const palette = Colors[useColorScheme() ?? 'light'];
   const { session } = useAuth();
 
-  const [upcoming, setUpcoming] = useState<SignupRow[] | null>(null);
-  const [past, setPast] = useState<SignupRow[] | null>(null);
+  const [upcoming, setUpcoming] = useState<TripRow[] | null>(null);
+  const [past, setPast] = useState<TripRow[] | null>(null);
   const [tally, setTally] = useState<TallyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chatUrls, setChatUrls] = useState<Map<string, string>>(new Map());
 
   const load = useCallback(async () => {
     if (!session) {
@@ -95,42 +146,67 @@ export default function MyTripsScreen() {
     }
     setError(null);
 
-    const [signupsRes, tallyRes] = await Promise.all([
+    const uid = session.user.id;
+    const [signupsRes, ledRes, tallyRes, chatRes] = await Promise.all([
       supabase
         .from('event_signups')
-        .select(
-          'id, status, event:events!inner(id, title, starts_at, ends_at, grade_advertised, grade_actual, category:event_categories(name))',
-        )
-        .eq('member_id', session.user.id)
+        .select(`id, status, event:events!inner(${EVENT_FIELDS})`)
+        .eq('member_id', uid)
         .not('status', 'in', '(withdrawn,declined)'),
+      supabase
+        .from('events')
+        .select(`${EVENT_FIELDS}, leader_id, assistant_id`)
+        .or(`leader_id.eq.${uid},assistant_id.eq.${uid}`)
+        .neq('status', 'cancelled'),
       supabase.from('my_trip_tally').select('bucket, count'),
+      // RLS only returns links for trips I'm confirmed on or can edit.
+      supabase.from('event_chat_links').select('event_id, url'),
     ]);
 
-    if (signupsRes.error) {
-      setError(signupsRes.error.message);
+    // A missing chat link just means no button — never blocks the screen.
+    setChatUrls(
+      new Map(
+        ((chatRes.data ?? []) as { event_id: string; url: string }[]).map((c) => [
+          c.event_id,
+          c.url,
+        ]),
+      ),
+    );
+
+    const loadError = signupsRes.error ?? ledRes.error;
+    if (loadError) {
+      setError(loadError.message);
       setUpcoming([]);
       setPast([]);
     } else {
-      const rows = (signupsRes.data ?? []) as unknown as SignupRow[];
-      const now = Date.now();
-      const up: SignupRow[] = [];
-      const pa: SignupRow[] = [];
-      for (const r of rows) {
-        if (!r.event) {
-          continue;
+      // Keyed by event so a trip you lead and are also signed up to shows once.
+      const byEvent = new Map<string, TripRow>();
+      for (const r of (signupsRes.data ?? []) as unknown as SignupRow[]) {
+        if (r.event) {
+          byEvent.set(r.event.id, { event: r.event, status: r.status, role: null });
         }
+      }
+      for (const e of (ledRes.data ?? []) as unknown as LedEventRow[]) {
+        const role: TripRole = e.leader_id === uid ? 'leader' : 'assistant';
+        byEvent.set(e.id, { event: e, status: byEvent.get(e.id)?.status ?? null, role });
+      }
+
+      const now = Date.now();
+      const up: TripRow[] = [];
+      const pa: TripRow[] = [];
+      for (const r of byEvent.values()) {
         const endIso = r.event.ends_at ?? r.event.starts_at;
         if (new Date(endIso).getTime() >= now) {
           up.push(r);
-        } else if (r.status === 'confirmed') {
+        } else if (r.role || r.status === 'confirmed') {
           pa.push(r);
         }
       }
       up.sort(
-        (a, b) => new Date(a.event!.starts_at).getTime() - new Date(b.event!.starts_at).getTime(),
+        (a, b) => new Date(a.event.starts_at).getTime() - new Date(b.event.starts_at).getTime(),
       );
       pa.sort(
-        (a, b) => new Date(b.event!.starts_at).getTime() - new Date(a.event!.starts_at).getTime(),
+        (a, b) => new Date(b.event.starts_at).getTime() - new Date(a.event.starts_at).getTime(),
       );
       setUpcoming(up);
       setPast(pa);
@@ -148,6 +224,8 @@ export default function MyTripsScreen() {
   const { refreshing, onRefresh } = useLoadOnFocus(load);
 
   const isLoading = upcoming == null || past == null || tally == null;
+  const ledTally = past ? leadingTally(past, 'leader') : [];
+  const assistedTally = past ? leadingTally(past, 'assistant') : [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
@@ -170,12 +248,14 @@ export default function MyTripsScreen() {
               <EmptyCard message="Nothing booked. Browse the calendar to find a trip." />
             ) : (
               upcoming.map((s) => {
-                const ev = s.event!;
-                const pill = SIGNUP_STATUS[s.status as SignupStatus];
+                const ev = s.event;
+                // The leader made the group, so they don't need the button.
+                const chatUrl = s.role === 'leader' ? undefined : chatUrls.get(ev.id);
+                const pill = pillFor(s);
                 return (
                   <Pressable
                     accessibilityRole="button"
-                    key={s.id}
+                    key={ev.id}
                     onPress={() => router.push(`/event/${ev.id}`)}
                   >
                     <Card>
@@ -186,7 +266,12 @@ export default function MyTripsScreen() {
                             {formatShortDateTime(ev.starts_at)}
                           </Text>
                         </View>
-                        {pill ? <Pill label={pill.shortLabel} color={pill.color} /> : null}
+                        <View style={styles.badges}>
+                          {pill ? <Pill label={pill.label} color={pill.color} /> : null}
+                          {chatUrl ? (
+                            <WhatsAppButton url={chatUrl} testID="my-trips-whatsapp" compact />
+                          ) : null}
+                        </View>
                       </Row>
                     </Card>
                   </Pressable>
@@ -211,17 +296,61 @@ export default function MyTripsScreen() {
               </>
             ) : null}
 
+            {ledTally.length > 0 || assistedTally.length > 0 ? (
+              <>
+                <SectionTitle>Leading tally</SectionTitle>
+                <Card>
+                  {ledTally.length > 0 ? (
+                    <>
+                      <Text style={[styles.tallyLabel, { color: palette.muted }]}>Led</Text>
+                      <Row style={{ flexWrap: 'wrap', gap: 8 }}>
+                        {ledTally.map((t) => (
+                          <Pill
+                            key={t.bucket}
+                            label={`${t.bucket} · ${t.count}`}
+                            color={colorForBucket(t.bucket)}
+                          />
+                        ))}
+                      </Row>
+                    </>
+                  ) : null}
+                  {assistedTally.length > 0 ? (
+                    <>
+                      <Text
+                        style={[
+                          styles.tallyLabel,
+                          { color: palette.muted, marginTop: ledTally.length > 0 ? 12 : 0 },
+                        ]}
+                      >
+                        Assisted
+                      </Text>
+                      <Row style={{ flexWrap: 'wrap', gap: 8 }}>
+                        {assistedTally.map((t) => (
+                          <Pill
+                            key={t.bucket}
+                            label={`${t.bucket} · ${t.count}`}
+                            color={colorForBucket(t.bucket)}
+                          />
+                        ))}
+                      </Row>
+                    </>
+                  ) : null}
+                </Card>
+              </>
+            ) : null}
+
             <SectionTitle>Past trips</SectionTitle>
             {past.length === 0 ? (
               <EmptyCard message="No past trips yet." />
             ) : (
               past.map((s) => {
-                const ev = s.event!;
+                const ev = s.event;
                 const bucket = bucketFor(ev.category?.name, ev.grade_advertised, ev.grade_actual);
+                const rolePill = s.role ? ROLE_PILL[s.role] : null;
                 return (
                   <Pressable
                     accessibilityRole="button"
-                    key={s.id}
+                    key={ev.id}
                     onPress={() => router.push(`/event/${ev.id}`)}
                   >
                     <Card>
@@ -233,6 +362,7 @@ export default function MyTripsScreen() {
                             {formatShortDate(ev.starts_at)} · {bucket}
                           </Text>
                         </View>
+                        {rolePill ? <Pill label={rolePill.label} color={rolePill.color} /> : null}
                       </Row>
                     </Card>
                   </Pressable>
@@ -249,4 +379,14 @@ export default function MyTripsScreen() {
 const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   date: { fontSize: 12 },
+  // Status pill then WhatsApp button; wraps to a second line on narrow phones.
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  tallyLabel: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
 });

@@ -2,7 +2,6 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/header';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import { PageTitle } from '@/components/page-title';
 import { Avatar, EventPhoto } from '@/components/photo';
 import { ErrorCard, LoadingCenter } from '@/components/screen-states';
@@ -38,11 +38,6 @@ import {
 import { webRouteUrl } from '@/lib/urls';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase, supabaseUrl } from '@/lib/supabase';
-
-// WhatsApp's dark teal-green: white text on its brighter brand green fails contrast.
-const WHATSAPP_GREEN = '#075E54';
-// White glyph from Simple Icons (CC0), per WhatsApp's guidelines for links to a chat.
-const WHATSAPP_GLYPH = require('@/assets/images/whatsapp.png');
 
 type EventRow = {
   id: string;
@@ -693,19 +688,7 @@ export default function EventDetailScreen() {
               Say hi to the crew. Lift-shares, kit swaps and any change of plan happen in the trip
               WhatsApp.
             </Text>
-            <Pressable
-              accessibilityRole="link"
-              testID="event-whatsapp"
-              onPress={() => Linking.openURL(chatUrl).catch(() => {})}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                styles.whatsappBtn,
-                { opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <Image source={WHATSAPP_GLYPH} style={styles.whatsappGlyph} />
-              <Text style={styles.primaryBtnText}>Join the trip WhatsApp</Text>
-            </Pressable>
+            <WhatsAppButton url={chatUrl} testID="event-whatsapp" style={{ marginTop: 12 }} />
             <Text
               style={[styles.muted, { color: palette.muted, marginTop: 8, textAlign: 'center' }]}
             >
@@ -1225,14 +1208,6 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   whatsappTitle: { fontSize: 20, fontWeight: '800' },
-  whatsappBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: WHATSAPP_GREEN,
-    marginTop: 12,
-  },
-  whatsappGlyph: { width: 20, height: 20 },
   payNote: { fontSize: 11, textAlign: 'center', marginTop: 10 },
   tierRow: {
     flexDirection: 'row',
