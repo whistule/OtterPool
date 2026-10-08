@@ -262,6 +262,7 @@ export default function CalendarScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
+            accessibilityLabel="Search events"
             placeholder="Search title, location or leader"
             placeholderTextColor={palette.muted}
             autoCapitalize="none"

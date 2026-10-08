@@ -132,4 +132,15 @@ test.describe('RLS — a member cannot escalate their own privileges', () => {
     expect(error, 'non-selkie event creation must be rejected').not.toBeNull();
     expect(error!.code, 'should be an RLS violation').toBe('42501');
   });
+
+  // a row here makes you active, so writing your own skips the trial cap.
+  // upsert like the import does, the insert policy is checked even if the row exists
+  test('cannot add their own email to the verified members list', async () => {
+    const { supabase } = await memberClient();
+    const { error } = await supabase
+      .from('verified_members')
+      .upsert({ email_norm: MEMBER_EMAIL, expires_on: null }, { onConflict: 'email_norm' });
+    expect(error, 'self-verification must be rejected').not.toBeNull();
+    expect(error!.code, 'should be an RLS violation').toBe('42501');
+  });
 });

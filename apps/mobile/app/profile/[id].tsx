@@ -584,6 +584,7 @@ export default function MemberProfileScreen() {
                   <FieldRow palette={palette} label="Phone">
                     <TextInput
                       value={privForm.phone}
+                      accessibilityLabel="Phone"
                       onChangeText={(v) => setPrivForm({ ...privForm, phone: v })}
                       keyboardType="phone-pad"
                       placeholderTextColor={palette.muted}
@@ -593,6 +594,7 @@ export default function MemberProfileScreen() {
                   <FieldRow palette={palette} label="Date of birth (YYYY-MM-DD)">
                     <TextInput
                       value={privForm.dob}
+                      accessibilityLabel="Date of birth"
                       onChangeText={(v) => setPrivForm({ ...privForm, dob: v })}
                       placeholder="YYYY-MM-DD"
                       placeholderTextColor={palette.muted}
@@ -602,6 +604,7 @@ export default function MemberProfileScreen() {
                   <FieldRow palette={palette} label="BC membership no.">
                     <TextInput
                       value={privForm.bc_membership_no}
+                      accessibilityLabel="BC membership number"
                       onChangeText={(v) => setPrivForm({ ...privForm, bc_membership_no: v })}
                       placeholderTextColor={palette.muted}
                       style={[styles.input, { color: palette.text, borderColor: palette.border }]}

@@ -649,6 +649,7 @@ function FormField({
       <Text style={[styles.fieldLabel, { color: palette.muted }]}>{label}</Text>
       <TextInput
         value={value}
+        accessibilityLabel={label}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={palette.muted}
