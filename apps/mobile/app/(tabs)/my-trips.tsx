@@ -1,9 +1,18 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageTitle } from '@/components/page-title';
+import { Avatar } from '@/components/photo';
 import { EmptyCard, ErrorCard, LoadingCenter } from '@/components/screen-states';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { Card, GreyBox, Pill, Row, SectionTitle, TopBar } from '@/components/wireframe';
@@ -12,7 +21,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLoadOnFocus } from '@/hooks/use-load-on-focus';
 import { useAuth } from '@/lib/auth';
 import { formatShortDate, formatShortDateTime } from '@/lib/datetime';
-import { colorForGrade } from '@/lib/progress';
+import { colorForGrade, LEVEL_EMOJI, type ProgressionLevel } from '@/lib/progress';
 import { SIGNUP_STATUS, type SignupStatus } from '@/lib/status';
 import { supabase } from '@/lib/supabase';
 
@@ -64,6 +73,67 @@ function pillFor(row: TripRow): { label: string; color: string } | null {
 }
 
 type TallyRow = { bucket: string; count: number };
+
+type GoingRow = {
+  event_id: string;
+  member_id: string;
+  display_name: string | null;
+  full_name: string | null;
+  level: string;
+  avatar_path: string | null;
+};
+
+const MAX_FACES = 4;
+const FACE_SIZE = 28;
+
+const nameOf = (p: GoingRow) => p.display_name ?? p.full_name ?? 'Paddler';
+
+// Browser hover label. RN-web drops a `title` prop, so set it on the DOM node;
+// phones have no hover, so this is web only.
+const hoverTitle = (label: string) =>
+  Platform.OS === 'web'
+    ? (node: unknown) =>
+        (node as { setAttribute?: (k: string, v: string) => void } | null)?.setAttribute?.(
+          'title',
+          label,
+        )
+    : undefined;
+
+// Overlapping faces of the confirmed paddlers, then "+N" for the rest.
+function GoingFaces({ people, ringColor }: { people: GoingRow[]; ringColor: string }) {
+  const palette = Colors[useColorScheme() ?? 'light'];
+  if (people.length === 0) {
+    return null;
+  }
+  const shown = people.slice(0, MAX_FACES);
+  const rest = people.slice(MAX_FACES);
+  return (
+    <View
+      style={styles.faces}
+      accessible
+      accessibilityLabel={`${people.length} ${people.length === 1 ? 'paddler' : 'paddlers'} going`}
+    >
+      {shown.map((p, i) => (
+        <View key={p.member_id} ref={hoverTitle(nameOf(p))} style={{ marginLeft: i === 0 ? 0 : -8 }}>
+          <Avatar
+            path={p.avatar_path}
+            size={FACE_SIZE}
+            fallback={LEVEL_EMOJI[p.level as ProgressionLevel]}
+            style={[styles.face, { borderColor: ringColor }]}
+          />
+        </View>
+      ))}
+      {rest.length > 0 ? (
+        <Text
+          ref={hoverTitle(rest.map(nameOf).join(', '))}
+          style={[styles.facesMore, { color: palette.muted }]}
+        >
+          +{rest.length}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 function bucketFor(
   categoryName: string | null | undefined,
@@ -136,6 +206,7 @@ export default function MyTripsScreen() {
   const [tally, setTally] = useState<TallyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chatUrls, setChatUrls] = useState<Map<string, string>>(new Map());
+  const [going, setGoing] = useState<Map<string, GoingRow[]>>(new Map());
 
   const load = useCallback(async () => {
     if (!session) {
@@ -208,6 +279,22 @@ export default function MyTripsScreen() {
       pa.sort(
         (a, b) => new Date(b.event.starts_at).getTime() - new Date(a.event.starts_at).getTime(),
       );
+      // Who's going on each upcoming trip — faces only, so a failure here
+      // just leaves the row empty.
+      const upIds = up.map((r) => r.event.id);
+      const partRes = upIds.length
+        ? await supabase
+            .from('event_participants')
+            .select('event_id, member_id, display_name, full_name, level, avatar_path')
+            .in('event_id', upIds)
+            .order('signed_up_at', { ascending: true })
+        : { data: [] };
+      const byTrip = new Map<string, GoingRow[]>();
+      for (const p of (partRes.data ?? []) as GoingRow[]) {
+        byTrip.set(p.event_id, [...(byTrip.get(p.event_id) ?? []), p]);
+      }
+      setGoing(byTrip);
+
       setUpcoming(up);
       setPast(pa);
     }
@@ -259,15 +346,23 @@ export default function MyTripsScreen() {
                     onPress={() => router.push(`/event/${ev.id}`)}
                   >
                     <Card>
-                      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ flex: 1, paddingRight: 8 }}>
                           <Text style={[styles.title, { color: palette.text }]}>{ev.title}</Text>
                           <Text style={[styles.date, { color: palette.muted }]}>
                             {formatShortDateTime(ev.starts_at)}
                           </Text>
                         </View>
+                        <GoingFaces people={going.get(ev.id) ?? []} ringColor={palette.surface} />
                         <View style={styles.badges}>
-                          {pill ? <Pill label={pill.label} color={pill.color} /> : null}
+                          {pill ? (
+                            <Pill
+                              label={pill.label}
+                              color={pill.color}
+                              style={styles.badge}
+                              textStyle={styles.badgeText}
+                            />
+                          ) : null}
                           {chatUrl ? (
                             <WhatsAppButton url={chatUrl} testID="my-trips-whatsapp" compact />
                           ) : null}
@@ -379,6 +474,12 @@ export default function MyTripsScreen() {
 const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
   date: { fontSize: 12 },
+  faces: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
+  face: { borderWidth: 2 },
+  facesMore: { fontSize: 12, fontWeight: '700', marginLeft: 4 },
+  // Matches the compact WhatsApp button's height so the two sit level.
+  badge: { height: 30, justifyContent: 'center', paddingHorizontal: 12, alignSelf: 'center' },
+  badgeText: { fontSize: 12 },
   // Status pill then WhatsApp button; wraps to a second line on narrow phones.
   badges: {
     flexDirection: 'row',

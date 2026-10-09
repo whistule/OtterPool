@@ -24,7 +24,9 @@ type SignupStatusInfo = {
 };
 
 export const SIGNUP_STATUS: Record<SignupStatus, SignupStatusInfo> = {
-  confirmed: { label: '✅ Confirmed', shortLabel: 'Confirmed', color: OtterPalette.forest },
+  // A true "green light" next to the orange pending states; still passes AA
+  // (5.3:1) with white text. Forest read as near-black at pill size.
+  confirmed: { label: '✅ Confirmed', shortLabel: '✓ Confirmed', color: '#1E7B34' },
   pending_payment: {
     label: '💳 Awaiting payment',
     shortLabel: 'Awaiting payment',

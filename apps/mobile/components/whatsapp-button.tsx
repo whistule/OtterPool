@@ -1,7 +1,8 @@
 import { Image, Linking, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 
-// WhatsApp's dark teal-green: white text on its brighter brand green fails contrast.
-const WHATSAPP_GREEN = '#075E54';
+// WhatsApp teal, darkened just enough for white text to pass AA (4.8:1) —
+// their brand #128C7E falls short (4.1:1).
+const WHATSAPP_GREEN = '#0F8073';
 // White glyph from Simple Icons (CC0), per WhatsApp's guidelines for links to a chat.
 const WHATSAPP_GLYPH = require('@/assets/images/whatsapp.png');
 
@@ -53,7 +54,8 @@ const styles = StyleSheet.create({
   },
   btnCompact: {
     gap: 6,
-    paddingVertical: 6,
+    height: 30,
+    paddingVertical: 0,
     paddingHorizontal: 12,
     borderRadius: 999,
   },
