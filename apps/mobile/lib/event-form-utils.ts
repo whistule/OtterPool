@@ -423,7 +423,7 @@ export function categoryChip(name: string): { label: string; color: string } {
   return kw ? kw.chip : { label: name, color: OtterPalette.slateNavy };
 }
 
-export function gradeOptionsFor(category: Category | null): readonly string[] | null {
+export function gradeOptionsFor(category: Pick<Category, 'name'> | null): readonly string[] | null {
   if (!category) {
     return null;
   }

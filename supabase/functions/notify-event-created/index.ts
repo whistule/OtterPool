@@ -1,9 +1,12 @@
 // Pushes a new-event notice to everyone subscribed to the event's category.
 // Invoked fire-and-forget from the client right after an event row is inserted.
 // Subscribers are profiles whose `notify_category_ids` contains the event's
-// category id, who meet the minimum level, and who aren't the leader.
+// category id, who meet the minimum level, and who aren't the leader. If they
+// picked grades for that category (`notify_grade_filters`), the trip's grade
+// has to be one of them.
 
 import { corsHeaders } from '../_shared/cors.ts';
+import { wantsGrade } from '../_shared/grade-filter.ts';
 import { createClients } from '../_shared/supabase.ts';
 import { ok, err } from '../_shared/response.ts';
 import { meetsLevel } from '../_shared/progression.ts';
@@ -28,7 +31,7 @@ Deno.serve(async (req) => {
 
     const { data: event } = await admin
       .from('events')
-      .select('id, title, category_id, min_level, leader_id, status')
+      .select('id, title, category_id, grade_advertised, min_level, leader_id, status')
       .eq('id', event_id)
       .maybeSingle();
 
@@ -47,12 +50,13 @@ Deno.serve(async (req) => {
 
     const { data: subscribers } = await admin
       .from('profiles')
-      .select('id, level')
+      .select('id, level, notify_grade_filters')
       .contains('notify_category_ids', [event.category_id])
       .neq('id', event.leader_id);
 
     const eligibleIds = (subscribers ?? [])
       .filter((p) => meetsLevel(p.level, event.min_level))
+      .filter((p) => wantsGrade(p.notify_grade_filters, event.category_id, event.grade_advertised))
       .map((p) => p.id);
 
     if (eligibleIds.length > 0) {
